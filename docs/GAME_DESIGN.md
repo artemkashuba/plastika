@@ -10,6 +10,12 @@ Players defend strategic positions using towers while waves of enemy toys attemp
 
 ### Towers
 
+Tower placement will use fixed circular build spots.
+
+Early prototype build spots are toy bases around the enemy path. Players can tap an empty build spot to place one placeholder tower on it.
+
+Placed placeholder towers do not support selection, upgrades, selling, range indicators, projectiles, combat, enemy HP interaction, or economy yet.
+
 1. Rifle Tower
    - Fast attack speed
    - Low damage

@@ -21,30 +21,27 @@ final class PlaceholderEnemy: GameEntity {
         node.removeAction(forKey: movementActionKey)
     }
 
-    func startMoving(along path: GamePath) {
+    func startMoving(along path: GamePath, completion: @escaping @MainActor () -> Void) {
         reset()
 
         guard let firstPoint = path.startPoint, path.waypoints.count > 1 else {
+            completion()
             return
         }
 
         node.position = firstPoint
+        node.isHidden = false
 
         let movementActions = zip(path.waypoints, path.waypoints.dropFirst()).map { start, end in
             let duration = TimeInterval(start.distance(to: end) / path.movementSpeed)
             return SKAction.move(to: end, duration: duration)
         }
 
-        let resetToStart = SKAction.run { [weak self] in
-            self?.node.position = firstPoint
+        let finish = SKAction.run {
+            completion()
         }
 
-        let loop = SKAction.sequence(movementActions + [
-            SKAction.wait(forDuration: 0.35),
-            resetToStart
-        ])
-
-        node.run(SKAction.repeatForever(loop), withKey: movementActionKey)
+        node.run(SKAction.sequence(movementActions + [finish]), withKey: movementActionKey)
     }
 }
 

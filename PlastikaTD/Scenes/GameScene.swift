@@ -39,9 +39,11 @@ final class GameScene: SKScene {
         systems.pathManager.resetForNewScene()
         systems.waveManager.resetForNewScene()
         systems.enemyManager.resetForNewScene()
+        systems.buildSpotManager.resetForNewScene()
         systems.towerManager.resetForNewScene()
         systems.projectileManager.resetForNewScene()
         systems.economyManager.resetForNewScene()
+        systems.uiManager.resetForNewScene()
     }
 
     private func buildPlaceholderScene() {
@@ -51,27 +53,40 @@ final class GameScene: SKScene {
         table.lineWidth = 4
         table.position = CGPoint(x: size.width / 2, y: size.height / 2)
         addChild(table)
-
-        let title = SKLabelNode(fontNamed: "AvenirNext-Bold")
-        title.text = "Plastika TD"
-        title.fontSize = 34
-        title.fontColor = .white
-        title.position = CGPoint(x: size.width / 2, y: size.height / 2 + 24)
-        addChild(title)
-
-        let subtitle = SKLabelNode(fontNamed: "AvenirNext-Medium")
-        subtitle.text = "SpriteKit shell"
-        subtitle.fontSize = 18
-        subtitle.fontColor = SKColor(white: 1.0, alpha: 0.75)
-        subtitle.position = CGPoint(x: size.width / 2, y: size.height / 2 - 18)
-        addChild(subtitle)
     }
 
     private func buildGameplaySlice() {
         addChild(systems.pathManager.makeDebugPathNode())
-        systems.enemyManager.showSinglePlaceholderEnemy(
+        addChild(systems.buildSpotManager.makeBuildSpotLayer())
+        systems.waveManager.startPrototypeWave(
             in: self,
-            path: systems.pathManager.activePath
+            path: systems.pathManager.activePath,
+            enemyManager: systems.enemyManager
         )
+    }
+
+    override func update(_ currentTime: TimeInterval) {
+        super.update(currentTime)
+        systems.uiManager.update(activeEnemyCount: systems.enemyManager.activeEnemyCount)
+    }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+
+        guard let touch = touches.first else {
+            return
+        }
+
+        let location = touch.location(in: self)
+
+        guard let buildSpot = systems.buildSpotManager.emptyBuildSpot(containing: location) else {
+            return
+        }
+
+        let didPlaceTower = systems.towerManager.placePlaceholderTower(on: buildSpot, in: self)
+
+        if didPlaceTower {
+            systems.buildSpotManager.markOccupied(buildSpot)
+        }
     }
 }
