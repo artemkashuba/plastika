@@ -54,6 +54,14 @@ Base health reaches zero.
 - Plastic toy appearance
 - Clean silhouettes
 - Easy readability
+- Tabletop battlefield presentation
+
+## Tone
+
+- Playful
+- Family-friendly
+- Cartoonish
+- Humorous without referencing real wars or politics
 
 ## Monetization
 
