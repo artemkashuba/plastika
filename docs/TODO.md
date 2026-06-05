@@ -21,7 +21,9 @@
 - [x] Create initial game state management
 - [x] Create enemy movement system
 - [x] Create path system
-- [ ] Create wave spawning system
+- [x] Create wave spawning system
+- [x] Add visual-only tower build spots
+- [x] Add prototype debug HUD
 - [ ] Create tower placement system
 - [ ] Create projectile system
 - [ ] Create combat system

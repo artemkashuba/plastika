@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 60;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -25,6 +25,7 @@
 		1A0000102C12400100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000102C12400000000001 /* Assets.xcassets */; };
 		1A0000262C12400100000001 /* PathManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000262C12400000000001 /* PathManager.swift */; };
 		1A0000272C12400100000001 /* PlaceholderEnemy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000272C12400000000001 /* PlaceholderEnemy.swift */; };
+		1A0000282C12400100000001 /* BuildSpotManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000282C12400000000001 /* BuildSpotManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +48,7 @@
 		1A0000112C12400000000001 /* PlastikaTD.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlastikaTD.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000262C12400000000001 /* PathManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathManager.swift; sourceTree = "<group>"; };
 		1A0000272C12400000000001 /* PlaceholderEnemy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderEnemy.swift; sourceTree = "<group>"; };
+		1A0000282C12400000000001 /* BuildSpotManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSpotManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -68,14 +70,6 @@
 			);
 			sourceTree = "<group>";
 		};
-		1A0000152C12400000000001 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				1A0000112C12400000000001 /* PlastikaTD.app */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
 		1A0000142C12400000000001 /* PlastikaTD */ = {
 			isa = PBXGroup;
 			children = (
@@ -87,6 +81,14 @@
 				1A00001B2C12400000000001 /* Scenes */,
 			);
 			path = PlastikaTD;
+			sourceTree = "<group>";
+		};
+		1A0000152C12400000000001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000112C12400000000001 /* PlastikaTD.app */,
+			);
+			name = Products;
 			sourceTree = "<group>";
 		};
 		1A0000162C12400000000001 /* Core */ = {
@@ -108,6 +110,7 @@
 				1A0000262C12400000000001 /* PathManager.swift */,
 				1A0000072C12400000000001 /* WaveManager.swift */,
 				1A0000082C12400000000001 /* EnemyManager.swift */,
+				1A0000282C12400000000001 /* BuildSpotManager.swift */,
 				1A0000092C12400000000001 /* TowerManager.swift */,
 				1A00000A2C12400000000001 /* ProjectileManager.swift */,
 				1A00000B2C12400000000001 /* EconomyManager.swift */,
@@ -227,6 +230,7 @@
 				1A0000262C12400100000001 /* PathManager.swift in Sources */,
 				1A0000072C12400100000001 /* WaveManager.swift in Sources */,
 				1A0000082C12400100000001 /* EnemyManager.swift in Sources */,
+				1A0000282C12400100000001 /* BuildSpotManager.swift in Sources */,
 				1A0000092C12400100000001 /* TowerManager.swift in Sources */,
 				1A00000A2C12400100000001 /* ProjectileManager.swift in Sources */,
 				1A00000B2C12400100000001 /* EconomyManager.swift in Sources */,
@@ -363,7 +367,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 49B7J6QKHG;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Plastika TD";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -392,7 +396,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 49B7J6QKHG;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Plastika TD";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -417,20 +421,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1A0000212C12400000000001 /* Build configuration list for PBXProject "PlastikaTD" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				1A0000222C12400000000001 /* Debug */,
-				1A0000232C12400000000001 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		1A00001D2C12400000000001 /* Build configuration list for PBXNativeTarget "PlastikaTD" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				1A0000242C12400000000001 /* Debug */,
 				1A0000252C12400000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A0000212C12400000000001 /* Build configuration list for PBXProject "PlastikaTD" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000222C12400000000001 /* Debug */,
+				1A0000232C12400000000001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

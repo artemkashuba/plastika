@@ -2,7 +2,7 @@
 
 ## Current Status
 
-First gameplay slice is complete.
+Battlefield visual prototype slice is complete.
 
 The repository now has:
 
@@ -13,11 +13,15 @@ The repository now has:
 - A `GameScene` that loads a simple tabletop placeholder view
 - Placeholder managers for the documented systems
 - A `PathManager` with a hardcoded waypoint path
-- One placeholder enemy shape moving smoothly along that path
+- A `WaveManager` that spawns a finite prototype wave
+- Multiple pooled placeholder enemies moving along the path and disappearing at the end
+- Five visual-only circular build spots around the path
+- A small debug HUD showing wave and active enemy count
+- No center branding text inside the battlefield
 
 ## Next Task
 
-Add the next prototype slice: introduce a minimal wave spawning flow that can create the existing placeholder enemy from the path start.
+Add the next prototype slice: introduce minimal tower placement interaction without projectiles, combat, or economy.
 
 Before starting, review the documentation workflow in `docs/AGENTS.md`.
 
@@ -27,7 +31,7 @@ Reach first playable prototype with:
 
 - One map
 - One enemy type moving along a path
-- One tower type
+- Visual build spots ready for one tower type
 - One wave
 
 ## Blockers

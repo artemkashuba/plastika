@@ -83,3 +83,39 @@ Reason:
 - Smooth waypoint movement does not need physics simulation
 - Avoids unnecessary per-frame logic for the first slice
 - Reuses a single enemy node instead of creating and destroying nodes repeatedly
+
+Decision:
+Use finite prototype wave data in `WaveManager`.
+
+Reason:
+
+- Keeps spawn count and spawn cadence explicit
+- Replaces the temporary single looping enemy with a real wave slice
+- Lets `GameScene` stay thin by delegating spawn timing to a manager
+
+Decision:
+Use a lightweight placeholder enemy pool in `EnemyManager`.
+
+Reason:
+
+- Avoids repeated node creation during gameplay
+- Gives `EnemyManager` ownership of active and reusable enemies
+- Keeps enemy removal and reuse separate from `GameScene`
+
+Decision:
+Use `BuildSpotManager` for visual-only fixed build spots.
+
+Reason:
+
+- Keeps static battlefield placement visuals out of `GameScene`
+- Preserves the fixed build spot decision without adding tower gameplay yet
+- Allows build spot nodes to be created once per scene instead of during updates
+
+Decision:
+Use `UIManager` for the small prototype debug HUD.
+
+Reason:
+
+- Keeps HUD node ownership separate from scene setup
+- Allows `GameScene` to provide only lightweight state values
+- Avoids placing large explanatory text in the battlefield center

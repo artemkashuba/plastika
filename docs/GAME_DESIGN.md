@@ -10,6 +10,10 @@ Players defend strategic positions using towers while waves of enemy toys attemp
 
 ### Towers
 
+Tower placement will use fixed circular build spots.
+
+Early prototype build spots are visual-only toy bases around the enemy path. They do not support tapping, tower selection, range indicators, projectiles, or combat yet.
+
 1. Rifle Tower
    - Fast attack speed
    - Low damage
