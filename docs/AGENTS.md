@@ -6,8 +6,6 @@ Plastika TD is a 2D tower defense game for iOS built with Swift and SpriteKit.
 
 The game takes place in the world of Plastika, where toy armies wage cartoonish wars on tabletop battlefields.
 
----
-
 ## Mission
 
 Build a polished, performant, and commercially viable tower defense game for iOS.
@@ -23,8 +21,6 @@ Priorities:
 Do not sacrifice gameplay for architecture perfection.
 
 Shipping a playable game is more important than building a perfect system.
-
----
 
 ## Technology
 
@@ -42,8 +38,6 @@ Target:
 - Native Apple experience
 
 Avoid introducing unnecessary dependencies.
-
----
 
 ## Project Philosophy
 
@@ -63,8 +57,6 @@ Avoid:
 
 When in doubt, choose the simpler solution.
 
----
-
 ## Theme
 
 The game is a humorous toy-soldier tower defense.
@@ -83,8 +75,6 @@ Avoid:
 - Graphic violence
 
 The game should feel like toys fighting on a tabletop battlefield.
-
----
 
 ## Performance Rules
 
@@ -106,8 +96,6 @@ Avoid:
 
 Target stable 60 FPS during combat.
 
----
-
 ## Architecture
 
 Primary systems:
@@ -125,11 +113,11 @@ Game logic should remain separate from UI whenever practical.
 
 Favor composition over inheritance.
 
----
-
 ## Documentation Is Mandatory
 
 Documentation is considered part of the codebase.
+
+The `docs/` directory is the source of truth for the project.
 
 Documentation must remain synchronized with the implementation.
 
@@ -140,23 +128,20 @@ If code and documentation disagree:
 
 Never leave documentation outdated.
 
----
-
 ## Documentation Workflow
 
-Before starting work:
+Before starting implementation work, review:
 
-Review:
+- `docs/AGENTS.md`
+- `docs/GAME_DESIGN.md`
+- `docs/ROADMAP.md`
+- `docs/TODO.md`
+- `docs/CURRENT_TASK.md`
+- `docs/DECISIONS.md`
 
-- docs/GAME_DESIGN.md
-- docs/ROADMAP.md
-- docs/TODO.md
-- docs/CURRENT_TASK.md
-- docs/DECISIONS.md
+Before writing code, update documentation if the planned work changes scope, design, architecture, task priority, or a prior decision.
 
-After completing work:
-
-Update all affected files.
+After completing work, update all affected documentation files.
 
 ### TODO.md
 
@@ -208,19 +193,16 @@ Update whenever:
 - Milestones change
 - Features move between phases
 
----
-
 ## Definition Of Done
 
 A task is only complete when:
 
 - Implementation is finished
-- Project builds successfully
+- Project builds successfully, when a buildable project exists
 - Documentation is updated
-- TODO.md is updated
-- CURRENT_TASK.md is updated
-
----
+- `docs/TODO.md` is updated
+- `docs/CURRENT_TASK.md` is updated
+- Relevant decisions are recorded in `docs/DECISIONS.md`
 
 ## Development Approach
 
