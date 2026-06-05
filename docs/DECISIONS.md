@@ -65,3 +65,21 @@ Reason:
 - The current scope is scene loading and game state management
 - SpriteKit gameplay logic does not benefit from MVVM yet
 - Simpler structure supports faster prototype iteration
+
+Decision:
+Use a `PathManager` with hardcoded `CGPoint` waypoints for the first gameplay slice.
+
+Reason:
+
+- Keeps the first path visible and easy to tune
+- Avoids map data parsing before the prototype needs it
+- Gives future movement and wave systems a clear source for route data
+
+Decision:
+Move the placeholder enemy with SpriteKit actions instead of physics.
+
+Reason:
+
+- Smooth waypoint movement does not need physics simulation
+- Avoids unnecessary per-frame logic for the first slice
+- Reuses a single enemy node instead of creating and destroying nodes repeatedly

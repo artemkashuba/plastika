@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Initial SpriteKit project structure is complete.
+First gameplay slice is complete.
 
 The repository now has:
 
@@ -10,12 +10,14 @@ The repository now has:
 - A root `README.md`
 - An iOS 17+ Xcode project
 - A SwiftUI app entry point hosting SpriteKit through `SpriteView`
-- A placeholder `GameScene`
+- A `GameScene` that loads a simple tabletop placeholder view
 - Placeholder managers for the documented systems
+- A `PathManager` with a hardcoded waypoint path
+- One placeholder enemy shape moving smoothly along that path
 
 ## Next Task
 
-Start the first playable prototype slice by defining the initial map/path representation and enemy movement approach.
+Add the next prototype slice: introduce a minimal wave spawning flow that can create the existing placeholder enemy from the path start.
 
 Before starting, review the documentation workflow in `docs/AGENTS.md`.
 
@@ -24,7 +26,7 @@ Before starting, review the documentation workflow in `docs/AGENTS.md`.
 Reach first playable prototype with:
 
 - One map
-- One enemy type
+- One enemy type moving along a path
 - One tower type
 - One wave
 

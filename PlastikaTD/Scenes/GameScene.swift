@@ -30,11 +30,13 @@ final class GameScene: SKScene {
         view.preferredFramesPerSecond = configuration.preferredFramesPerSecond
         resetPlaceholderSystems()
         buildPlaceholderScene()
+        buildGameplaySlice()
         systems.uiManager.configureOverlay(in: self)
         systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
     }
 
     private func resetPlaceholderSystems() {
+        systems.pathManager.resetForNewScene()
         systems.waveManager.resetForNewScene()
         systems.enemyManager.resetForNewScene()
         systems.towerManager.resetForNewScene()
@@ -63,5 +65,13 @@ final class GameScene: SKScene {
         subtitle.fontColor = SKColor(white: 1.0, alpha: 0.75)
         subtitle.position = CGPoint(x: size.width / 2, y: size.height / 2 - 18)
         addChild(subtitle)
+    }
+
+    private func buildGameplaySlice() {
+        addChild(systems.pathManager.makeDebugPathNode())
+        systems.enemyManager.showSinglePlaceholderEnemy(
+            in: self,
+            path: systems.pathManager.activePath
+        )
     }
 }

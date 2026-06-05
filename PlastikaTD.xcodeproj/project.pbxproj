@@ -23,6 +23,8 @@
 		1A00000E2C12400100000001 /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000E2C12400000000001 /* GameView.swift */; };
 		1A00000F2C12400100000001 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000F2C12400000000001 /* GameScene.swift */; };
 		1A0000102C12400100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000102C12400000000001 /* Assets.xcassets */; };
+		1A0000262C12400100000001 /* PathManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000262C12400000000001 /* PathManager.swift */; };
+		1A0000272C12400100000001 /* PlaceholderEnemy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000272C12400000000001 /* PlaceholderEnemy.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -43,6 +45,8 @@
 		1A00000F2C12400000000001 /* GameScene.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
 		1A0000102C12400000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A0000112C12400000000001 /* PlastikaTD.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlastikaTD.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A0000262C12400000000001 /* PathManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathManager.swift; sourceTree = "<group>"; };
+		1A0000272C12400000000001 /* PlaceholderEnemy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderEnemy.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +105,7 @@
 			children = (
 				1A0000052C12400000000001 /* GameStateManager.swift */,
 				1A0000062C12400000000001 /* SceneManager.swift */,
+				1A0000262C12400000000001 /* PathManager.swift */,
 				1A0000072C12400000000001 /* WaveManager.swift */,
 				1A0000082C12400000000001 /* EnemyManager.swift */,
 				1A0000092C12400000000001 /* TowerManager.swift */,
@@ -115,6 +120,7 @@
 			isa = PBXGroup;
 			children = (
 				1A00000D2C12400000000001 /* GameEntity.swift */,
+				1A0000272C12400000000001 /* PlaceholderEnemy.swift */,
 			);
 			path = Entities;
 			sourceTree = "<group>";
@@ -218,6 +224,7 @@
 				1A0000042C12400100000001 /* GameSystems.swift in Sources */,
 				1A0000052C12400100000001 /* GameStateManager.swift in Sources */,
 				1A0000062C12400100000001 /* SceneManager.swift in Sources */,
+				1A0000262C12400100000001 /* PathManager.swift in Sources */,
 				1A0000072C12400100000001 /* WaveManager.swift in Sources */,
 				1A0000082C12400100000001 /* EnemyManager.swift in Sources */,
 				1A0000092C12400100000001 /* TowerManager.swift in Sources */,
@@ -225,6 +232,7 @@
 				1A00000B2C12400100000001 /* EconomyManager.swift in Sources */,
 				1A00000C2C12400100000001 /* UIManager.swift in Sources */,
 				1A00000D2C12400100000001 /* GameEntity.swift in Sources */,
+				1A0000272C12400100000001 /* PlaceholderEnemy.swift in Sources */,
 				1A00000E2C12400100000001 /* GameView.swift in Sources */,
 				1A00000F2C12400100000001 /* GameScene.swift in Sources */,
 			);

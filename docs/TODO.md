@@ -19,8 +19,8 @@
 - [x] Create GameScene
 - [x] Create initial scene loading flow
 - [x] Create initial game state management
-- [ ] Create enemy movement system
-- [ ] Create path system
+- [x] Create enemy movement system
+- [x] Create path system
 - [ ] Create wave spawning system
 - [ ] Create tower placement system
 - [ ] Create projectile system
