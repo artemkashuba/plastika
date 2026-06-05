@@ -26,7 +26,19 @@
 		1A0000262C12400100000001 /* PathManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000262C12400000000001 /* PathManager.swift */; };
 		1A0000272C12400100000001 /* PlaceholderEnemy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000272C12400000000001 /* PlaceholderEnemy.swift */; };
 		1A0000282C12400100000001 /* BuildSpotManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000282C12400000000001 /* BuildSpotManager.swift */; };
+		1A0000292C12400100000001 /* PlaceholderTower.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000292C12400000000001 /* PlaceholderTower.swift */; };
+		1A00002A2C12400100000001 /* TowerPlacementUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00002A2C12400000000001 /* TowerPlacementUITests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1A00002B2C12400000000001 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1A0000202C12400000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1A00001C2C12400000000001;
+			remoteInfo = PlastikaTD;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		1A0000012C12400000000001 /* PlastikaTDApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlastikaTDApp.swift; sourceTree = "<group>"; };
@@ -49,10 +61,20 @@
 		1A0000262C12400000000001 /* PathManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathManager.swift; sourceTree = "<group>"; };
 		1A0000272C12400000000001 /* PlaceholderEnemy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderEnemy.swift; sourceTree = "<group>"; };
 		1A0000282C12400000000001 /* BuildSpotManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BuildSpotManager.swift; sourceTree = "<group>"; };
+		1A0000292C12400000000001 /* PlaceholderTower.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderTower.swift; sourceTree = "<group>"; };
+		1A00002A2C12400000000001 /* TowerPlacementUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TowerPlacementUITests.swift; sourceTree = "<group>"; };
+		1A00002C2C12400000000001 /* PlastikaTDUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PlastikaTDUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		1A0000122C12400000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A00002D2C12400000000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -66,6 +88,7 @@
 			isa = PBXGroup;
 			children = (
 				1A0000142C12400000000001 /* PlastikaTD */,
+				1A00002E2C12400000000001 /* PlastikaTDUITests */,
 				1A0000152C12400000000001 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -87,8 +110,17 @@
 			isa = PBXGroup;
 			children = (
 				1A0000112C12400000000001 /* PlastikaTD.app */,
+				1A00002C2C12400000000001 /* PlastikaTDUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		1A00002E2C12400000000001 /* PlastikaTDUITests */ = {
+			isa = PBXGroup;
+			children = (
+				1A00002A2C12400000000001 /* TowerPlacementUITests.swift */,
+			);
+			path = PlastikaTDUITests;
 			sourceTree = "<group>";
 		};
 		1A0000162C12400000000001 /* Core */ = {
@@ -124,6 +156,7 @@
 			children = (
 				1A00000D2C12400000000001 /* GameEntity.swift */,
 				1A0000272C12400000000001 /* PlaceholderEnemy.swift */,
+				1A0000292C12400000000001 /* PlaceholderTower.swift */,
 			);
 			path = Entities;
 			sourceTree = "<group>";
@@ -172,6 +205,24 @@
 			productReference = 1A0000112C12400000000001 /* PlastikaTD.app */;
 			productType = "com.apple.product-type.application";
 		};
+		1A00002F2C12400000000001 /* PlastikaTDUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1A0000302C12400000000001 /* Build configuration list for PBXNativeTarget "PlastikaTDUITests" */;
+			buildPhases = (
+				1A0000312C12400000000001 /* Sources */,
+				1A00002D2C12400000000001 /* Frameworks */,
+				1A0000322C12400000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1A0000332C12400000000001 /* PBXTargetDependency */,
+			);
+			name = PlastikaTDUITests;
+			productName = PlastikaTDUITests;
+			productReference = 1A00002C2C12400000000001 /* PlastikaTDUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -184,6 +235,10 @@
 				TargetAttributes = {
 					1A00001C2C12400000000001 = {
 						CreatedOnToolsVersion = 16.0;
+					};
+					1A00002F2C12400000000001 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = 1A00001C2C12400000000001;
 					};
 				};
 			};
@@ -201,6 +256,7 @@
 			projectRoot = "";
 			targets = (
 				1A00001C2C12400000000001 /* PlastikaTD */,
+				1A00002F2C12400000000001 /* PlastikaTDUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -211,6 +267,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A0000102C12400100000001 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1A0000322C12400000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -237,12 +300,29 @@
 				1A00000C2C12400100000001 /* UIManager.swift in Sources */,
 				1A00000D2C12400100000001 /* GameEntity.swift in Sources */,
 				1A0000272C12400100000001 /* PlaceholderEnemy.swift in Sources */,
+				1A0000292C12400100000001 /* PlaceholderTower.swift in Sources */,
 				1A00000E2C12400100000001 /* GameView.swift in Sources */,
 				1A00000F2C12400100000001 /* GameScene.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		1A0000312C12400000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1A00002A2C12400100000001 /* TowerPlacementUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1A0000332C12400000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1A00001C2C12400000000001 /* PlastikaTD */;
+			targetProxy = 1A00002B2C12400000000001 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1A0000222C12400000000001 /* Debug */ = {
@@ -418,6 +498,56 @@
 			};
 			name = Release;
 		};
+		1A0000342C12400000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 49B7J6QKHG;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.plastika.PlastikaTDUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = PlastikaTD;
+			};
+			name = Debug;
+		};
+		1A0000352C12400000000001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 49B7J6QKHG;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.plastika.PlastikaTDUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = PlastikaTD;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -435,6 +565,15 @@
 			buildConfigurations = (
 				1A0000222C12400000000001 /* Debug */,
 				1A0000232C12400000000001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1A0000302C12400000000001 /* Build configuration list for PBXNativeTarget "PlastikaTDUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A0000342C12400000000001 /* Debug */,
+				1A0000352C12400000000001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

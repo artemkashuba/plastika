@@ -2,24 +2,28 @@ import CoreGraphics
 import SpriteKit
 
 struct BuildSpot {
+    let id: Int
     let position: CGPoint
 }
 
 @MainActor
 final class BuildSpotManager {
     private let buildSpots = [
-        BuildSpot(position: CGPoint(x: 300, y: 185)),
-        BuildSpot(position: CGPoint(x: 66, y: 280)),
-        BuildSpot(position: CGPoint(x: 292, y: 352)),
-        BuildSpot(position: CGPoint(x: 82, y: 530)),
-        BuildSpot(position: CGPoint(x: 292, y: 620))
+        BuildSpot(id: 0, position: CGPoint(x: 300, y: 185)),
+        BuildSpot(id: 1, position: CGPoint(x: 66, y: 280)),
+        BuildSpot(id: 2, position: CGPoint(x: 292, y: 352)),
+        BuildSpot(id: 3, position: CGPoint(x: 82, y: 530)),
+        BuildSpot(id: 4, position: CGPoint(x: 292, y: 620))
     ]
 
+    private let tapRadius: CGFloat = 30
     private var buildSpotLayer: SKNode?
+    private var occupiedBuildSpotIDs: Set<Int> = []
 
     func resetForNewScene() {
         buildSpotLayer?.removeFromParent()
         buildSpotLayer = nil
+        occupiedBuildSpotIDs.removeAll(keepingCapacity: true)
     }
 
     func makeBuildSpotLayer() -> SKNode {
@@ -37,6 +41,17 @@ final class BuildSpotManager {
 
         buildSpotLayer = layer
         return layer
+    }
+
+    func emptyBuildSpot(containing point: CGPoint) -> BuildSpot? {
+        buildSpots.first { buildSpot in
+            occupiedBuildSpotIDs.contains(buildSpot.id) == false
+                && buildSpot.position.distance(to: point) <= tapRadius
+        }
+    }
+
+    func markOccupied(_ buildSpot: BuildSpot) {
+        occupiedBuildSpotIDs.insert(buildSpot.id)
     }
 
     private func makeBuildSpotNode(at position: CGPoint) -> SKNode {
@@ -66,5 +81,13 @@ final class BuildSpotManager {
         root.addChild(inset)
 
         return root
+    }
+}
+
+private extension CGPoint {
+    func distance(to point: CGPoint) -> CGFloat {
+        let dx = x - point.x
+        let dy = y - point.y
+        return sqrt(dx * dx + dy * dy)
     }
 }

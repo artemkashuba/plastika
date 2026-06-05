@@ -69,4 +69,24 @@ final class GameScene: SKScene {
         super.update(currentTime)
         systems.uiManager.update(activeEnemyCount: systems.enemyManager.activeEnemyCount)
     }
+
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+
+        guard let touch = touches.first else {
+            return
+        }
+
+        let location = touch.location(in: self)
+
+        guard let buildSpot = systems.buildSpotManager.emptyBuildSpot(containing: location) else {
+            return
+        }
+
+        let didPlaceTower = systems.towerManager.placePlaceholderTower(on: buildSpot, in: self)
+
+        if didPlaceTower {
+            systems.buildSpotManager.markOccupied(buildSpot)
+        }
+    }
 }

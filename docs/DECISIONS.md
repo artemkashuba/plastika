@@ -119,3 +119,30 @@ Reason:
 - Keeps HUD node ownership separate from scene setup
 - Allows `GameScene` to provide only lightweight state values
 - Avoids placing large explanatory text in the battlefield center
+
+Decision:
+Use `BuildSpotManager` for build spot hit testing and occupancy tracking.
+
+Reason:
+
+- Keeps fixed build spot state close to the build spot data
+- Lets `GameScene` route tap input without owning placement rules
+- Prevents duplicate tower placement on the same build spot before economy exists
+
+Decision:
+Use `TowerManager` to place placeholder tower nodes keyed by build spot id.
+
+Reason:
+
+- Keeps tower node ownership separate from build spot rendering
+- Gives the first tower placement slice a clean upgrade path toward combat later
+- Avoids adding selection, economy, range, or projectile behavior before the prototype needs it
+
+Decision:
+Use a narrow UI test for tower placement verification.
+
+Reason:
+
+- Verifies the real tap path without adding debug-only gameplay hooks
+- Confirms placeholder tower pixels appear after the first tap
+- Confirms a repeated tap on the same build spot does not create another visible tower
