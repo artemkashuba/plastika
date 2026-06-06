@@ -2,6 +2,8 @@ import SpriteKit
 
 @MainActor
 final class EnemyManager {
+    var onEnemyReachedEnd: (@MainActor () -> Void)?
+
     private var activeEnemies: [PlaceholderEnemy] = []
     private var pooledEnemies: [PlaceholderEnemy] = []
 
@@ -17,6 +19,7 @@ final class EnemyManager {
 
         activeEnemies.removeAll(keepingCapacity: true)
         pooledEnemies.removeAll(keepingCapacity: true)
+        onEnemyReachedEnd = nil
     }
 
     func preparePool(capacity: Int) {
@@ -46,7 +49,58 @@ final class EnemyManager {
             }
 
             self.recycle(enemy)
+            self.onEnemyReachedEnd?()
         }
+    }
+
+    func nearestEnemy(to point: CGPoint, within range: CGFloat) -> PlaceholderEnemy? {
+        activeEnemies
+            .filter(\.isAlive)
+            .filter { enemy in
+                enemy.node.position.distance(to: point) <= range
+            }
+            .min { first, second in
+                first.node.position.distance(to: point) < second.node.position.distance(to: point)
+            }
+    }
+
+    func isValidTarget(_ enemy: PlaceholderEnemy, lifeID: Int, from point: CGPoint, within range: CGFloat) -> Bool {
+        isActiveLife(enemy, lifeID: lifeID)
+            && enemy.node.position.distance(to: point) <= range
+    }
+
+    @discardableResult
+    func applyDamage(_ damage: Int, to enemy: PlaceholderEnemy) -> Bool {
+        guard isActiveLife(enemy, lifeID: enemy.lifeID) else {
+            return false
+        }
+
+        if enemy.takeDamage(damage) {
+            recycle(enemy)
+            return true
+        }
+
+        return false
+    }
+
+    @discardableResult
+    func applyDamage(_ damage: Int, to enemy: PlaceholderEnemy, matchingLifeID lifeID: Int) -> Bool {
+        guard isActiveLife(enemy, lifeID: lifeID) else {
+            return false
+        }
+
+        if enemy.takeDamage(damage) {
+            recycle(enemy)
+            return true
+        }
+
+        return false
+    }
+
+    private func isActiveLife(_ enemy: PlaceholderEnemy, lifeID: Int) -> Bool {
+        activeEnemies.contains { $0 === enemy }
+            && enemy.lifeID == lifeID
+            && enemy.isAlive
     }
 
     private func recycle(_ enemy: PlaceholderEnemy) {
@@ -55,5 +109,13 @@ final class EnemyManager {
 
         activeEnemies.removeAll { $0 === enemy }
         pooledEnemies.append(enemy)
+    }
+}
+
+private extension CGPoint {
+    func distance(to point: CGPoint) -> CGFloat {
+        let dx = x - point.x
+        let dy = y - point.y
+        return sqrt(dx * dx + dy * dy)
     }
 }

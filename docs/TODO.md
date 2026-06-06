@@ -26,10 +26,20 @@
 - [x] Add prototype debug HUD
 - [x] Create tower placement system
 - [x] Add UI verification for tower placement interaction
-- [ ] Create projectile system
-- [ ] Create combat system
-- [ ] Create economy system
-- [ ] Create win/lose conditions
+- [x] Create projectile system
+- [x] Create combat system
+- [x] Add UI verification for first combat loop
+- [x] Add tower selection and range visualization
+- [x] Add UI verification for tower selection, switching, and deselecting
+- [x] Add stable tower target locking
+- [x] Add visible turret/barrel aiming toward locked targets
+- [x] Add UI verification for placeholder tower barrel aiming
+- [x] Add tower type selection menu for empty build spots
+- [x] Add Red, Green, and Blue prototype tower types
+- [x] Add type-specific direct and homing projectile behavior
+- [x] Add UI verification for build menu movement, hiding, and typed tower placement
+- [x] Create economy system
+- [x] Create win/lose conditions
 
 ## Phase 2 - Vertical Slice
 

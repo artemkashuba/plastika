@@ -146,3 +146,253 @@ Reason:
 - Verifies the real tap path without adding debug-only gameplay hooks
 - Confirms placeholder tower pixels appear after the first tap
 - Confirms a repeated tap on the same build spot does not create another visible tower
+
+## 2026-06-06
+
+Decision:
+Use `TowerManager` for the first combat tick.
+
+Reason:
+
+- Keeps `GameScene` thin by making it call one manager update method
+- Keeps tower cooldown, range, and targeting behavior close to placed tower state
+- Allows future tower behavior to expand without moving combat logic into scene code
+
+Decision:
+Use nearest-enemy targeting within an internal placeholder range.
+
+Reason:
+
+- Simple enough for the first combat slice
+- Easy to verify visually
+- Avoids adding range indicators, targeting modes, or tower type complexity early
+
+Decision:
+Use `ProjectileManager` for pooled placeholder projectile travel.
+
+Reason:
+
+- Keeps projectile node ownership and reuse separate from towers
+- Avoids SpriteKit physics for the first combat loop
+- Lets projectiles remain visible placeholder feedback without adding collision systems yet
+
+Decision:
+Use `EnemyManager` for basic HP damage, death, removal, and recycling.
+
+Reason:
+
+- Enemy lifecycle already belongs to `EnemyManager`
+- Prevents towers or projectiles from mutating active enemy tracking directly
+- Keeps one-hit prototype enemy death simple and leak-resistant
+
+Decision:
+Use a UI test for the first combat loop.
+
+Reason:
+
+- Exercises the real tap-to-place path
+- Confirms placeholder projectile pixels appear after tower placement
+- Confirms enemy pixels disappear after the tower has time to attack the wave
+
+Decision:
+Extend `TowerManager` for tower selection and range visualization instead of adding a separate manager.
+
+Reason:
+
+- Selection state is currently tied to placed tower ownership and attack range
+- Keeps `GameScene` thin by routing taps through the existing tower boundary
+- Avoids a new abstraction before upgrades, selling, or tower menus exist
+
+Decision:
+Reuse one `SKShapeNode` range indicator for the selected tower.
+
+Reason:
+
+- Visualizes the actual placeholder attack range without duplicating range constants
+- Avoids repeatedly allocating range nodes during selection switching
+- Keeps the indicator lightweight with a thin translucent white outline
+
+Decision:
+Let `PlaceholderTower` own its selected visual treatment.
+
+Reason:
+
+- Keeps highlight rendering close to the tower node hierarchy
+- Allows `TowerManager` to manage selection state without micromanaging child nodes
+- Supports smooth 0.18 second scale animation and a thin white selection ring
+
+Decision:
+Add UI verification for selection, switching, and deselection.
+
+Reason:
+
+- Confirms tapping a placed tower shows a range indicator and highlight
+- Confirms tapping another placed tower moves selection and range
+- Confirms tapping empty battlefield clears the selection without breaking placement or combat tests
+
+Decision:
+Store tower target locks in `TowerManager` by build spot id.
+
+Reason:
+
+- Tower ownership, attack range, cooldowns, and target selection already live in `TowerManager`
+- Keeps `GameScene` unchanged and thin
+- Prevents towers from switching targets while a locked target remains alive, in range, and tracked
+
+Decision:
+Validate target locks with enemy life ids managed by `EnemyManager`.
+
+Reason:
+
+- Enemy nodes are pooled and can be recycled
+- A life id prevents a recycled enemy object from being treated as the same target life
+- Damage application can safely ignore projectile impacts against stale targets
+
+Decision:
+Fire projectiles at a captured target position instead of a live enemy node.
+
+Reason:
+
+- Each shot travels in a straight line toward the target position at fire time
+- Projectile pooling remains unchanged
+- Target validity and damage remain under `EnemyManager`
+
+Decision:
+Rotate only the placeholder tower turret/barrel node for aiming.
+
+Reason:
+
+- Makes aiming visually clear without rotating the tower base or selection ring
+- Keeps placeholder art lightweight
+- Avoids adding final art, physics, or extra tower systems during the prototype
+
+Decision:
+Use `TowerType` as the single model for prototype tower identity and tuning.
+
+Reason:
+
+- Keeps each tower's color, attack cooldown, projectile speed, and projectile behavior together
+- Lets `TowerManager` create typed towers without branching across scene input code
+- Gives Red, Green, and Blue towers a small, explicit upgrade path for future balancing
+
+Decision:
+Let `BuildSpotManager` own the lightweight tower build menu.
+
+Reason:
+
+- Build spot hit testing, active empty spot state, and occupancy already live in `BuildSpotManager`
+- Reusing one menu node avoids unnecessary allocation while tapping between spots
+- `GameScene` can keep routing taps without owning menu layout or placement rules
+
+Decision:
+Support direct and homing projectile behaviors in `ProjectileManager` while keeping projectile nodes pooled.
+
+Reason:
+
+- Red and Blue towers can fire direct projectiles with their own speeds
+- Green towers can follow a valid locked target without adding physics
+- Projectile ownership, reuse, and cleanup remain separate from tower and enemy managers
+
+Decision:
+Leave Blue tower predictive aiming as a documented future TODO.
+
+Reason:
+- Predictive aiming depends on enemy speed, lead tuning, and broader combat balance
+- The current slice only needs Blue to be a slow direct projectile tower
+- Deferring it keeps this implementation scoped to the tower type menu and first typed behavior pass
+
+## 2026-06-06 (Economy)
+
+Decision:
+Set all prototype tower costs to 50 coins and all kill rewards to 10 coins, with 150 starting coins.
+
+Reason:
+- Uniform cost keeps the prototype simple and easy to balance later
+- 150 coins allows exactly 3 towers before the player must earn more
+- 10 coins per kill means 5 kills recover one tower placement, keeping the economy loop tight
+- Specific values can be tuned per tower type in a later pass
+
+Decision:
+Store tower cost on `TowerType` and kill reward on `PlaceholderEnemy`.
+
+Reason:
+- Cost belongs to the tower type definition alongside cooldown and projectile behavior
+- Kill reward belongs to the enemy entity so different enemy types can reward different amounts later
+- Keeps `EconomyManager` free of game-balance constants
+
+Decision:
+Credit kill rewards in `TowerManager.updateCombat` via the `onImpact` closure.
+
+Reason:
+- Kill confirmation already happens inside the impact closure
+- Avoids adding an economy callback to `EnemyManager`, which would couple it to economy
+- Captures `killReward` by value at fire time so a recycled enemy cannot affect the credit amount
+
+## 2026-06-06 (Enemy HP and Tower Damage)
+
+Decision:
+Set prototype enemy HP to 5 and keep all projectile damage at 1 except Blue which deals 2.
+
+Reason:
+- 5 HP makes combat readable and enemies feel durable without being bullet sponges
+- Red and Green stay differentiated by fire rate and projectile behavior alone
+- Blue's 2 damage compensates for its 0.90s cooldown, giving it a distinct role as a slow heavy hitter
+- HP and damage values are easy to tune per enemy and tower type in future passes
+
+Decision:
+Show a color-coded health bar above each enemy only after the first hit.
+
+Reason:
+- Hiding the bar at full health avoids visual clutter when enemies first spawn
+- Green → yellow → red color coding gives instant health-state readability without numbers
+- Left-aligned xScale shrink avoids recreating the SKShapeNode path each frame
+
+Decision:
+Dim unaffordable build menu options to alpha 0.4 and block their taps silently.
+
+Reason:
+- Visual dimming gives the player immediate feedback without adding a separate error UI
+- Silent block is consistent with the existing silent duplicate-placement block
+- Alpha 0.4 is visually clear on the colored option circles without requiring new art
+
+## 2026-06-06 (Win/Lose)
+
+Decision:
+Use 3 base lives for the prototype.
+
+Reason:
+- Tight enough to create pressure against 6 enemies
+- Allows the player to learn but punishes ignoring the base
+- Easy to tune upward once difficulty and enemy variety exist
+
+Decision:
+Use BaseHealthManager as a dedicated manager for base health.
+
+Reason:
+- Mirrors EconomyManager pattern — small, single-purpose, easy to reset
+- Keeps GameScene thin by delegating health state and reset logic
+- Provides a clear home for future base HP upgrades or shield mechanics
+
+Decision:
+Detect enemy breach via onEnemyReachedEnd callback on EnemyManager.
+
+Reason:
+- The existing movement completion closure already fires only when an enemy reaches the end (reset() strips the action before it can complete when killed)
+- No new coupling between managers — GameScene registers the callback and owns the health decrement
+- The same callback pattern is used across the codebase
+
+Decision:
+Detect victory by polling waveManager.isSpawningComplete and enemyManager.activeEnemyCount in update().
+
+Reason:
+- Simpler than a callback chain across WaveManager and EnemyManager
+- The phase guard in update() prevents double-triggering
+- No window where victory can fire before all enemies are spawned (isSpawningComplete blocks it)
+
+Decision:
+Show end-game overlays as in-scene SKNode panels rather than a new scene or SwiftUI layer.
+
+Reason:
+- Consistent with the existing SKNode-based UI approach
+- No scene transition overhead
+- The RestartButton name allows SpriteKit nodes(at:) hit-testing without UIManager needing a public hit-test method

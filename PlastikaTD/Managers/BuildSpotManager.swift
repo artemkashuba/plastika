@@ -6,6 +6,11 @@ struct BuildSpot {
     let position: CGPoint
 }
 
+struct TowerBuildMenuSelection {
+    let buildSpot: BuildSpot
+    let towerType: TowerType
+}
+
 @MainActor
 final class BuildSpotManager {
     private let buildSpots = [
@@ -17,12 +22,21 @@ final class BuildSpotManager {
     ]
 
     private let tapRadius: CGFloat = 30
+    private let menuOptionRadius: CGFloat = 18
+    private let menuOptionTapRadius: CGFloat = 24
+    private let menuYOffset: CGFloat = -54
+    private let menuOptionSpacing: CGFloat = 52
     private var buildSpotLayer: SKNode?
+    private var buildMenuNode: SKNode?
+    private var menuOptionNodesByType: [TowerType: SKNode] = [:]
+    private var activeMenuBuildSpot: BuildSpot?
     private var occupiedBuildSpotIDs: Set<Int> = []
 
     func resetForNewScene() {
         buildSpotLayer?.removeFromParent()
         buildSpotLayer = nil
+        hideBuildMenu()
+        menuOptionNodesByType.removeAll(keepingCapacity: true)
         occupiedBuildSpotIDs.removeAll(keepingCapacity: true)
     }
 
@@ -50,8 +64,111 @@ final class BuildSpotManager {
         }
     }
 
+    func showBuildMenu(for buildSpot: BuildSpot, coins: Int, in scene: SKScene) {
+        let menuNode = makeBuildMenuNode()
+        activeMenuBuildSpot = buildSpot
+        menuNode.position = CGPoint(x: buildSpot.position.x, y: buildSpot.position.y + menuYOffset)
+
+        if menuNode.parent == nil {
+            scene.addChild(menuNode)
+        }
+
+        updateMenuOptionAffordability(coins: coins)
+        menuNode.isHidden = false
+    }
+
+    func hideBuildMenu() {
+        activeMenuBuildSpot = nil
+        buildMenuNode?.isHidden = true
+        buildMenuNode?.removeFromParent()
+    }
+
+    func towerBuildMenuSelection(containing point: CGPoint, coins: Int) -> TowerBuildMenuSelection? {
+        guard let activeMenuBuildSpot, let buildMenuNode, buildMenuNode.parent != nil else {
+            return nil
+        }
+
+        guard let towerType = TowerType.allCases.first(where: { towerType in
+            let optionPosition = buildMenuNode.position.translated(by: menuOffset(for: towerType))
+            return optionPosition.distance(to: point) <= menuOptionTapRadius
+        }) else {
+            return nil
+        }
+
+        guard coins >= towerType.cost else {
+            return nil
+        }
+
+        return TowerBuildMenuSelection(buildSpot: activeMenuBuildSpot, towerType: towerType)
+    }
+
     func markOccupied(_ buildSpot: BuildSpot) {
         occupiedBuildSpotIDs.insert(buildSpot.id)
+    }
+
+    private func makeBuildMenuNode() -> SKNode {
+        if let buildMenuNode {
+            return buildMenuNode
+        }
+
+        let root = SKNode()
+        root.name = "TowerBuildMenu"
+        root.zPosition = 32
+
+        TowerType.allCases.forEach { towerType in
+            let optionNode = makeBuildMenuOption(for: towerType, at: menuOffset(for: towerType))
+            menuOptionNodesByType[towerType] = optionNode
+            root.addChild(optionNode)
+        }
+
+        buildMenuNode = root
+        return root
+    }
+
+    private func updateMenuOptionAffordability(coins: Int) {
+        TowerType.allCases.forEach { towerType in
+            menuOptionNodesByType[towerType]?.alpha = coins >= towerType.cost ? 1.0 : 0.4
+        }
+    }
+
+    private func makeBuildMenuOption(for towerType: TowerType, at position: CGPoint) -> SKNode {
+        let root = SKNode()
+        root.name = "TowerBuildMenuOption.\(towerType.displayName)"
+        root.position = position
+
+        let shadow = SKShapeNode(circleOfRadius: menuOptionRadius + 3)
+        shadow.fillColor = SKColor(white: 0.0, alpha: 0.20)
+        shadow.strokeColor = .clear
+        shadow.position = CGPoint(x: 1, y: -2)
+        root.addChild(shadow)
+
+        let option = SKShapeNode(circleOfRadius: menuOptionRadius)
+        option.name = root.name
+        option.fillColor = towerType.menuColor
+        option.strokeColor = SKColor(white: 1.0, alpha: 0.86)
+        option.lineWidth = 3
+        option.zPosition = 1
+        root.addChild(option)
+
+        let inset = SKShapeNode(circleOfRadius: 7)
+        inset.fillColor = towerType.baseColor
+        inset.strokeColor = SKColor(white: 1.0, alpha: 0.34)
+        inset.lineWidth = 1
+        inset.zPosition = 2
+        root.addChild(inset)
+
+        return root
+    }
+
+    private func menuOffset(for towerType: TowerType) -> CGPoint {
+        switch towerType {
+        case .red:
+            CGPoint(x: -menuOptionSpacing, y: 0)
+        case .green:
+            .zero
+        case .blue:
+            CGPoint(x: menuOptionSpacing, y: 0)
+        }
     }
 
     private func makeBuildSpotNode(at position: CGPoint) -> SKNode {
@@ -85,6 +202,10 @@ final class BuildSpotManager {
 }
 
 private extension CGPoint {
+    func translated(by point: CGPoint) -> CGPoint {
+        CGPoint(x: x + point.x, y: y + point.y)
+    }
+
     func distance(to point: CGPoint) -> CGFloat {
         let dx = x - point.x
         let dy = y - point.y

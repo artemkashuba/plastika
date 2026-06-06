@@ -16,4 +16,12 @@ final class GameStateManager: ObservableObject {
     func resume() {
         state.phase = .sceneLoaded
     }
+
+    func markGameOver() {
+        state.phase = .gameOver
+    }
+
+    func markVictory() {
+        state.phase = .victory
+    }
 }

@@ -6,6 +6,7 @@ final class GameScene: SKScene {
     private let configuration: GameConfiguration
     private let systems: GameSystems
     private var didBuildScene = false
+    private var debugPathNode: SKShapeNode?
 
     init(configuration: GameConfiguration, systems: GameSystems) {
         self.configuration = configuration
@@ -31,11 +32,15 @@ final class GameScene: SKScene {
         resetPlaceholderSystems()
         buildPlaceholderScene()
         buildGameplaySlice()
+        setupCallbacks()
         systems.uiManager.configureOverlay(in: self)
         systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
     }
 
     private func resetPlaceholderSystems() {
+        debugPathNode?.removeFromParent()
+        debugPathNode = nil
+
         systems.pathManager.resetForNewScene()
         systems.waveManager.resetForNewScene()
         systems.enemyManager.resetForNewScene()
@@ -43,6 +48,7 @@ final class GameScene: SKScene {
         systems.towerManager.resetForNewScene()
         systems.projectileManager.resetForNewScene()
         systems.economyManager.resetForNewScene()
+        systems.baseHealthManager.resetForNewScene()
         systems.uiManager.resetForNewScene()
     }
 
@@ -56,8 +62,12 @@ final class GameScene: SKScene {
     }
 
     private func buildGameplaySlice() {
-        addChild(systems.pathManager.makeDebugPathNode())
+        let pathNode = systems.pathManager.makeDebugPathNode()
+        addChild(pathNode)
+        debugPathNode = pathNode
+
         addChild(systems.buildSpotManager.makeBuildSpotLayer())
+
         systems.waveManager.startPrototypeWave(
             in: self,
             path: systems.pathManager.activePath,
@@ -65,9 +75,65 @@ final class GameScene: SKScene {
         )
     }
 
+    private func setupCallbacks() {
+        systems.enemyManager.onEnemyReachedEnd = { [weak self] in
+            self?.handleEnemyReachedEnd()
+        }
+    }
+
+    private func handleEnemyReachedEnd() {
+        guard systems.gameStateManager.state.phase == .sceneLoaded else {
+            return
+        }
+
+        let isDestroyed = systems.baseHealthManager.takeDamage()
+
+        if isDestroyed {
+            triggerGameOver()
+        }
+    }
+
+    private func triggerGameOver() {
+        systems.gameStateManager.markGameOver()
+        systems.uiManager.showGameOverOverlay(in: self)
+    }
+
+    private func triggerVictory() {
+        systems.gameStateManager.markVictory()
+        systems.uiManager.showVictoryOverlay(in: self)
+    }
+
+    private func restartGame() {
+        resetPlaceholderSystems()
+        buildGameplaySlice()
+        setupCallbacks()
+        systems.uiManager.configureOverlay(in: self)
+        systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
+    }
+
     override func update(_ currentTime: TimeInterval) {
         super.update(currentTime)
-        systems.uiManager.update(activeEnemyCount: systems.enemyManager.activeEnemyCount)
+
+        guard systems.gameStateManager.state.phase == .sceneLoaded else {
+            return
+        }
+
+        systems.towerManager.updateCombat(
+            currentTime: currentTime,
+            enemyManager: systems.enemyManager,
+            projectileManager: systems.projectileManager,
+            economyManager: systems.economyManager,
+            in: self
+        )
+        systems.uiManager.update(
+            activeEnemyCount: systems.enemyManager.activeEnemyCount,
+            coins: systems.economyManager.coins,
+            health: systems.baseHealthManager.health
+        )
+
+        if systems.waveManager.isSpawningComplete && systems.enemyManager.activeEnemyCount == 0 {
+            triggerVictory()
+        }
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -78,15 +144,46 @@ final class GameScene: SKScene {
         }
 
         let location = touch.location(in: self)
+        let phase = systems.gameStateManager.state.phase
 
-        guard let buildSpot = systems.buildSpotManager.emptyBuildSpot(containing: location) else {
+        if phase == .gameOver || phase == .victory {
+            if nodes(at: location).contains(where: { $0.name == "RestartButton" }) {
+                restartGame()
+            }
             return
         }
 
-        let didPlaceTower = systems.towerManager.placePlaceholderTower(on: buildSpot, in: self)
+        if let menuSelection = systems.buildSpotManager.towerBuildMenuSelection(
+            containing: location,
+            coins: systems.economyManager.coins
+        ) {
+            let didPlaceTower = systems.towerManager.placePlaceholderTower(
+                ofType: menuSelection.towerType,
+                on: menuSelection.buildSpot,
+                in: self
+            )
 
-        if didPlaceTower {
-            systems.buildSpotManager.markOccupied(buildSpot)
+            if didPlaceTower {
+                systems.economyManager.spend(menuSelection.towerType.cost)
+                systems.buildSpotManager.markOccupied(menuSelection.buildSpot)
+                systems.buildSpotManager.hideBuildMenu()
+            }
+
+            return
         }
+
+        if systems.towerManager.selectTower(containing: location, in: self) {
+            systems.buildSpotManager.hideBuildMenu()
+            return
+        }
+
+        if let buildSpot = systems.buildSpotManager.emptyBuildSpot(containing: location) {
+            systems.towerManager.clearSelection()
+            systems.buildSpotManager.showBuildMenu(for: buildSpot, coins: systems.economyManager.coins, in: self)
+            return
+        }
+
+        systems.towerManager.clearSelection()
+        systems.buildSpotManager.hideBuildMenu()
     }
 }
