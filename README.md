@@ -2,7 +2,7 @@
 
 Plastika TD is a 2D tower defense game for iOS built with Swift and SpriteKit.
 
-The project currently has an initial iOS 17+ SpriteKit project shell, scene loading, game state management, placeholder system managers, path-following prototype enemies, visual build spots, tap-to-place placeholder towers, and a first automatic projectile combat loop.
+The project currently has an initial iOS 17+ SpriteKit project shell, scene loading, game state management, placeholder system managers, path-following prototype enemies, visual build spots, tap-to-place placeholder towers, tower selection with range visualization, and a first automatic projectile combat loop.
 
 ## Documentation
 
@@ -19,6 +19,6 @@ Start here before making implementation changes:
 
 ## Current Status
 
-Documentation workflow and the initial SpriteKit/Xcode project structure are established. The current prototype slice has one moving enemy wave, fixed build spots, one placeholder tower placement per empty build spot, and towers that destroy 1 HP enemies with placeholder projectiles.
+Documentation workflow and the initial SpriteKit/Xcode project structure are established. The current prototype slice has one moving enemy wave, fixed build spots, one placeholder tower placement per empty build spot, selected tower feedback with attack range display, and towers that destroy 1 HP enemies with placeholder projectiles.
 
 Do not create implementation code without first reviewing and updating the documentation workflow in `docs/AGENTS.md`.

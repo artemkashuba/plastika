@@ -85,7 +85,12 @@ final class GameScene: SKScene {
 
         let location = touch.location(in: self)
 
+        if systems.towerManager.selectTower(containing: location, in: self) {
+            return
+        }
+
         guard let buildSpot = systems.buildSpotManager.emptyBuildSpot(containing: location) else {
+            systems.towerManager.clearSelection()
             return
         }
 

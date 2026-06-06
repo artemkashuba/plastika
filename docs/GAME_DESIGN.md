@@ -18,7 +18,9 @@ Placed placeholder towers automatically target the nearest enemy within an inter
 
 Prototype enemies currently have 1 HP. One projectile hit destroys an enemy and removes it from the battlefield.
 
-Placed placeholder towers do not support selection, upgrades, selling, range indicators, economy, splash damage, status effects, multiple tower types, or final art yet.
+Players can tap a placed placeholder tower to select it. The selected tower scales slightly, shows a thin white selection ring, and displays a subtle white circular range indicator centered on the tower's actual attack range. Tapping another placed tower transfers selection; tapping empty battlefield space clears it.
+
+Placed placeholder towers do not support a selection menu, upgrades, selling, economy, splash damage, status effects, multiple tower types, or final art yet.
 
 1. Rifle Tower
    - Fast attack speed

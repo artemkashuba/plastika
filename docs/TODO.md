@@ -29,6 +29,8 @@
 - [x] Create projectile system
 - [x] Create combat system
 - [x] Add UI verification for first combat loop
+- [x] Add tower selection and range visualization
+- [x] Add UI verification for tower selection, switching, and deselecting
 - [ ] Create economy system
 - [ ] Create win/lose conditions
 

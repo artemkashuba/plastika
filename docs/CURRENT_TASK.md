@@ -2,7 +2,7 @@
 
 ## Current Status
 
-First combat slice is complete.
+Tower selection and range visualization slice is complete.
 
 The repository now has:
 
@@ -23,9 +23,14 @@ The repository now has:
 - A lightweight `ProjectileManager` with pooled magenta placeholder projectiles
 - Basic 1 HP placeholder enemies that are removed and recycled when hit
 - A UI test that verifies projectiles appear and enemies disappear after tower placement
+- Tap-to-select interaction for placed placeholder towers
+- A subtle selected tower highlight using slight scale and a thin white ring
+- A reused white range indicator centered on the selected tower's actual attack range
+- Selection switching between placed towers and empty-space deselection
+- A UI test that verifies selection, range display, switching, deselection, placement, and combat behavior
 - A small debug HUD showing wave and active enemy count
 - No center branding text inside the battlefield
-- No tower selection menu, upgrades, selling, economy, range indicators, splash damage, status effects, multiple tower types, multiple enemy types, final art, or physics
+- No tower selection menu, upgrades, selling, economy, splash damage, status effects, multiple tower types, multiple enemy types, final art, or physics
 
 ## Next Task
 
@@ -41,6 +46,7 @@ Reach first playable prototype with:
 - One enemy type moving along a path
 - Build spots that can place one placeholder tower each
 - Placeholder towers that fire projectiles and destroy 1 HP enemies
+- Placeholder tower selection with visible attack range and selected-state feedback
 - One wave
 
 ## Blockers

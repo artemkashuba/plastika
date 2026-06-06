@@ -4,6 +4,9 @@ import SpriteKit
 final class PlaceholderTower: GameEntity {
     let node: SKNode
 
+    private let selectionActionKey = "placeholderTower.selection"
+    private let selectionRing: SKShapeNode
+
     init() {
         let root = SKNode()
         root.name = "PlaceholderTower"
@@ -30,10 +33,43 @@ final class PlaceholderTower: GameEntity {
         barrel.zPosition = 2
         root.addChild(barrel)
 
+        let selectionRing = SKShapeNode(circleOfRadius: 22)
+        selectionRing.fillColor = .clear
+        selectionRing.strokeColor = SKColor(white: 1.0, alpha: 0.75)
+        selectionRing.lineWidth = 2
+        selectionRing.zPosition = 3
+        selectionRing.isHidden = true
+        root.addChild(selectionRing)
+
+        self.selectionRing = selectionRing
         node = root
     }
 
     func reset() {
+        setSelected(false, animated: false)
         node.removeFromParent()
+    }
+
+    func setSelected(_ isSelected: Bool, animated: Bool) {
+        node.removeAction(forKey: selectionActionKey)
+
+        if isSelected {
+            selectionRing.isHidden = false
+        }
+
+        guard animated else {
+            node.setScale(isSelected ? 1.05 : 1.0)
+            selectionRing.isHidden = isSelected == false
+            return
+        }
+
+        let scaleAction = SKAction.scale(to: isSelected ? 1.05 : 1.0, duration: 0.18)
+        scaleAction.timingMode = .easeOut
+
+        let finish = SKAction.run { [weak selectionRing] in
+            selectionRing?.isHidden = isSelected == false
+        }
+
+        node.run(SKAction.sequence([scaleAction, finish]), withKey: selectionActionKey)
     }
 }

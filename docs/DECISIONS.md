@@ -193,3 +193,39 @@ Reason:
 - Exercises the real tap-to-place path
 - Confirms placeholder projectile pixels appear after tower placement
 - Confirms enemy pixels disappear after the tower has time to attack the wave
+
+Decision:
+Extend `TowerManager` for tower selection and range visualization instead of adding a separate manager.
+
+Reason:
+
+- Selection state is currently tied to placed tower ownership and attack range
+- Keeps `GameScene` thin by routing taps through the existing tower boundary
+- Avoids a new abstraction before upgrades, selling, or tower menus exist
+
+Decision:
+Reuse one `SKShapeNode` range indicator for the selected tower.
+
+Reason:
+
+- Visualizes the actual placeholder attack range without duplicating range constants
+- Avoids repeatedly allocating range nodes during selection switching
+- Keeps the indicator lightweight with a thin translucent white outline
+
+Decision:
+Let `PlaceholderTower` own its selected visual treatment.
+
+Reason:
+
+- Keeps highlight rendering close to the tower node hierarchy
+- Allows `TowerManager` to manage selection state without micromanaging child nodes
+- Supports smooth 0.18 second scale animation and a thin white selection ring
+
+Decision:
+Add UI verification for selection, switching, and deselection.
+
+Reason:
+
+- Confirms tapping a placed tower shows a range indicator and highlight
+- Confirms tapping another placed tower moves selection and range
+- Confirms tapping empty battlefield clears the selection without breaking placement or combat tests
