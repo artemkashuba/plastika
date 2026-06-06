@@ -31,6 +31,14 @@
 		1A0000362C12400100000001 /* PlaceholderProjectile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000362C12400000000001 /* PlaceholderProjectile.swift */; };
 		1A0000372C12400100000001 /* TowerType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000372C12400000000001 /* TowerType.swift */; };
 		1A0000382C12400100000001 /* BaseHealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000382C12400000000001 /* BaseHealthManager.swift */; };
+		1A0000402C12400100000001 /* tower_shoot_red.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000402C12400000000001 /* tower_shoot_red.wav */; };
+		1A0000412C12400100000001 /* tower_shoot_green.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000412C12400000000001 /* tower_shoot_green.wav */; };
+		1A0000422C12400100000001 /* tower_shoot_blue.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000422C12400000000001 /* tower_shoot_blue.wav */; };
+		1A0000502C12400100000001 /* enemy_hit.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000502C12400000000001 /* enemy_hit.wav */; };
+		1A0000512C12400100000001 /* enemy_death.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000512C12400000000001 /* enemy_death.wav */; };
+		1A0000522C12400100000001 /* enemy_breach.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000522C12400000000001 /* enemy_breach.wav */; };
+		1A0000532C12400100000001 /* tower_place.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000532C12400000000001 /* tower_place.wav */; };
+		1A0000542C12400100000001 /* tower_sell.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000542C12400000000001 /* tower_sell.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -70,6 +78,14 @@
 		1A0000362C12400000000001 /* PlaceholderProjectile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderProjectile.swift; sourceTree = "<group>"; };
 		1A0000372C12400000000001 /* TowerType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TowerType.swift; sourceTree = "<group>"; };
 		1A0000382C12400000000001 /* BaseHealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseHealthManager.swift; sourceTree = "<group>"; };
+		1A0000402C12400000000001 /* tower_shoot_red.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tower_shoot_red.wav; sourceTree = "<group>"; };
+		1A0000412C12400000000001 /* tower_shoot_green.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tower_shoot_green.wav; sourceTree = "<group>"; };
+		1A0000422C12400000000001 /* tower_shoot_blue.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tower_shoot_blue.wav; sourceTree = "<group>"; };
+		1A0000502C12400000000001 /* enemy_hit.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = enemy_hit.wav; sourceTree = "<group>"; };
+		1A0000512C12400000000001 /* enemy_death.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = enemy_death.wav; sourceTree = "<group>"; };
+		1A0000522C12400000000001 /* enemy_breach.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = enemy_breach.wav; sourceTree = "<group>"; };
+		1A0000532C12400000000001 /* tower_place.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tower_place.wav; sourceTree = "<group>"; };
+		1A0000542C12400000000001 /* tower_sell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tower_sell.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -119,14 +135,6 @@
 				1A00002C2C12400000000001 /* PlastikaTDUITests.xctest */,
 			);
 			name = Products;
-			sourceTree = "<group>";
-		};
-		1A00002E2C12400000000001 /* PlastikaTDUITests */ = {
-			isa = PBXGroup;
-			children = (
-				1A00002A2C12400000000001 /* TowerPlacementUITests.swift */,
-			);
-			path = PlastikaTDUITests;
 			sourceTree = "<group>";
 		};
 		1A0000162C12400000000001 /* Core */ = {
@@ -182,6 +190,7 @@
 			isa = PBXGroup;
 			children = (
 				1A0000102C12400000000001 /* Assets.xcassets */,
+				1A0000432C12400000000001 /* Sounds */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -192,6 +201,29 @@
 				1A00000F2C12400000000001 /* GameScene.swift */,
 			);
 			path = Scenes;
+			sourceTree = "<group>";
+		};
+		1A00002E2C12400000000001 /* PlastikaTDUITests */ = {
+			isa = PBXGroup;
+			children = (
+				1A00002A2C12400000000001 /* TowerPlacementUITests.swift */,
+			);
+			path = PlastikaTDUITests;
+			sourceTree = "<group>";
+		};
+		1A0000432C12400000000001 /* Sounds */ = {
+			isa = PBXGroup;
+			children = (
+				1A0000402C12400000000001 /* tower_shoot_red.wav */,
+				1A0000412C12400000000001 /* tower_shoot_green.wav */,
+				1A0000422C12400000000001 /* tower_shoot_blue.wav */,
+				1A0000502C12400000000001 /* enemy_hit.wav */,
+				1A0000512C12400000000001 /* enemy_death.wav */,
+				1A0000522C12400000000001 /* enemy_breach.wav */,
+				1A0000532C12400000000001 /* tower_place.wav */,
+				1A0000542C12400000000001 /* tower_sell.wav */,
+			);
+			path = Sounds;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -240,7 +272,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1600;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					1A00001C2C12400000000001 = {
 						CreatedOnToolsVersion = 16.0;
@@ -276,6 +308,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				1A0000102C12400100000001 /* Assets.xcassets in Resources */,
+				1A0000402C12400100000001 /* tower_shoot_red.wav in Resources */,
+				1A0000412C12400100000001 /* tower_shoot_green.wav in Resources */,
+				1A0000422C12400100000001 /* tower_shoot_blue.wav in Resources */,
+				1A0000502C12400100000001 /* enemy_hit.wav in Resources */,
+				1A0000512C12400100000001 /* enemy_death.wav in Resources */,
+				1A0000522C12400100000001 /* enemy_breach.wav in Resources */,
+				1A0000532C12400100000001 /* tower_place.wav in Resources */,
+				1A0000542C12400100000001 /* tower_sell.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -341,6 +381,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -371,6 +412,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = 49B7J6QKHG;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -393,6 +435,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -402,6 +445,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -432,6 +476,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = 49B7J6QKHG;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -447,6 +492,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -459,12 +505,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 49B7J6QKHG;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Plastika TD";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -488,12 +533,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 49B7J6QKHG;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Plastika TD";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UIStatusBarHidden = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -515,7 +559,6 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 49B7J6QKHG;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -540,7 +583,6 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = 49B7J6QKHG;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (

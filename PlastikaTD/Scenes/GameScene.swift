@@ -92,6 +92,7 @@ final class GameScene: SKScene {
             return
         }
 
+        run(SKAction.playSoundFileNamed("enemy_breach.wav", waitForCompletion: false))
         let isDestroyed = systems.baseHealthManager.takeDamage()
 
         // Force a HUD update immediately so the heart loss animation triggers now.
@@ -182,6 +183,7 @@ final class GameScene: SKScene {
                     coins: systems.economyManager.coins,
                     health: systems.baseHealthManager.health
                 )
+                run(SKAction.playSoundFileNamed("tower_sell.wav", waitForCompletion: false))
             }
             return
         }
@@ -200,6 +202,7 @@ final class GameScene: SKScene {
                 systems.economyManager.spend(menuSelection.towerType.cost)
                 systems.buildSpotManager.markOccupied(menuSelection.buildSpot)
                 systems.buildSpotManager.hideBuildMenu()
+                run(SKAction.playSoundFileNamed("tower_place.wav", waitForCompletion: false))
             }
 
             return

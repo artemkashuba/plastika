@@ -486,6 +486,18 @@ Reason:
 - Only one wave exists; making wave number dynamic is deferred to the multi-wave milestone
 - Avoids adding a wave parameter to `UIManager.update()` prematurely
 
+## 2026-06-06 (Sound Effects)
+
+Decision:
+Generate procedural tactical WAV sounds for each tower type rather than sourcing audio assets.
+
+Reason:
+- No external asset dependency; sounds can be regenerated and tuned at any time
+- Tactical aesthetic: Red = suppressed crack (0.18s, high-pass noise burst), Green = missile whoosh (0.40s, layered band noise), Blue = artillery boom (0.58s, low sine kick + noise body)
+- 22050 Hz mono 16-bit WAV — small file size, native SpriteKit support
+- `SKAction.playSoundFileNamed(_:waitForCompletion: false)` run on the tower node at fire time — fire-and-forget, no AudioNode overhead
+- `TowerType.shootSound` keeps the filename mapping next to other per-tower constants
+
 ## 2026-06-06 (Win/Lose)
 
 Decision:

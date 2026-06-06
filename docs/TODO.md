@@ -49,7 +49,7 @@
 
 - [x] Add placeholder UI (top-bar HUD: coin icon + count, wave badge, heart icons for lives)
 - [x] Add tower selling
-- [ ] Add sound effects
+- [x] Add sound effects (tower shoot × 3, enemy hit, enemy death, enemy breach, tower place, tower sell)
 - [ ] Add tower upgrades
 - [ ] Add haptics
 - [ ] Add main menu

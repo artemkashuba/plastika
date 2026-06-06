@@ -108,6 +108,7 @@ final class TowerManager {
             }
 
             nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + tower.type.attackCooldown
+            tower.node.run(SKAction.playSoundFileNamed(tower.type.shootSound, waitForCompletion: false))
 
             let killReward = target.killReward
             let towerDamage = tower.type.damage
@@ -146,7 +147,7 @@ final class TowerManager {
                     return target.node.position
                 },
                 in: scene
-            ) { [weak enemyManager, weak economyManager, weak target] in
+            ) { [weak enemyManager, weak economyManager, weak target, weak tower] in
                 guard let target else {
                     return
                 }
@@ -155,6 +156,9 @@ final class TowerManager {
 
                 if killed {
                     economyManager?.credit(killReward)
+                    tower?.node.run(SKAction.playSoundFileNamed("enemy_death.wav", waitForCompletion: false))
+                } else {
+                    tower?.node.run(SKAction.playSoundFileNamed("enemy_hit.wav", waitForCompletion: false))
                 }
             }
         }

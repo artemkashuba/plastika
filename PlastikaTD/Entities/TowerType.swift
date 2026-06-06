@@ -67,6 +67,14 @@ enum TowerType: CaseIterable {
         cost / 2
     }
 
+    var shootSound: String {
+        switch self {
+        case .red:   "tower_shoot_red.wav"
+        case .green: "tower_shoot_green.wav"
+        case .blue:  "tower_shoot_blue.wav"
+        }
+    }
+
     var damage: Int {
         switch self {
         case .red:
