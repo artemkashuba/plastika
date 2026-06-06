@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Shooting improvements pass is complete.
+Tower selling — complete.
 
 The repository now has:
 
@@ -56,22 +56,33 @@ The repository now has:
 
 ## Next Task
 
-Begin Phase 2 — Vertical Slice: add placeholder UI (coin display, health bar, wave counter as proper in-game UI rather than a debug overlay), sound effects, or tower upgrades.
-
-Alternatively, continue Phase 1 polish: add more enemy variety, second wave, or tower selling/upgrading.
-
-Before starting, review the documentation workflow in `docs/AGENTS.md`.
+Second wave with inter-wave countdown, then sound effects.
 
 ## Immediate Goal
 
-The first playable prototype loop is now complete:
+Add a second wave that spawns after a short inter-wave countdown once all wave-1 enemies are defeated.
 
-- One map with enemies moving along a hardcoded path
-- Build spots with a tower type selection menu
-- Red, Green, and Blue towers with distinct projectile behavior
-- One wave of 6 enemies
-- Economy: coins, tower cost, kill reward
-- Win/lose: base health, game-over and victory overlays, restart
+## Previous Milestone
+
+Tower selling is now live:
+
+- Tap a placed tower to select it → a sell badge appears below: dark pill with golden border, coin icon + refund amount ("25"), matching the HUD coin style
+- Tap the badge to sell: tower node removed, build spot freed, 25 coins refunded, HUD coin count updates immediately
+- Badge hides on deselect, on tower switch, on scene reset
+- `TowerType.sellRefund` = `cost / 2` (25 coins for a 50-coin tower)
+- `BuildSpotManager.markUnoccupied(buildSpotID:)` frees the slot so it can be rebuilt
+- Tap detection via `nodes(at:)` name-matching ("SellBadge"), consistent with RestartButton pattern
+
+## Previous Previous Milestone
+
+The top-bar HUD is now live:
+
+- Full-width dark bar at the top of the scene (z=40)
+- Left: yellow coin circle icon + coin count (updates every frame)
+- Center: "WAVE 1" green pill badge
+- Right: three ♥ hearts — red when alive, dimmed gray when lost (deplete right-to-left)
+- End-of-game overlays (VICTORY/DEFEAT) and restart button are unchanged
+- `UIManager.update()` now takes `(coins: Int, health: Int)` — `activeEnemyCount` removed
 
 ## Blockers
 

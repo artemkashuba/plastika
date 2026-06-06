@@ -106,6 +106,10 @@ final class BuildSpotManager {
         occupiedBuildSpotIDs.insert(buildSpot.id)
     }
 
+    func markUnoccupied(buildSpotID: Int) {
+        occupiedBuildSpotIDs.remove(buildSpotID)
+    }
+
     private func makeBuildMenuNode() -> SKNode {
         if let buildMenuNode {
             return buildMenuNode

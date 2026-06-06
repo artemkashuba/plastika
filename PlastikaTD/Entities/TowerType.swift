@@ -63,6 +63,10 @@ enum TowerType: CaseIterable {
         50
     }
 
+    var sellRefund: Int {
+        cost / 2
+    }
+
     var damage: Int {
         switch self {
         case .red:

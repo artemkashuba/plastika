@@ -389,6 +389,103 @@ Reason:
 - Silent block is consistent with the existing silent duplicate-placement block
 - Alpha 0.4 is visually clear on the colored option circles without requiring new art
 
+## 2026-06-06 (Proper HUD)
+
+Decision:
+Replace the debug overlay with a full-width top-bar HUD: coin icon + count (left), wave badge (center), heart icons for lives (right).
+
+Reason:
+- The debug panel was sized and styled for debugging, not player readability
+- A top bar is the standard TD HUD pattern and matches the game's tabletop framing
+- Placeholder shapes (circle coin, ♥ hearts) keep the implementation simple while being immediately readable
+
+Decision:
+Drop `activeEnemyCount` from `UIManager.update()`.
+
+Reason:
+- Enemy count was a debug convenience, not a designed UI element
+- The proper HUD does not show it; the wave badge + lives convey the same gameplay state
+- Removes unnecessary coupling between UIManager and EnemyManager count
+
+Decision:
+Represent lives as individual heart `SKLabelNode` nodes (♥ character) colored red (alive) or dark gray (lost).
+
+Reason:
+- Avoids bezier path heart geometry for placeholder art
+- Individual nodes make per-life state updates trivial
+- Easy to swap for sprite art later
+
+Decision:
+Animate heart loss with a pop-then-fade: scale up to 1.55× (0.09s), then simultaneously scale back to 1.0× and interpolate `fontColor` from red to dim grey (0.22s). Dim target is `white: 0.50, alpha: 0.90`.
+
+Reason:
+- Instant color change on a small ♥ glyph is easy to miss — the pop gives a physical "hit" sensation
+- `SKAction.customAction` lets us interpolate `fontColor` smoothly, which SpriteKit has no built-in action for on `SKLabelNode`
+- All three RGB channels must target the same grey value (0.50); original code had a copy-paste bug where the blue channel used the alpha target (0.72) instead of the grey target (0.28/0.50), producing a barely visible blue-tinted heart
+- `white: 0.50` at `alpha: 0.90` is clearly visible against the dark HUD bar; `white: 0.28` was too dark
+- Using `withKey: "heartLoss"` prevents stacking if two enemies breach in quick succession
+- `currentHealth` is tracked on `UIManager` and reset in `resetForNewScene()` so restart always starts clean at 3
+
+Decision:
+Force `uiManager.update()` in `handleEnemyReachedEnd()` and delay the game-over overlay by 0.36s.
+
+Reason:
+- When the last life is lost, `markGameOver()` stops the `GameScene.update()` loop immediately; without a forced update, `updateHearts(health: 0)` is never called and the last heart never animates
+- Explicit `uiManager.update()` call in `handleEnemyReachedEnd()` triggers the animation for every life loss, not just non-final ones
+- Gameplay stops immediately (`markGameOver()` before the delay), so no enemy movement or input processes during the 0.36s window
+- 0.36s > total animation duration (0.09 + 0.22 = 0.31s), so the overlay appears just after the animation finishes
+
+## 2026-06-06 (Tower Selling)
+
+Decision:
+Show the sell action as a coin icon + refund amount pill below the selected tower, matching the HUD coin cluster style.
+
+Reason:
+- Consistent UI language — player already knows the coin icon means currency
+- No "Sell" text label needed; the coin amount communicates both action and value instantly
+- Matches the build menu's vertical offset pattern (badge appears below the tower, same as build options appear below empty spots)
+
+Decision:
+Set sell refund to 50% of tower cost (25 coins for a 50-coin tower).
+
+Reason:
+- Penalises misplacement slightly without discouraging experimentation
+- Simple fixed ratio; per-tower tuning deferred to balancing pass
+
+Decision:
+Manage the sell badge node inside TowerManager alongside the range indicator.
+
+Reason:
+- TowerManager already owns selection state, tower nodes, and the range indicator
+- Keeping the badge there avoids coupling GameScene or UIManager to per-tower sell logic
+- Badge lifecycle (show on select, hide on deselect/sell/reset) mirrors range indicator lifecycle exactly
+
+Decision:
+Use `nodes(at:)` name matching ("SellBadge") for sell badge tap detection in GameScene.
+
+Reason:
+- Consistent with how RestartButton tap detection already works
+- Avoids maintaining a separate tap-radius constant for the badge
+- Works correctly regardless of badge position or scene transforms
+
+## 2026-06-06 (Notch / HUD fix)
+
+Decision:
+Use `SKScene.convertPoint(fromView:)` to translate `view.safeAreaInsets.top` into scene coordinates and position the HUD bar relative to that boundary.
+
+Reason:
+- `SpriteView` uses `.ignoresSafeArea()`, so the scene extends under the notch/island/status bar
+- `safeAreaInsets.top` is in UIKit coordinates (top-left origin, y downward); the scene uses bottom-left origin with y upward — direct arithmetic gives wrong results without conversion
+- `convertPoint(fromView:)` handles scale, anchor point, and coordinate flip correctly for every device variant (no-notch, notch, Dynamic Island)
+- Value is computed once in `didMove(to:)` and reused on restart, avoiding repeated view lookups
+
+Decision:
+Hardcode wave number as "WAVE 1" in the HUD for now.
+
+Reason:
+- Only one wave exists; making wave number dynamic is deferred to the multi-wave milestone
+- Avoids adding a wave parameter to `UIManager.update()` prematurely
+
 ## 2026-06-06 (Win/Lose)
 
 Decision:

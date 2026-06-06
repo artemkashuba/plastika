@@ -47,7 +47,8 @@
 
 ## Phase 2 - Vertical Slice
 
-- [ ] Add placeholder UI
+- [x] Add placeholder UI (top-bar HUD: coin icon + count, wave badge, heart icons for lives)
+- [x] Add tower selling
 - [ ] Add sound effects
 - [ ] Add tower upgrades
 - [ ] Add haptics

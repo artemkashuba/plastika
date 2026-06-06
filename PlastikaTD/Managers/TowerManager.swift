@@ -14,11 +14,15 @@ final class TowerManager {
     private var targetLocksByBuildSpotID: [Int: TargetLock] = [:]
     private var selectedBuildSpotID: Int?
     private var rangeIndicator: SKShapeNode?
+    private var sellBadgeNode: SKNode?
+    private let sellBadgeYOffset: CGFloat = -50
 
     func resetForNewScene() {
         clearSelection(animated: false)
         rangeIndicator?.removeFromParent()
         rangeIndicator = nil
+        sellBadgeNode?.removeFromParent()
+        sellBadgeNode = nil
 
         towersByBuildSpotID.values.forEach { tower in
             tower.reset()
@@ -57,6 +61,25 @@ final class TowerManager {
 
         selectedBuildSpotID = nil
         rangeIndicator?.removeFromParent()
+        hideSellBadge()
+    }
+
+    /// Removes the selected tower, frees its dictionaries, clears selection, and returns the
+    /// build spot id and refund amount so the caller can credit the economy and free the build spot.
+    /// Returns nil if no tower is currently selected.
+    func sellSelectedTower(in scene: SKScene) -> (buildSpotID: Int, refund: Int)? {
+        guard let buildSpotID = selectedBuildSpotID,
+              let tower = towersByBuildSpotID[buildSpotID] else {
+            return nil
+        }
+
+        let refund = tower.type.sellRefund
+        tower.node.removeFromParent()
+        towersByBuildSpotID[buildSpotID] = nil
+        nextAttackTimesByBuildSpotID[buildSpotID] = nil
+        targetLocksByBuildSpotID[buildSpotID] = nil
+        clearSelection(animated: false)
+        return (buildSpotID, refund)
     }
 
     func updateCombat(
@@ -174,9 +197,71 @@ final class TowerManager {
             selectedTower.setSelected(false, animated: true)
         }
 
+        hideSellBadge()
         selectedBuildSpotID = buildSpotID
         tower.setSelected(true, animated: true)
         moveRangeIndicator(to: tower.node.position, in: scene)
+        showSellBadge(for: tower, in: scene)
+    }
+
+    private func showSellBadge(for tower: PlaceholderTower, in scene: SKScene) {
+        let badge = makeSellBadgeNode(refund: tower.type.sellRefund)
+        badge.position = CGPoint(
+            x: tower.node.position.x,
+            y: tower.node.position.y + sellBadgeYOffset
+        )
+        scene.addChild(badge)
+        sellBadgeNode = badge
+    }
+
+    private func hideSellBadge() {
+        sellBadgeNode?.removeFromParent()
+        sellBadgeNode = nil
+    }
+
+    private func makeSellBadgeNode(refund: Int) -> SKNode {
+        let root = SKNode()
+        root.name = "SellBadge"
+        root.zPosition = 33
+
+        // Dark pill background
+        let pill = SKShapeNode(rectOf: CGSize(width: 68, height: 28), cornerRadius: 14)
+        pill.name = "SellBadge"
+        pill.fillColor = SKColor(red: 0.06, green: 0.10, blue: 0.12, alpha: 0.90)
+        pill.strokeColor = SKColor(red: 0.98, green: 0.80, blue: 0.12, alpha: 0.80)
+        pill.lineWidth = 1.5
+        root.addChild(pill)
+
+        // Coin icon — filled yellow circle (matches HUD coin cluster, slightly smaller)
+        let coinIcon = SKShapeNode(circleOfRadius: 7)
+        coinIcon.name = "SellBadge"
+        coinIcon.fillColor = SKColor(red: 0.98, green: 0.80, blue: 0.12, alpha: 1.0)
+        coinIcon.strokeColor = SKColor(red: 0.72, green: 0.56, blue: 0.06, alpha: 1.0)
+        coinIcon.lineWidth = 1
+        coinIcon.position = CGPoint(x: -16, y: 0)
+        root.addChild(coinIcon)
+
+        // Inner coin detail ring
+        let innerRing = SKShapeNode(circleOfRadius: 3.5)
+        innerRing.name = "SellBadge"
+        innerRing.fillColor = .clear
+        innerRing.strokeColor = SKColor(red: 0.72, green: 0.56, blue: 0.06, alpha: 0.55)
+        innerRing.lineWidth = 1
+        innerRing.position = CGPoint(x: -16, y: 0)
+        root.addChild(innerRing)
+
+        // Refund amount label
+        let label = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+        label.name = "SellBadge"
+        label.text = "\(refund)"
+        label.fontSize = 14
+        label.fontColor = SKColor(red: 0.98, green: 0.90, blue: 0.60, alpha: 1.0)
+        label.horizontalAlignmentMode = .left
+        label.verticalAlignmentMode = .center
+        label.position = CGPoint(x: -6, y: 0)
+        root.addChild(label)
+
+        return root
     }
 
     private func moveRangeIndicator(to position: CGPoint, in scene: SKScene) {

@@ -7,6 +7,9 @@ final class GameScene: SKScene {
     private let systems: GameSystems
     private var didBuildScene = false
     private var debugPathNode: SKShapeNode?
+    /// Scene-coordinate Y of the bottom edge of the notch / Dynamic Island / status bar.
+    /// Computed once from view.safeAreaInsets.top and reused on restart.
+    private var safeAreaTopInScene: CGFloat = 0
 
     init(configuration: GameConfiguration, systems: GameSystems) {
         self.configuration = configuration
@@ -29,11 +32,14 @@ final class GameScene: SKScene {
 
         didBuildScene = true
         view.preferredFramesPerSecond = configuration.preferredFramesPerSecond
+        // Convert the bottom of the notch/island/status bar from UIKit coords (top-left origin,
+        // y increases downward) to scene coords (bottom-left origin, y increases upward).
+        safeAreaTopInScene = convertPoint(fromView: CGPoint(x: 0, y: view.safeAreaInsets.top)).y
         resetPlaceholderSystems()
         buildPlaceholderScene()
         buildGameplaySlice()
         setupCallbacks()
-        systems.uiManager.configureOverlay(in: self)
+        systems.uiManager.configureOverlay(in: self, safeAreaTop: safeAreaTopInScene)
         systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
     }
 
@@ -88,14 +94,30 @@ final class GameScene: SKScene {
 
         let isDestroyed = systems.baseHealthManager.takeDamage()
 
+        // Force a HUD update immediately so the heart loss animation triggers now.
+        // Without this, a health:0 loss never gets an update() call because
+        // markGameOver() stops the update loop before the next frame.
+        systems.uiManager.update(
+            coins: systems.economyManager.coins,
+            health: systems.baseHealthManager.health
+        )
+
         if isDestroyed {
             triggerGameOver()
         }
     }
 
     private func triggerGameOver() {
+        // Stop gameplay immediately so no further input or combat runs.
         systems.gameStateManager.markGameOver()
-        systems.uiManager.showGameOverOverlay(in: self)
+        // Delay the overlay so the last heart animation (0.31s) plays before it appears.
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.36),
+            SKAction.run { [weak self] in
+                guard let self else { return }
+                self.systems.uiManager.showGameOverOverlay(in: self)
+            }
+        ]))
     }
 
     private func triggerVictory() {
@@ -107,7 +129,7 @@ final class GameScene: SKScene {
         resetPlaceholderSystems()
         buildGameplaySlice()
         setupCallbacks()
-        systems.uiManager.configureOverlay(in: self)
+        systems.uiManager.configureOverlay(in: self, safeAreaTop: safeAreaTopInScene)
         systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
     }
 
@@ -126,7 +148,6 @@ final class GameScene: SKScene {
             in: self
         )
         systems.uiManager.update(
-            activeEnemyCount: systems.enemyManager.activeEnemyCount,
             coins: systems.economyManager.coins,
             health: systems.baseHealthManager.health
         )
@@ -149,6 +170,18 @@ final class GameScene: SKScene {
         if phase == .gameOver || phase == .victory {
             if nodes(at: location).contains(where: { $0.name == "RestartButton" }) {
                 restartGame()
+            }
+            return
+        }
+
+        if nodes(at: location).contains(where: { $0.name == "SellBadge" }) {
+            if let sold = systems.towerManager.sellSelectedTower(in: self) {
+                systems.economyManager.credit(sold.refund)
+                systems.buildSpotManager.markUnoccupied(buildSpotID: sold.buildSpotID)
+                systems.uiManager.update(
+                    coins: systems.economyManager.coins,
+                    health: systems.baseHealthManager.health
+                )
             }
             return
         }
