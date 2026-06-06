@@ -96,6 +96,24 @@ enum TowerType: CaseIterable {
         }
     }
 
+    var projectileColor: SKColor {
+        switch self {
+        case .red:
+            SKColor(red: 1.0, green: 0.38, blue: 0.10, alpha: 1.0)
+        case .green:
+            SKColor(red: 0.28, green: 1.0, blue: 0.18, alpha: 1.0)
+        case .blue:
+            SKColor(red: 0.10, green: 0.82, blue: 1.0, alpha: 1.0)
+        }
+    }
+
+    var usesPredictiveAiming: Bool {
+        switch self {
+        case .blue: true
+        default: false
+        }
+    }
+
     var projectileBehavior: TowerProjectileBehavior {
         switch self {
         case .red:
@@ -103,7 +121,6 @@ enum TowerType: CaseIterable {
         case .green:
             .homing
         case .blue:
-            // TODO: Add predictive aiming for the blue tower once enemy speed and lead tuning exist.
             .direct
         }
     }

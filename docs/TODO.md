@@ -40,6 +40,10 @@
 - [x] Add UI verification for build menu movement, hiding, and typed tower placement
 - [x] Create economy system
 - [x] Create win/lose conditions
+- [x] Fix homing projectile range abort (Green missiles now follow target until impact)
+- [x] Add per-tower projectile colors (Red = orange, Green = lime, Blue = cyan)
+- [x] Add predictive aiming for Blue tower
+- [x] Add impact flash effect on projectile hit
 
 ## Phase 2 - Vertical Slice
 

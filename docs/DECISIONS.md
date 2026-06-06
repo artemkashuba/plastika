@@ -301,6 +301,40 @@ Reason:
 - The current slice only needs Blue to be a slow direct projectile tower
 - Deferring it keeps this implementation scoped to the tower type menu and first typed behavior pass
 
+## 2026-06-06 (Shooting Improvements)
+
+Decision:
+Fix homing (Green) projectile range abort by separating target-locking validity from in-flight validity.
+
+Reason:
+- isValidTarget includes a range check meant for acquiring new targets, not for mid-flight tracking
+- A fired homing missile should follow its target until impact regardless of tower attack range
+- Added isTrackedAndAlive to EnemyManager — checks lifeID validity only, no range — used exclusively in the targetPositionProvider for in-flight homing projectiles
+
+Decision:
+Add per-tower projectile colors instead of a uniform magenta.
+
+Reason:
+- Distinct colors (Red = orange, Green = lime, Blue = cyan) make combat much more readable
+- Matches the tower's visual identity and helps the player track shots
+- Trivial to implement via configure(color:) on PlaceholderProjectile
+
+Decision:
+Implement predictive aiming for Blue tower using quadratic intercept math.
+
+Reason:
+- Blue fires slow projectiles making it nearly miss any moving target at current position
+- PlaceholderEnemy now tracks velocity per path segment, enabling exact intercept calculation
+- The intercept point is clamped to the projectile's travel time; if no valid intercept exists, falls back to current enemy position
+
+Decision:
+Add an impact flash effect at the projectile's hit position.
+
+Reason:
+- Gives the player clear visual feedback that a hit occurred rather than the projectile silently disappearing
+- Implemented as a pooled-free short-lived SKShapeNode (expand + fade in 0.18s) added directly in ProjectileManager
+- Color matches the tower's projectile color for consistent visual language
+
 ## 2026-06-06 (Economy)
 
 Decision:

@@ -9,6 +9,8 @@ final class PlaceholderEnemy: GameEntity {
     private let maxHitPoints = 5
     private(set) var hitPoints = 5
     private(set) var lifeID = 0
+    /// Current velocity in points per second, updated at each path segment. Zero before first move.
+    private(set) var velocity: CGPoint = .zero
 
     var isAlive: Bool {
         hitPoints > 0 && node.parent != nil
@@ -52,6 +54,7 @@ final class PlaceholderEnemy: GameEntity {
 
     func reset() {
         hitPoints = maxHitPoints
+        velocity = .zero
         node.removeAction(forKey: movementActionKey)
         healthBarNode.isHidden = true
         healthBarForeground.xScale = 1.0
@@ -81,9 +84,16 @@ final class PlaceholderEnemy: GameEntity {
         node.position = firstPoint
         node.isHidden = false
 
-        let movementActions = zip(path.waypoints, path.waypoints.dropFirst()).map { start, end in
-            let duration = TimeInterval(start.distance(to: end) / path.movementSpeed)
-            return SKAction.move(to: end, duration: duration)
+        var movementActions: [SKAction] = []
+        for (start, end) in zip(path.waypoints, path.waypoints.dropFirst()) {
+            let dist = max(1, start.distance(to: end))
+            let duration = TimeInterval(dist / path.movementSpeed)
+            let vx = ((end.x - start.x) / dist) * path.movementSpeed
+            let vy = ((end.y - start.y) / dist) * path.movementSpeed
+            movementActions.append(SKAction.run { [weak self] in
+                self?.velocity = CGPoint(x: vx, y: vy)
+            })
+            movementActions.append(SKAction.move(to: end, duration: duration))
         }
 
         let finish = SKAction.run {

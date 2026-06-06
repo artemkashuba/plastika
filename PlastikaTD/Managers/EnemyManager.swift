@@ -69,6 +69,12 @@ final class EnemyManager {
             && enemy.node.position.distance(to: point) <= range
     }
 
+    /// Checks that the enemy is still alive with the given lifeID, without any range constraint.
+    /// Use for in-flight homing projectiles that must follow their target regardless of tower range.
+    func isTrackedAndAlive(_ enemy: PlaceholderEnemy, lifeID: Int) -> Bool {
+        isActiveLife(enemy, lifeID: lifeID)
+    }
+
     @discardableResult
     func applyDamage(_ damage: Int, to enemy: PlaceholderEnemy) -> Bool {
         guard isActiveLife(enemy, lifeID: enemy.lifeID) else {

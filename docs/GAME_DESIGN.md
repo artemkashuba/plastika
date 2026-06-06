@@ -36,12 +36,13 @@ Current prototype tower types:
    - Blue visual identity
    - Slow attack speed (0.90s cooldown)
    - 2 damage per shot — compensates for slow fire rate
-   - Slow direct projectile behavior
-   - Future TODO: predictive aiming after enemy speed and lead tuning exist
+   - Slow direct projectile behavior with predictive aiming — fires at the enemy's intercept position
 
 Prototype enemies have 5 HP. A health bar appears above each enemy after the first hit, color-coded green → yellow → red as health decreases.
 
 Players can tap a placed prototype tower to select it. The selected tower scales slightly, shows a thin white selection ring, and displays a subtle white circular range indicator centered on the tower's actual attack range. Tapping another placed tower transfers selection; tapping empty battlefield space clears selection and hides any open build menu.
+
+All projectiles are color-coded by tower type (Red = orange, Green = lime, Blue = cyan) and produce a small expanding flash on impact.
 
 Placed prototype towers do not support upgrades, selling, economy, splash damage, status effects, final art, or multiple enemy types yet.
 
