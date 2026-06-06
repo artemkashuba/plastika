@@ -87,6 +87,7 @@ final class TowerManager {
             nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + tower.type.attackCooldown
 
             let killReward = target.killReward
+            let towerDamage = tower.type.damage
 
             projectileManager.firePlaceholderProjectile(
                 from: tower.node.position,
@@ -115,7 +116,7 @@ final class TowerManager {
                     return
                 }
 
-                let killed = enemyManager?.applyDamage(1, to: target, matchingLifeID: targetLock.lifeID) ?? false
+                let killed = enemyManager?.applyDamage(towerDamage, to: target, matchingLifeID: targetLock.lifeID) ?? false
 
                 if killed {
                     economyManager?.credit(killReward)

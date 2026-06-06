@@ -22,21 +22,24 @@ Current prototype tower types:
 
 1. Red Tower
    - Red visual identity
-   - Fast attack speed
+   - Fast attack speed (0.36s cooldown)
+   - 1 damage per shot
    - Direct projectile behavior
 
 2. Green Tower
    - Green visual identity
    - Homing projectile behavior
-   - Slightly slower attack speed than Red
+   - Slightly slower attack speed (0.58s cooldown)
+   - 1 damage per shot
 
 3. Blue Tower
    - Blue visual identity
-   - Slow attack speed
+   - Slow attack speed (0.90s cooldown)
+   - 2 damage per shot — compensates for slow fire rate
    - Slow direct projectile behavior
    - Future TODO: predictive aiming after enemy speed and lead tuning exist
 
-Prototype enemies currently have 1 HP. One projectile hit destroys an enemy and removes it from the battlefield.
+Prototype enemies have 5 HP. A health bar appears above each enemy after the first hit, color-coded green → yellow → red as health decreases.
 
 Players can tap a placed prototype tower to select it. The selected tower scales slightly, shows a thin white selection ring, and displays a subtle white circular range indicator centered on the tower's actual attack range. Tapping another placed tower transfers selection; tapping empty battlefield space clears selection and hides any open build menu.
 
@@ -78,11 +81,11 @@ Early prototype enemies move along the hardcoded path and use basic 1 HP combat 
 
 ### Victory
 
-Defeat all waves.
+Defeat all enemies in the wave.
 
 ### Defeat
 
-Base health reaches zero.
+Base health reaches zero. Player starts with 3 lives. Each enemy that reaches the path end costs one life.
 
 ## Art Direction
 

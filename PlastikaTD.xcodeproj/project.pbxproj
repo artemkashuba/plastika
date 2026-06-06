@@ -30,6 +30,7 @@
 		1A00002A2C12400100000001 /* TowerPlacementUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00002A2C12400000000001 /* TowerPlacementUITests.swift */; };
 		1A0000362C12400100000001 /* PlaceholderProjectile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000362C12400000000001 /* PlaceholderProjectile.swift */; };
 		1A0000372C12400100000001 /* TowerType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000372C12400000000001 /* TowerType.swift */; };
+		1A0000382C12400100000001 /* BaseHealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000382C12400000000001 /* BaseHealthManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -68,6 +69,7 @@
 		1A00002C2C12400000000001 /* PlastikaTDUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PlastikaTDUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A0000362C12400000000001 /* PlaceholderProjectile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaceholderProjectile.swift; sourceTree = "<group>"; };
 		1A0000372C12400000000001 /* TowerType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TowerType.swift; sourceTree = "<group>"; };
+		1A0000382C12400000000001 /* BaseHealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseHealthManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -150,6 +152,7 @@
 				1A0000092C12400000000001 /* TowerManager.swift */,
 				1A00000A2C12400000000001 /* ProjectileManager.swift */,
 				1A00000B2C12400000000001 /* EconomyManager.swift */,
+				1A0000382C12400000000001 /* BaseHealthManager.swift */,
 				1A00000C2C12400000000001 /* UIManager.swift */,
 			);
 			path = Managers;
@@ -303,6 +306,7 @@
 				1A0000092C12400100000001 /* TowerManager.swift in Sources */,
 				1A00000A2C12400100000001 /* ProjectileManager.swift in Sources */,
 				1A00000B2C12400100000001 /* EconomyManager.swift in Sources */,
+				1A0000382C12400100000001 /* BaseHealthManager.swift in Sources */,
 				1A00000C2C12400100000001 /* UIManager.swift in Sources */,
 				1A00000D2C12400100000001 /* GameEntity.swift in Sources */,
 				1A0000372C12400100000001 /* TowerType.swift in Sources */,

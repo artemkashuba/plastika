@@ -2,6 +2,8 @@ import SpriteKit
 
 @MainActor
 final class EnemyManager {
+    var onEnemyReachedEnd: (@MainActor () -> Void)?
+
     private var activeEnemies: [PlaceholderEnemy] = []
     private var pooledEnemies: [PlaceholderEnemy] = []
 
@@ -17,6 +19,7 @@ final class EnemyManager {
 
         activeEnemies.removeAll(keepingCapacity: true)
         pooledEnemies.removeAll(keepingCapacity: true)
+        onEnemyReachedEnd = nil
     }
 
     func preparePool(capacity: Int) {
@@ -46,6 +49,7 @@ final class EnemyManager {
             }
 
             self.recycle(enemy)
+            self.onEnemyReachedEnd?()
         }
     }
 

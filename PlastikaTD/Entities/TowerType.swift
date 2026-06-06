@@ -63,6 +63,17 @@ enum TowerType: CaseIterable {
         50
     }
 
+    var damage: Int {
+        switch self {
+        case .red:
+            1
+        case .green:
+            1
+        case .blue:
+            2
+        }
+    }
+
     var attackCooldown: TimeInterval {
         switch self {
         case .red:

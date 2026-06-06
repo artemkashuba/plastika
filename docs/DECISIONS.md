@@ -328,6 +328,25 @@ Reason:
 - Avoids adding an economy callback to `EnemyManager`, which would couple it to economy
 - Captures `killReward` by value at fire time so a recycled enemy cannot affect the credit amount
 
+## 2026-06-06 (Enemy HP and Tower Damage)
+
+Decision:
+Set prototype enemy HP to 5 and keep all projectile damage at 1 except Blue which deals 2.
+
+Reason:
+- 5 HP makes combat readable and enemies feel durable without being bullet sponges
+- Red and Green stay differentiated by fire rate and projectile behavior alone
+- Blue's 2 damage compensates for its 0.90s cooldown, giving it a distinct role as a slow heavy hitter
+- HP and damage values are easy to tune per enemy and tower type in future passes
+
+Decision:
+Show a color-coded health bar above each enemy only after the first hit.
+
+Reason:
+- Hiding the bar at full health avoids visual clutter when enemies first spawn
+- Green → yellow → red color coding gives instant health-state readability without numbers
+- Left-aligned xScale shrink avoids recreating the SKShapeNode path each frame
+
 Decision:
 Dim unaffordable build menu options to alpha 0.4 and block their taps silently.
 
@@ -335,3 +354,45 @@ Reason:
 - Visual dimming gives the player immediate feedback without adding a separate error UI
 - Silent block is consistent with the existing silent duplicate-placement block
 - Alpha 0.4 is visually clear on the colored option circles without requiring new art
+
+## 2026-06-06 (Win/Lose)
+
+Decision:
+Use 3 base lives for the prototype.
+
+Reason:
+- Tight enough to create pressure against 6 enemies
+- Allows the player to learn but punishes ignoring the base
+- Easy to tune upward once difficulty and enemy variety exist
+
+Decision:
+Use BaseHealthManager as a dedicated manager for base health.
+
+Reason:
+- Mirrors EconomyManager pattern — small, single-purpose, easy to reset
+- Keeps GameScene thin by delegating health state and reset logic
+- Provides a clear home for future base HP upgrades or shield mechanics
+
+Decision:
+Detect enemy breach via onEnemyReachedEnd callback on EnemyManager.
+
+Reason:
+- The existing movement completion closure already fires only when an enemy reaches the end (reset() strips the action before it can complete when killed)
+- No new coupling between managers — GameScene registers the callback and owns the health decrement
+- The same callback pattern is used across the codebase
+
+Decision:
+Detect victory by polling waveManager.isSpawningComplete and enemyManager.activeEnemyCount in update().
+
+Reason:
+- Simpler than a callback chain across WaveManager and EnemyManager
+- The phase guard in update() prevents double-triggering
+- No window where victory can fire before all enemies are spawned (isSpawningComplete blocks it)
+
+Decision:
+Show end-game overlays as in-scene SKNode panels rather than a new scene or SwiftUI layer.
+
+Reason:
+- Consistent with the existing SKNode-based UI approach
+- No scene transition overhead
+- The RestartButton name allows SpriteKit nodes(at:) hit-testing without UIManager needing a public hit-test method

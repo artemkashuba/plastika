@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Economy system is complete.
+Win/lose conditions are complete.
 
 The repository now has:
 
@@ -38,33 +38,35 @@ The repository now has:
 - A UI test that verifies build menu display, movement, hiding, and typed Red/Green/Blue tower placement
 - A UI test that verifies selection, range display, switching, deselection, placement, and combat behavior
 - A UI test that verifies the placeholder tower barrel aims toward an early locked target
-- A debug HUD showing wave number, active enemy count, and current coin balance
+- A debug HUD showing wave number, active enemy count, coin balance, and base health
 - An `EconomyManager` with 150 starting coins, per-kill +10 credit, and 50-coin tower cost
 - Build menu options dimmed (alpha 0.4) when the player cannot afford them
 - Blocked tower placement when the player has insufficient coins
-- A UI test that verifies the economy blocks placement when the player has spent all coins
+- A `BaseHealthManager` with 3 starting lives
+- Lives decremented when an enemy reaches the path end
+- A game-over overlay ("DEFEAT") when all lives are lost
+- A victory overlay ("VICTORY") when all wave enemies are defeated
+- A Restart button on both overlays that fully resets and restarts the wave
+- Combat and input gated on `.sceneLoaded` phase; overlays block all gameplay input
 - No center branding text inside the battlefield
-- No upgrades, selling, splash damage, status effects, multiple enemy types, final art, physics, or win/lose conditions
+- No upgrades, selling, splash damage, status effects, multiple enemy types, or final art
 
 ## Next Task
 
-Add win/lose conditions: base health that decreases when enemies reach the path end, a game-over state when base health reaches zero, and a victory state when all wave enemies are defeated.
+Begin Phase 2 — Vertical Slice: add placeholder UI (coin display, health bar, wave counter as proper in-game UI rather than a debug overlay), sound effects, or tower upgrades.
 
 Before starting, review the documentation workflow in `docs/AGENTS.md`.
 
 ## Immediate Goal
 
-Reach first fully playable prototype with:
+The first playable prototype loop is now complete:
 
-- One map
-- One enemy type moving along a path
-- Build spots that open a tower type menu and can place one prototype tower each
-- Prototype towers that lock targets, aim their barrel, fire type-specific projectiles, and destroy 1 HP enemies
-- Placeholder tower selection with visible attack range and selected-state feedback
-- Red, Green, and Blue tower types with distinct visuals and projectile behavior
-- One wave
-- Economy (coins, tower cost, kill reward)
-- Win/lose conditions
+- One map with enemies moving along a hardcoded path
+- Build spots with a tower type selection menu
+- Red, Green, and Blue towers with distinct projectile behavior
+- One wave of 6 enemies
+- Economy: coins, tower cost, kill reward
+- Win/lose: base health, game-over and victory overlays, restart
 
 ## Blockers
 

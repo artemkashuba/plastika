@@ -39,7 +39,7 @@
 - [x] Add type-specific direct and homing projectile behavior
 - [x] Add UI verification for build menu movement, hiding, and typed tower placement
 - [x] Create economy system
-- [ ] Create win/lose conditions
+- [x] Create win/lose conditions
 
 ## Phase 2 - Vertical Slice
 

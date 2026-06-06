@@ -14,10 +14,14 @@ final class WaveManager {
         spawnInterval: 0.85
     )
 
+    private(set) var isSpawningComplete = false
+
     func resetForNewScene() {
+        isSpawningComplete = false
     }
 
     func startPrototypeWave(in scene: SKScene, path: GamePath, enemyManager: EnemyManager) {
+        isSpawningComplete = false
         scene.removeAction(forKey: waveActionKey)
         enemyManager.preparePool(capacity: prototypeWave.enemyCount)
         enemyManager.spawnPlaceholderEnemy(in: scene, path: path)
@@ -35,8 +39,15 @@ final class WaveManager {
             spawnEnemy
         ])
 
+        let markComplete = SKAction.run { [weak self] in
+            self?.isSpawningComplete = true
+        }
+
         scene.run(
-            SKAction.repeat(spawnSequence, count: max(0, prototypeWave.enemyCount - 1)),
+            SKAction.sequence([
+                SKAction.repeat(spawnSequence, count: max(0, prototypeWave.enemyCount - 1)),
+                markComplete
+            ]),
             withKey: waveActionKey
         )
     }

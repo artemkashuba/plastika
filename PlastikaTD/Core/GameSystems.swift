@@ -8,6 +8,7 @@ struct GameSystems {
     let towerManager: TowerManager
     let projectileManager: ProjectileManager
     let economyManager: EconomyManager
+    let baseHealthManager: BaseHealthManager
     let uiManager: UIManager
 
     init(gameStateManager: GameStateManager) {
@@ -19,6 +20,7 @@ struct GameSystems {
         self.towerManager = TowerManager()
         self.projectileManager = ProjectileManager()
         self.economyManager = EconomyManager()
+        self.baseHealthManager = BaseHealthManager()
         self.uiManager = UIManager()
     }
 }
