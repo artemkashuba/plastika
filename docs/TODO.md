@@ -34,6 +34,10 @@
 - [x] Add stable tower target locking
 - [x] Add visible turret/barrel aiming toward locked targets
 - [x] Add UI verification for placeholder tower barrel aiming
+- [x] Add tower type selection menu for empty build spots
+- [x] Add Red, Green, and Blue prototype tower types
+- [x] Add type-specific direct and homing projectile behavior
+- [x] Add UI verification for build menu movement, hiding, and typed tower placement
 - [ ] Create economy system
 - [ ] Create win/lose conditions
 

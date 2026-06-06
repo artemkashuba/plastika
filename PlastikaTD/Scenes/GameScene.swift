@@ -85,19 +85,33 @@ final class GameScene: SKScene {
 
         let location = touch.location(in: self)
 
+        if let menuSelection = systems.buildSpotManager.towerBuildMenuSelection(containing: location) {
+            let didPlaceTower = systems.towerManager.placePlaceholderTower(
+                ofType: menuSelection.towerType,
+                on: menuSelection.buildSpot,
+                in: self
+            )
+
+            if didPlaceTower {
+                systems.buildSpotManager.markOccupied(menuSelection.buildSpot)
+                systems.buildSpotManager.hideBuildMenu()
+            }
+
+            return
+        }
+
         if systems.towerManager.selectTower(containing: location, in: self) {
+            systems.buildSpotManager.hideBuildMenu()
             return
         }
 
-        guard let buildSpot = systems.buildSpotManager.emptyBuildSpot(containing: location) else {
+        if let buildSpot = systems.buildSpotManager.emptyBuildSpot(containing: location) {
             systems.towerManager.clearSelection()
+            systems.buildSpotManager.showBuildMenu(for: buildSpot, in: self)
             return
         }
 
-        let didPlaceTower = systems.towerManager.placePlaceholderTower(on: buildSpot, in: self)
-
-        if didPlaceTower {
-            systems.buildSpotManager.markOccupied(buildSpot)
-        }
+        systems.towerManager.clearSelection()
+        systems.buildSpotManager.hideBuildMenu()
     }
 }

@@ -2,7 +2,18 @@ import CoreGraphics
 import ImageIO
 import XCTest
 
+private enum TestTowerOption {
+    case red
+    case green
+    case blue
+}
+
 final class TowerPlacementUITests: XCTestCase {
+    private let sceneWidth: CGFloat = 390
+    private let sceneHeight: CGFloat = 844
+    private let menuYOffset: CGFloat = 54
+    private let menuOptionSpacing: CGFloat = 52
+
     func testTapBuildSpotPlacesOnePlaceholderTowerOnlyOnce() {
         let app = XCUIApplication()
         app.launch()
@@ -11,14 +22,22 @@ final class TowerPlacementUITests: XCTestCase {
         let emptyBattlefield = CGVector(dx: 0.50, dy: 0.88)
         let tapTarget = app.coordinate(withNormalizedOffset: topRightBuildSpot)
 
-        let baselineTowerPixels = countTowerPixels(
+        let baselineTowerPixels = countRedTowerPixels(
             in: XCUIScreen.main.screenshot(),
             near: topRightBuildSpot
         )
 
         tapTarget.tap()
 
-        let afterFirstTapPixels = countTowerPixels(
+        let afterMenuTapPixels = countRedTowerPixels(
+            in: XCUIScreen.main.screenshot(),
+            near: topRightBuildSpot
+        )
+
+        app.coordinate(withNormalizedOffset: menuOption(for: topRightBuildSpot, option: .red)).tap()
+        Thread.sleep(forTimeInterval: 0.25)
+
+        let afterPlacementPixels = countRedTowerPixels(
             in: XCUIScreen.main.screenshot(),
             near: topRightBuildSpot
         )
@@ -27,14 +46,65 @@ final class TowerPlacementUITests: XCTestCase {
         app.coordinate(withNormalizedOffset: emptyBattlefield).tap()
         Thread.sleep(forTimeInterval: 0.25)
 
-        let afterSecondTapPixels = countTowerPixels(
+        let afterSecondTapPixels = countRedTowerPixels(
             in: XCUIScreen.main.screenshot(),
             near: topRightBuildSpot
         )
 
         XCTAssertLessThan(baselineTowerPixels, 120)
-        XCTAssertGreaterThan(afterFirstTapPixels, baselineTowerPixels + 500)
-        XCTAssertLessThanOrEqual(abs(afterSecondTapPixels - afterFirstTapPixels), 150)
+        XCTAssertLessThanOrEqual(abs(afterMenuTapPixels - baselineTowerPixels), 150)
+        XCTAssertGreaterThan(afterPlacementPixels, baselineTowerPixels + 500)
+        XCTAssertLessThanOrEqual(abs(afterSecondTapPixels - afterPlacementPixels), 150)
+    }
+
+    func testBuildSpotMenuShowsMovesHidesAndPlacesTypedTowers() {
+        let app = XCUIApplication()
+        app.launch()
+
+        let topRightBuildSpot = CGVector(dx: 0.74, dy: 0.26)
+        let middleRightBuildSpot = CGVector(dx: 0.74, dy: 0.57)
+        let lowerRightBuildSpot = CGVector(dx: 0.74, dy: 0.77)
+        let emptyBattlefield = CGVector(dx: 0.50, dy: 0.88)
+
+        app.coordinate(withNormalizedOffset: topRightBuildSpot).tap()
+
+        var menuScreenshot = XCUIScreen.main.screenshot()
+        let topRedOptionPixels = countRedTowerPixels(in: menuScreenshot, near: menuOption(for: topRightBuildSpot, option: .red))
+        let topGreenOptionPixels = countGreenTowerPixels(in: menuScreenshot, near: menuOption(for: topRightBuildSpot, option: .green))
+        let topBlueOptionPixels = countBlueTowerPixels(in: menuScreenshot, near: menuOption(for: topRightBuildSpot, option: .blue))
+
+        XCTAssertGreaterThan(topRedOptionPixels, 200)
+        XCTAssertGreaterThan(topGreenOptionPixels, 200)
+        XCTAssertGreaterThan(topBlueOptionPixels, 200)
+
+        app.coordinate(withNormalizedOffset: middleRightBuildSpot).tap()
+
+        menuScreenshot = XCUIScreen.main.screenshot()
+        let movedTopRedOptionPixels = countRedTowerPixels(in: menuScreenshot, near: menuOption(for: topRightBuildSpot, option: .red))
+        let middleRedOptionPixels = countRedTowerPixels(in: menuScreenshot, near: menuOption(for: middleRightBuildSpot, option: .red))
+
+        XCTAssertLessThan(movedTopRedOptionPixels, topRedOptionPixels - 100)
+        XCTAssertGreaterThan(middleRedOptionPixels, 200)
+
+        app.coordinate(withNormalizedOffset: emptyBattlefield).tap()
+
+        let hiddenMenuScreenshot = XCUIScreen.main.screenshot()
+        let hiddenMiddleRedOptionPixels = countRedTowerPixels(in: hiddenMenuScreenshot, near: menuOption(for: middleRightBuildSpot, option: .red))
+
+        XCTAssertLessThan(hiddenMiddleRedOptionPixels, middleRedOptionPixels - 100)
+
+        placeTower(app, at: topRightBuildSpot, option: .red)
+        placeTower(app, at: middleRightBuildSpot, option: .green)
+        placeTower(app, at: lowerRightBuildSpot, option: .blue)
+
+        let typedTowers = XCUIScreen.main.screenshot()
+        let redTowerPixels = countRedTowerPixels(in: typedTowers, near: topRightBuildSpot)
+        let greenTowerPixels = countGreenTowerPixels(in: typedTowers, near: middleRightBuildSpot)
+        let blueTowerPixels = countBlueTowerPixels(in: typedTowers, near: lowerRightBuildSpot)
+
+        XCTAssertGreaterThan(redTowerPixels, 500)
+        XCTAssertGreaterThan(greenTowerPixels, 500)
+        XCTAssertGreaterThan(blueTowerPixels, 500)
     }
 
     func testPlacedTowerFiresProjectilesAndDestroysEnemies() {
@@ -42,7 +112,7 @@ final class TowerPlacementUITests: XCTestCase {
         app.launch()
 
         let earlyBuildSpot = CGVector(dx: 0.21, dy: 0.66)
-        app.coordinate(withNormalizedOffset: earlyBuildSpot).tap()
+        placeTower(app, at: earlyBuildSpot, option: .green)
 
         var sawProjectile = false
 
@@ -75,7 +145,7 @@ final class TowerPlacementUITests: XCTestCase {
         app.launch()
 
         let earlyBuildSpot = CGVector(dx: 0.21, dy: 0.66)
-        app.coordinate(withNormalizedOffset: earlyBuildSpot).tap()
+        placeTower(app, at: earlyBuildSpot, option: .blue)
         Thread.sleep(forTimeInterval: 0.25)
 
         let aimedTower = XCUIScreen.main.screenshot()
@@ -103,30 +173,30 @@ final class TowerPlacementUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let firstTower = CGVector(dx: 0.74, dy: 0.57)
+        let firstTower = CGVector(dx: 0.74, dy: 0.26)
         let secondTower = CGVector(dx: 0.74, dy: 0.77)
-        let firstRangeSample = CGVector(dx: 0.30, dy: 0.57)
+        let firstRangeSample = CGVector(dx: 0.30, dy: 0.26)
         let secondRangeSample = CGVector(dx: 0.30, dy: 0.77)
         let emptyBattlefield = CGVector(dx: 0.50, dy: 0.88)
 
-        app.coordinate(withNormalizedOffset: firstTower).tap()
-        app.coordinate(withNormalizedOffset: secondTower).tap()
+        placeTower(app, at: firstTower, option: .blue)
+        placeTower(app, at: secondTower, option: .blue)
 
         let beforeSelection = XCUIScreen.main.screenshot()
-        let beforeRangePixels = countRangePixels(in: beforeSelection)
         let beforeFirstHighlightPixels = countSelectionHighlightPixels(in: beforeSelection, near: firstTower)
+        let beforeSecondHighlightPixels = countSelectionHighlightPixels(in: beforeSelection, near: secondTower)
+        let beforeFirstRangeSamplePixels = countRangePixels(in: beforeSelection, near: firstRangeSample)
+        let beforeSecondRangeSamplePixels = countRangePixels(in: beforeSelection, near: secondRangeSample)
 
         app.coordinate(withNormalizedOffset: firstTower).tap()
         Thread.sleep(forTimeInterval: 0.25)
 
         let firstSelected = XCUIScreen.main.screenshot()
-        let firstSelectedRangePixels = countRangePixels(in: firstSelected)
         let firstSelectedHighlightPixels = countSelectionHighlightPixels(in: firstSelected, near: firstTower)
         let firstSelectedRangeSamplePixels = countRangePixels(in: firstSelected, near: firstRangeSample)
 
-        XCTAssertGreaterThan(firstSelectedRangePixels, beforeRangePixels + 700)
         XCTAssertGreaterThan(firstSelectedHighlightPixels, beforeFirstHighlightPixels + 40)
-        XCTAssertGreaterThan(firstSelectedRangeSamplePixels, 18)
+        XCTAssertGreaterThan(firstSelectedRangeSamplePixels, beforeFirstRangeSamplePixels + 18)
 
         app.coordinate(withNormalizedOffset: secondTower).tap()
         Thread.sleep(forTimeInterval: 0.25)
@@ -138,24 +208,61 @@ final class TowerPlacementUITests: XCTestCase {
         let secondSelectedRangeSamplePixels = countRangePixels(in: secondSelected, near: secondRangeSample)
 
         XCTAssertLessThan(firstAfterSwitchHighlightPixels, firstSelectedHighlightPixels - 30)
-        XCTAssertGreaterThan(secondSelectedHighlightPixels, beforeFirstHighlightPixels + 40)
+        XCTAssertGreaterThan(secondSelectedHighlightPixels, beforeSecondHighlightPixels + 40)
         XCTAssertLessThan(firstAfterSwitchRangeSamplePixels, firstSelectedRangeSamplePixels)
-        XCTAssertGreaterThan(secondSelectedRangeSamplePixels, 18)
+        XCTAssertGreaterThan(secondSelectedRangeSamplePixels, beforeSecondRangeSamplePixels + 18)
 
         app.coordinate(withNormalizedOffset: emptyBattlefield).tap()
         Thread.sleep(forTimeInterval: 0.25)
 
         let cleared = XCUIScreen.main.screenshot()
-        let clearedRangePixels = countRangePixels(in: cleared)
+        let clearedSecondRangeSamplePixels = countRangePixels(in: cleared, near: secondRangeSample)
         let clearedSecondHighlightPixels = countSelectionHighlightPixels(in: cleared, near: secondTower)
 
-        XCTAssertLessThan(clearedRangePixels, firstSelectedRangePixels - 700)
+        XCTAssertLessThan(clearedSecondRangeSamplePixels, secondSelectedRangeSamplePixels)
         XCTAssertLessThan(clearedSecondHighlightPixels, secondSelectedHighlightPixels - 30)
     }
 
-    private func countTowerPixels(in screenshot: XCUIScreenshot, near normalizedPoint: CGVector) -> Int {
+    private func placeTower(_ app: XCUIApplication, at buildSpot: CGVector, option: TestTowerOption) {
+        app.coordinate(withNormalizedOffset: buildSpot).tap()
+        Thread.sleep(forTimeInterval: 0.15)
+        app.coordinate(withNormalizedOffset: menuOption(for: buildSpot, option: option)).tap()
+        Thread.sleep(forTimeInterval: 0.25)
+    }
+
+    private func menuOption(for buildSpot: CGVector, option: TestTowerOption) -> CGVector {
+        let xOffset: CGFloat
+
+        switch option {
+        case .red:
+            xOffset = -menuOptionSpacing
+        case .green:
+            xOffset = 0
+        case .blue:
+            xOffset = menuOptionSpacing
+        }
+
+        return CGVector(
+            dx: buildSpot.dx + (xOffset / sceneWidth),
+            dy: buildSpot.dy + (menuYOffset / sceneHeight)
+        )
+    }
+
+    private func countRedTowerPixels(in screenshot: XCUIScreenshot, near normalizedPoint: CGVector) -> Int {
         countPixels(in: screenshot, near: normalizedPoint) { red, green, blue in
-            isPlaceholderTowerPixel(red: red, green: green, blue: blue)
+            isRedTowerPixel(red: red, green: green, blue: blue)
+        }
+    }
+
+    private func countGreenTowerPixels(in screenshot: XCUIScreenshot, near normalizedPoint: CGVector) -> Int {
+        countPixels(in: screenshot, near: normalizedPoint) { red, green, blue in
+            isGreenTowerPixel(red: red, green: green, blue: blue)
+        }
+    }
+
+    private func countBlueTowerPixels(in screenshot: XCUIScreenshot, near normalizedPoint: CGVector) -> Int {
+        countPixels(in: screenshot, near: normalizedPoint) { red, green, blue in
+            isBlueTowerPixel(red: red, green: green, blue: blue)
         }
     }
 
@@ -363,7 +470,19 @@ final class TowerPlacementUITests: XCTestCase {
         return CGImageSourceCreateImageAtIndex(source, 0, nil)
     }
 
-    private func isPlaceholderTowerPixel(red: Int, green: Int, blue: Int) -> Bool {
+    private func isRedTowerPixel(red: Int, green: Int, blue: Int) -> Bool {
+        red > 135
+            && green < 105
+            && blue < 105
+    }
+
+    private func isGreenTowerPixel(red: Int, green: Int, blue: Int) -> Bool {
+        green > 130
+            && red < 125
+            && blue < 125
+    }
+
+    private func isBlueTowerPixel(red: Int, green: Int, blue: Int) -> Bool {
         blue > 130
             && blue > red * 2
             && blue > green

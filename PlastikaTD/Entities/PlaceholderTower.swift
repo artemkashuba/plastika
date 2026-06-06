@@ -3,18 +3,19 @@ import SpriteKit
 @MainActor
 final class PlaceholderTower: GameEntity {
     let node: SKNode
+    let type: TowerType
 
     private let selectionActionKey = "placeholderTower.selection"
     private let aimNode: SKNode
     private let selectionRing: SKShapeNode
 
-    init() {
+    init(type: TowerType) {
         let root = SKNode()
         root.name = "PlaceholderTower"
         root.zPosition = 18
 
         let base = SKShapeNode(circleOfRadius: 17)
-        base.fillColor = SKColor(red: 0.16, green: 0.39, blue: 0.73, alpha: 1.0)
+        base.fillColor = type.baseColor
         base.strokeColor = SKColor(red: 0.76, green: 0.92, blue: 1.0, alpha: 1.0)
         base.lineWidth = 3
         root.addChild(base)
@@ -24,14 +25,14 @@ final class PlaceholderTower: GameEntity {
         root.addChild(aimNode)
 
         let turret = SKShapeNode(circleOfRadius: 10)
-        turret.fillColor = SKColor(red: 0.19, green: 0.64, blue: 0.84, alpha: 1.0)
+        turret.fillColor = type.turretColor
         turret.strokeColor = SKColor(white: 1.0, alpha: 0.45)
         turret.lineWidth = 2
         turret.zPosition = 1
         aimNode.addChild(turret)
 
         let barrel = SKShapeNode(rectOf: CGSize(width: 8, height: 22), cornerRadius: 3)
-        barrel.fillColor = SKColor(red: 0.12, green: 0.27, blue: 0.54, alpha: 1.0)
+        barrel.fillColor = type.barrelColor
         barrel.strokeColor = SKColor(white: 1.0, alpha: 0.3)
         barrel.lineWidth = 1
         barrel.position = CGPoint(x: 0, y: 16)
@@ -48,6 +49,7 @@ final class PlaceholderTower: GameEntity {
 
         self.aimNode = aimNode
         self.selectionRing = selectionRing
+        self.type = type
         node = root
     }
 

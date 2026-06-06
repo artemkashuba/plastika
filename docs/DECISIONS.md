@@ -265,3 +265,39 @@ Reason:
 - Makes aiming visually clear without rotating the tower base or selection ring
 - Keeps placeholder art lightweight
 - Avoids adding final art, physics, or extra tower systems during the prototype
+
+Decision:
+Use `TowerType` as the single model for prototype tower identity and tuning.
+
+Reason:
+
+- Keeps each tower's color, attack cooldown, projectile speed, and projectile behavior together
+- Lets `TowerManager` create typed towers without branching across scene input code
+- Gives Red, Green, and Blue towers a small, explicit upgrade path for future balancing
+
+Decision:
+Let `BuildSpotManager` own the lightweight tower build menu.
+
+Reason:
+
+- Build spot hit testing, active empty spot state, and occupancy already live in `BuildSpotManager`
+- Reusing one menu node avoids unnecessary allocation while tapping between spots
+- `GameScene` can keep routing taps without owning menu layout or placement rules
+
+Decision:
+Support direct and homing projectile behaviors in `ProjectileManager` while keeping projectile nodes pooled.
+
+Reason:
+
+- Red and Blue towers can fire direct projectiles with their own speeds
+- Green towers can follow a valid locked target without adding physics
+- Projectile ownership, reuse, and cleanup remain separate from tower and enemy managers
+
+Decision:
+Leave Blue tower predictive aiming as a documented future TODO.
+
+Reason:
+
+- Predictive aiming depends on enemy speed, lead tuning, and broader combat balance
+- The current slice only needs Blue to be a slow direct projectile tower
+- Deferring it keeps this implementation scoped to the tower type menu and first typed behavior pass

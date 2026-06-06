@@ -3,7 +3,6 @@ import SpriteKit
 @MainActor
 final class TowerManager {
     private let placeholderAttackRange: CGFloat = 175
-    private let placeholderAttackCooldown: TimeInterval = 0.45
 
     private struct TargetLock {
         weak var enemy: PlaceholderEnemy?
@@ -29,12 +28,12 @@ final class TowerManager {
         targetLocksByBuildSpotID.removeAll(keepingCapacity: true)
     }
 
-    func placePlaceholderTower(on buildSpot: BuildSpot, in scene: SKScene) -> Bool {
+    func placePlaceholderTower(ofType towerType: TowerType, on buildSpot: BuildSpot, in scene: SKScene) -> Bool {
         guard towersByBuildSpotID[buildSpot.id] == nil else {
             return false
         }
 
-        let tower = PlaceholderTower()
+        let tower = PlaceholderTower(type: towerType)
         tower.node.position = buildSpot.position
         scene.addChild(tower.node)
         towersByBuildSpotID[buildSpot.id] = tower
@@ -84,9 +83,31 @@ final class TowerManager {
                 return
             }
 
-            nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + placeholderAttackCooldown
+            nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + tower.type.attackCooldown
 
-            projectileManager.firePlaceholderProjectile(from: tower.node.position, to: targetPosition, in: scene) { [weak enemyManager, weak target] in
+            projectileManager.firePlaceholderProjectile(
+                from: tower.node.position,
+                to: targetPosition,
+                behavior: tower.type.projectileBehavior,
+                speed: tower.type.projectileSpeed,
+                targetPositionProvider: { [weak enemyManager, weak target] in
+                    guard let enemyManager, let target else {
+                        return nil
+                    }
+
+                    guard enemyManager.isValidTarget(
+                        target,
+                        lifeID: targetLock.lifeID,
+                        from: tower.node.position,
+                        within: self.placeholderAttackRange
+                    ) else {
+                        return nil
+                    }
+
+                    return target.node.position
+                },
+                in: scene
+            ) { [weak enemyManager, weak target] in
                 guard let target else {
                     return
                 }

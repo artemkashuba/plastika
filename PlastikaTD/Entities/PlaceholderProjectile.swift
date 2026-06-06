@@ -33,11 +33,11 @@ final class PlaceholderProjectile: GameEntity {
         node.isHidden = true
     }
 
-    func startTravel(
+    func startDirectTravel(
         from startPosition: CGPoint,
         to targetPosition: CGPoint,
         duration: TimeInterval,
-        completion: @escaping @MainActor () -> Void
+        completion: @escaping @MainActor (Bool) -> Void
     ) {
         node.removeAction(forKey: travelActionKey)
         node.position = startPosition
@@ -49,7 +49,80 @@ final class PlaceholderProjectile: GameEntity {
         node.run(
             SKAction.sequence([
                 travel,
-                SKAction.run(completion)
+                SKAction.run {
+                    completion(true)
+                }
+            ]),
+            withKey: travelActionKey
+        )
+    }
+
+    func startHomingTravel(
+        from startPosition: CGPoint,
+        speed: CGFloat,
+        targetPositionProvider: @escaping @MainActor () -> CGPoint?,
+        completion: @escaping @MainActor (Bool) -> Void
+    ) {
+        node.removeAction(forKey: travelActionKey)
+        node.position = startPosition
+        node.isHidden = false
+
+        let impactRadius: CGFloat = 7
+        var previousElapsedTime: CGFloat = 0
+        var didComplete = false
+
+        let home = SKAction.customAction(withDuration: 2.6) { node, elapsedTime in
+            guard didComplete == false else {
+                return
+            }
+
+            guard let targetPosition = targetPositionProvider() else {
+                didComplete = true
+                node.removeAction(forKey: self.travelActionKey)
+                completion(false)
+                return
+            }
+
+            let deltaTime = max(0, elapsedTime - previousElapsedTime)
+            previousElapsedTime = elapsedTime
+
+            let dx = targetPosition.x - node.position.x
+            let dy = targetPosition.y - node.position.y
+            let distance = sqrt(dx * dx + dy * dy)
+
+            guard distance > impactRadius else {
+                didComplete = true
+                node.position = targetPosition
+                node.removeAction(forKey: self.travelActionKey)
+                completion(true)
+                return
+            }
+
+            let stepDistance = max(1, speed * deltaTime)
+
+            if stepDistance >= distance {
+                didComplete = true
+                node.position = targetPosition
+                node.removeAction(forKey: self.travelActionKey)
+                completion(true)
+                return
+            }
+
+            node.position = CGPoint(
+                x: node.position.x + (dx / distance) * stepDistance,
+                y: node.position.y + (dy / distance) * stepDistance
+            )
+        }
+
+        node.run(
+            SKAction.sequence([
+                home,
+                SKAction.run {
+                    if didComplete == false {
+                        didComplete = true
+                        completion(false)
+                    }
+                }
             ]),
             withKey: travelActionKey
         )

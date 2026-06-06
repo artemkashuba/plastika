@@ -3,7 +3,6 @@ import SpriteKit
 
 @MainActor
 final class ProjectileManager {
-    private let projectileSpeed: CGFloat = 260
     private var activeProjectiles: [PlaceholderProjectile] = []
     private var pooledProjectiles: [PlaceholderProjectile] = []
 
@@ -19,11 +18,13 @@ final class ProjectileManager {
     func firePlaceholderProjectile(
         from startPosition: CGPoint,
         to targetPosition: CGPoint,
+        behavior: TowerProjectileBehavior,
+        speed: CGFloat,
+        targetPositionProvider: @escaping @MainActor () -> CGPoint?,
         in scene: SKScene,
         onImpact: @escaping @MainActor () -> Void
     ) {
         let projectile = pooledProjectiles.popLast() ?? PlaceholderProjectile()
-        let duration = TimeInterval(max(0.18, startPosition.distance(to: targetPosition) / projectileSpeed))
 
         if projectile.node.parent == nil {
             scene.addChild(projectile.node)
@@ -31,13 +32,29 @@ final class ProjectileManager {
 
         activeProjectiles.append(projectile)
 
-        projectile.startTravel(from: startPosition, to: targetPosition, duration: duration) { [weak self, weak projectile] in
+        let completion: @MainActor (Bool) -> Void = { [weak self, weak projectile] didImpact in
             guard let self, let projectile else {
                 return
             }
 
             self.recycle(projectile)
-            onImpact()
+
+            if didImpact {
+                onImpact()
+            }
+        }
+
+        switch behavior {
+        case .direct:
+            let duration = TimeInterval(max(0.18, startPosition.distance(to: targetPosition) / speed))
+            projectile.startDirectTravel(from: startPosition, to: targetPosition, duration: duration, completion: completion)
+        case .homing:
+            projectile.startHomingTravel(
+                from: startPosition,
+                speed: speed,
+                targetPositionProvider: targetPositionProvider,
+                completion: completion
+            )
         }
     }
 
