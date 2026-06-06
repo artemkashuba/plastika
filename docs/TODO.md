@@ -31,6 +31,9 @@
 - [x] Add UI verification for first combat loop
 - [x] Add tower selection and range visualization
 - [x] Add UI verification for tower selection, switching, and deselecting
+- [x] Add stable tower target locking
+- [x] Add visible turret/barrel aiming toward locked targets
+- [x] Add UI verification for placeholder tower barrel aiming
 - [ ] Create economy system
 - [ ] Create win/lose conditions
 

@@ -5,8 +5,14 @@ final class TowerManager {
     private let placeholderAttackRange: CGFloat = 175
     private let placeholderAttackCooldown: TimeInterval = 0.45
 
+    private struct TargetLock {
+        weak var enemy: PlaceholderEnemy?
+        let lifeID: Int
+    }
+
     private var towersByBuildSpotID: [Int: PlaceholderTower] = [:]
     private var nextAttackTimesByBuildSpotID: [Int: TimeInterval] = [:]
+    private var targetLocksByBuildSpotID: [Int: TargetLock] = [:]
     private var selectedBuildSpotID: Int?
     private var rangeIndicator: SKShapeNode?
 
@@ -20,6 +26,7 @@ final class TowerManager {
         }
         towersByBuildSpotID.removeAll(keepingCapacity: true)
         nextAttackTimesByBuildSpotID.removeAll(keepingCapacity: true)
+        targetLocksByBuildSpotID.removeAll(keepingCapacity: true)
     }
 
     func placePlaceholderTower(on buildSpot: BuildSpot, in scene: SKScene) -> Bool {
@@ -60,22 +67,60 @@ final class TowerManager {
         in scene: SKScene
     ) {
         towersByBuildSpotID.forEach { buildSpotID, tower in
+            guard let targetLock = targetLock(
+                forBuildSpotID: buildSpotID,
+                tower: tower,
+                enemyManager: enemyManager
+            ), let target = targetLock.enemy else {
+                return
+            }
+
+            let targetPosition = target.node.position
+            tower.aim(at: targetPosition)
+
             let nextAttackTime = nextAttackTimesByBuildSpotID[buildSpotID] ?? 0
 
             guard currentTime >= nextAttackTime else {
                 return
             }
 
-            guard let target = enemyManager.nearestEnemy(to: tower.node.position, within: placeholderAttackRange) else {
-                return
-            }
-
             nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + placeholderAttackCooldown
 
-            projectileManager.firePlaceholderProjectile(from: tower.node.position, at: target, in: scene) { [weak enemyManager] enemy in
-                enemyManager?.applyDamage(1, to: enemy)
+            projectileManager.firePlaceholderProjectile(from: tower.node.position, to: targetPosition, in: scene) { [weak enemyManager, weak target] in
+                guard let target else {
+                    return
+                }
+
+                enemyManager?.applyDamage(1, to: target, matchingLifeID: targetLock.lifeID)
             }
         }
+    }
+
+    private func targetLock(
+        forBuildSpotID buildSpotID: Int,
+        tower: PlaceholderTower,
+        enemyManager: EnemyManager
+    ) -> TargetLock? {
+        if let currentTargetLock = targetLocksByBuildSpotID[buildSpotID],
+           let currentTarget = currentTargetLock.enemy,
+           enemyManager.isValidTarget(
+               currentTarget,
+               lifeID: currentTargetLock.lifeID,
+               from: tower.node.position,
+               within: placeholderAttackRange
+           ) {
+            return currentTargetLock
+        }
+
+        targetLocksByBuildSpotID[buildSpotID] = nil
+
+        guard let target = enemyManager.nearestEnemy(to: tower.node.position, within: placeholderAttackRange) else {
+            return nil
+        }
+
+        let targetLock = TargetLock(enemy: target, lifeID: target.lifeID)
+        targetLocksByBuildSpotID[buildSpotID] = targetLock
+        return targetLock
     }
 
     private func selectTower(withBuildSpotID buildSpotID: Int, tower: PlaceholderTower, in scene: SKScene) {

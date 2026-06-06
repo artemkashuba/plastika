@@ -70,6 +70,35 @@ final class TowerPlacementUITests: XCTestCase {
         XCTAssertLessThan(remainingEnemyPixels, 500)
     }
 
+    func testPlacedTowerAimsBarrelTowardLockedTarget() {
+        let app = XCUIApplication()
+        app.launch()
+
+        let earlyBuildSpot = CGVector(dx: 0.21, dy: 0.66)
+        app.coordinate(withNormalizedOffset: earlyBuildSpot).tap()
+        Thread.sleep(forTimeInterval: 0.25)
+
+        let aimedTower = XCUIScreen.main.screenshot()
+        let lowerBarrelPixels = countPixels(
+            in: aimedTower,
+            around: earlyBuildSpot,
+            xOffsetRange: -0.04...0.04,
+            yOffsetRange: 0.02...0.08
+        ) { red, green, blue in
+            isBarrelPixel(red: red, green: green, blue: blue)
+        }
+        let upperBarrelPixels = countPixels(
+            in: aimedTower,
+            around: earlyBuildSpot,
+            xOffsetRange: -0.04...0.04,
+            yOffsetRange: -0.08 ... -0.02
+        ) { red, green, blue in
+            isBarrelPixel(red: red, green: green, blue: blue)
+        }
+
+        XCTAssertGreaterThan(lowerBarrelPixels, upperBarrelPixels + 30)
+    }
+
     func testTowerSelectionShowsRangeSwitchesAndClears() {
         let app = XCUIApplication()
         app.launch()
@@ -270,6 +299,62 @@ final class TowerPlacementUITests: XCTestCase {
         return count
     }
 
+    private func countPixels(
+        in screenshot: XCUIScreenshot,
+        around normalizedPoint: CGVector,
+        xOffsetRange: ClosedRange<CGFloat>,
+        yOffsetRange: ClosedRange<CGFloat>,
+        matches predicate: (Int, Int, Int) -> Bool
+    ) -> Int {
+        guard let image = makeCGImage(from: screenshot.pngRepresentation) else {
+            XCTFail("Could not decode UI test screenshot.")
+            return 0
+        }
+
+        let width = image.width
+        let height = image.height
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        var pixels = [UInt8](repeating: 0, count: width * height * bytesPerPixel)
+
+        guard let context = CGContext(
+            data: &pixels,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            XCTFail("Could not create screenshot pixel context.")
+            return 0
+        }
+
+        context.draw(image, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        let minX = max(0, Int(CGFloat(width) * (normalizedPoint.dx + xOffsetRange.lowerBound)))
+        let maxX = min(width - 1, Int(CGFloat(width) * (normalizedPoint.dx + xOffsetRange.upperBound)))
+        let minY = max(0, Int(CGFloat(height) * (normalizedPoint.dy + yOffsetRange.lowerBound)))
+        let maxY = min(height - 1, Int(CGFloat(height) * (normalizedPoint.dy + yOffsetRange.upperBound)))
+
+        var count = 0
+
+        for y in minY...maxY {
+            for x in minX...maxX {
+                let offset = (y * bytesPerRow) + (x * bytesPerPixel)
+                let red = Int(pixels[offset])
+                let green = Int(pixels[offset + 1])
+                let blue = Int(pixels[offset + 2])
+
+                if predicate(red, green, blue) {
+                    count += 1
+                }
+            }
+        }
+
+        return count
+    }
+
     private func makeCGImage(from pngData: Data) -> CGImage? {
         guard let source = CGImageSourceCreateWithData(pngData as CFData, nil) else {
             return nil
@@ -294,6 +379,17 @@ final class TowerPlacementUITests: XCTestCase {
         red > 210
             && green < 100
             && blue < 100
+    }
+
+    private func isBarrelPixel(red: Int, green: Int, blue: Int) -> Bool {
+        red >= 20
+            && red <= 70
+            && green >= 45
+            && green <= 110
+            && blue >= 95
+            && blue <= 175
+            && blue > red * 2
+            && blue > green
     }
 
     private func isSelectionHighlightPixel(red: Int, green: Int, blue: Int) -> Bool {

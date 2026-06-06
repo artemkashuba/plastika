@@ -6,6 +6,7 @@ final class PlaceholderEnemy: GameEntity {
     let node: SKNode
 
     private(set) var hitPoints = 1
+    private(set) var lifeID = 0
 
     var isAlive: Bool {
         hitPoints > 0 && node.parent != nil
@@ -39,6 +40,7 @@ final class PlaceholderEnemy: GameEntity {
 
     func startMoving(along path: GamePath, completion: @escaping @MainActor () -> Void) {
         reset()
+        lifeID += 1
 
         guard let firstPoint = path.startPoint, path.waypoints.count > 1 else {
             completion()

@@ -229,3 +229,39 @@ Reason:
 - Confirms tapping a placed tower shows a range indicator and highlight
 - Confirms tapping another placed tower moves selection and range
 - Confirms tapping empty battlefield clears the selection without breaking placement or combat tests
+
+Decision:
+Store tower target locks in `TowerManager` by build spot id.
+
+Reason:
+
+- Tower ownership, attack range, cooldowns, and target selection already live in `TowerManager`
+- Keeps `GameScene` unchanged and thin
+- Prevents towers from switching targets while a locked target remains alive, in range, and tracked
+
+Decision:
+Validate target locks with enemy life ids managed by `EnemyManager`.
+
+Reason:
+
+- Enemy nodes are pooled and can be recycled
+- A life id prevents a recycled enemy object from being treated as the same target life
+- Damage application can safely ignore projectile impacts against stale targets
+
+Decision:
+Fire projectiles at a captured target position instead of a live enemy node.
+
+Reason:
+
+- Each shot travels in a straight line toward the target position at fire time
+- Projectile pooling remains unchanged
+- Target validity and damage remain under `EnemyManager`
+
+Decision:
+Rotate only the placeholder tower turret/barrel node for aiming.
+
+Reason:
+
+- Makes aiming visually clear without rotating the tower base or selection ring
+- Keeps placeholder art lightweight
+- Avoids adding final art, physics, or extra tower systems during the prototype

@@ -60,14 +60,35 @@ final class EnemyManager {
             }
     }
 
+    func isValidTarget(_ enemy: PlaceholderEnemy, lifeID: Int, from point: CGPoint, within range: CGFloat) -> Bool {
+        isActiveLife(enemy, lifeID: lifeID)
+            && enemy.node.position.distance(to: point) <= range
+    }
+
     func applyDamage(_ damage: Int, to enemy: PlaceholderEnemy) {
-        guard activeEnemies.contains(where: { $0 === enemy }) else {
+        guard isActiveLife(enemy, lifeID: enemy.lifeID) else {
             return
         }
 
         if enemy.takeDamage(damage) {
             recycle(enemy)
         }
+    }
+
+    func applyDamage(_ damage: Int, to enemy: PlaceholderEnemy, matchingLifeID lifeID: Int) {
+        guard isActiveLife(enemy, lifeID: lifeID) else {
+            return
+        }
+
+        if enemy.takeDamage(damage) {
+            recycle(enemy)
+        }
+    }
+
+    private func isActiveLife(_ enemy: PlaceholderEnemy, lifeID: Int) -> Bool {
+        activeEnemies.contains { $0 === enemy }
+            && enemy.lifeID == lifeID
+            && enemy.isAlive
     }
 
     private func recycle(_ enemy: PlaceholderEnemy) {

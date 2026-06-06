@@ -14,7 +14,7 @@ Tower placement will use fixed circular build spots.
 
 Early prototype build spots are toy bases around the enemy path. Players can tap an empty build spot to place one placeholder tower on it.
 
-Placed placeholder towers automatically target the nearest enemy within an internal placeholder range and periodically fire simple magenta placeholder projectiles.
+Placed placeholder towers acquire the nearest enemy within an internal placeholder range, lock onto that enemy while it remains alive, in range, and tracked, and periodically fire simple magenta placeholder projectiles toward the target position captured at fire time. The placeholder turret/barrel rotates toward the locked target so the tower visibly aims before and while shooting.
 
 Prototype enemies currently have 1 HP. One projectile hit destroys an enemy and removes it from the battlefield.
 

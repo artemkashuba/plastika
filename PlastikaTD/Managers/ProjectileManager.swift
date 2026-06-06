@@ -18,12 +18,11 @@ final class ProjectileManager {
 
     func firePlaceholderProjectile(
         from startPosition: CGPoint,
-        at target: PlaceholderEnemy,
+        to targetPosition: CGPoint,
         in scene: SKScene,
-        onImpact: @escaping @MainActor (PlaceholderEnemy) -> Void
+        onImpact: @escaping @MainActor () -> Void
     ) {
         let projectile = pooledProjectiles.popLast() ?? PlaceholderProjectile()
-        let targetPosition = target.node.position
         let duration = TimeInterval(max(0.18, startPosition.distance(to: targetPosition) / projectileSpeed))
 
         if projectile.node.parent == nil {
@@ -32,16 +31,13 @@ final class ProjectileManager {
 
         activeProjectiles.append(projectile)
 
-        projectile.startTravel(from: startPosition, to: targetPosition, duration: duration) { [weak self, weak projectile, weak target] in
+        projectile.startTravel(from: startPosition, to: targetPosition, duration: duration) { [weak self, weak projectile] in
             guard let self, let projectile else {
                 return
             }
 
             self.recycle(projectile)
-
-            if let target {
-                onImpact(target)
-            }
+            onImpact()
         }
     }
 

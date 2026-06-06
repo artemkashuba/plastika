@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Tower selection and range visualization slice is complete.
+Stable tower targeting and gun aiming slice is complete.
 
 The repository now has:
 
@@ -19,8 +19,10 @@ The repository now has:
 - Tap-to-place placeholder tower interaction for empty build spots
 - Occupancy tracking so the same build spot cannot place multiple towers
 - A UI test that verifies one build spot tap places a tower and a repeated tap does not duplicate it
-- Placeholder towers that automatically target the nearest enemy within internal range
+- Placeholder towers that acquire the closest enemy within internal range, lock that target while it remains valid, and only reacquire after the target dies, leaves range, or is no longer tracked
+- Placeholder tower turret/barrel visuals that rotate toward the current locked target
 - A lightweight `ProjectileManager` with pooled magenta placeholder projectiles
+- Straight placeholder projectile travel toward the target position captured at fire time
 - Basic 1 HP placeholder enemies that are removed and recycled when hit
 - A UI test that verifies projectiles appear and enemies disappear after tower placement
 - Tap-to-select interaction for placed placeholder towers
@@ -28,6 +30,7 @@ The repository now has:
 - A reused white range indicator centered on the selected tower's actual attack range
 - Selection switching between placed towers and empty-space deselection
 - A UI test that verifies selection, range display, switching, deselection, placement, and combat behavior
+- A UI test that verifies the placeholder tower barrel aims toward an early locked target
 - A small debug HUD showing wave and active enemy count
 - No center branding text inside the battlefield
 - No tower selection menu, upgrades, selling, economy, splash damage, status effects, multiple tower types, multiple enemy types, final art, or physics
@@ -45,7 +48,7 @@ Reach first playable prototype with:
 - One map
 - One enemy type moving along a path
 - Build spots that can place one placeholder tower each
-- Placeholder towers that fire projectiles and destroy 1 HP enemies
+- Placeholder towers that lock targets, aim their barrel, fire straight projectiles, and destroy 1 HP enemies
 - Placeholder tower selection with visible attack range and selected-state feedback
 - One wave
 

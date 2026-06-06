@@ -5,6 +5,7 @@ final class PlaceholderTower: GameEntity {
     let node: SKNode
 
     private let selectionActionKey = "placeholderTower.selection"
+    private let aimNode: SKNode
     private let selectionRing: SKShapeNode
 
     init() {
@@ -18,12 +19,16 @@ final class PlaceholderTower: GameEntity {
         base.lineWidth = 3
         root.addChild(base)
 
+        let aimNode = SKNode()
+        aimNode.name = "PlaceholderTowerAim"
+        root.addChild(aimNode)
+
         let turret = SKShapeNode(circleOfRadius: 10)
         turret.fillColor = SKColor(red: 0.19, green: 0.64, blue: 0.84, alpha: 1.0)
         turret.strokeColor = SKColor(white: 1.0, alpha: 0.45)
         turret.lineWidth = 2
         turret.zPosition = 1
-        root.addChild(turret)
+        aimNode.addChild(turret)
 
         let barrel = SKShapeNode(rectOf: CGSize(width: 8, height: 22), cornerRadius: 3)
         barrel.fillColor = SKColor(red: 0.12, green: 0.27, blue: 0.54, alpha: 1.0)
@@ -31,7 +36,7 @@ final class PlaceholderTower: GameEntity {
         barrel.lineWidth = 1
         barrel.position = CGPoint(x: 0, y: 16)
         barrel.zPosition = 2
-        root.addChild(barrel)
+        aimNode.addChild(barrel)
 
         let selectionRing = SKShapeNode(circleOfRadius: 22)
         selectionRing.fillColor = .clear
@@ -41,6 +46,7 @@ final class PlaceholderTower: GameEntity {
         selectionRing.isHidden = true
         root.addChild(selectionRing)
 
+        self.aimNode = aimNode
         self.selectionRing = selectionRing
         node = root
     }
@@ -71,5 +77,16 @@ final class PlaceholderTower: GameEntity {
         }
 
         node.run(SKAction.sequence([scaleAction, finish]), withKey: selectionActionKey)
+    }
+
+    func aim(at targetPosition: CGPoint) {
+        let dx = targetPosition.x - node.position.x
+        let dy = targetPosition.y - node.position.y
+
+        guard dx != 0 || dy != 0 else {
+            return
+        }
+
+        aimNode.zRotation = atan2(dy, dx) - (.pi / 2)
     }
 }
