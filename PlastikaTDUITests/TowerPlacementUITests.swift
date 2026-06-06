@@ -223,6 +223,40 @@ final class TowerPlacementUITests: XCTestCase {
         XCTAssertLessThan(clearedSecondHighlightPixels, secondSelectedHighlightPixels - 30)
     }
 
+    func testEconomyBlocksTowerPlacementWhenInsufficientFunds() {
+        // Starting coins: 150. Each tower costs 50. After 3 placements the player is broke.
+        let app = XCUIApplication()
+        app.launch()
+
+        let topRightBuildSpot    = CGVector(dx: 0.74, dy: 0.26)
+        let middleRightBuildSpot = CGVector(dx: 0.74, dy: 0.57)
+        let lowerRightBuildSpot  = CGVector(dx: 0.74, dy: 0.77)
+        let topLeftBuildSpot     = CGVector(dx: 0.21, dy: 0.34)
+        let emptyBattlefield     = CGVector(dx: 0.50, dy: 0.88)
+
+        // Spend all 150 coins.
+        placeTower(app, at: topRightBuildSpot, option: .red)
+        placeTower(app, at: middleRightBuildSpot, option: .red)
+        placeTower(app, at: lowerRightBuildSpot, option: .red)
+
+        // Tap an empty build spot to open the menu.
+        app.coordinate(withNormalizedOffset: topLeftBuildSpot).tap()
+        Thread.sleep(forTimeInterval: 0.25)
+
+        let beforePixels = countRedTowerPixels(in: XCUIScreen.main.screenshot(), near: topLeftBuildSpot)
+
+        // Tap where the Red option would be — should be blocked (player is broke).
+        app.coordinate(withNormalizedOffset: menuOption(for: topLeftBuildSpot, option: .red)).tap()
+        Thread.sleep(forTimeInterval: 0.25)
+
+        let afterPixels = countRedTowerPixels(in: XCUIScreen.main.screenshot(), near: topLeftBuildSpot)
+
+        app.coordinate(withNormalizedOffset: emptyBattlefield).tap()
+
+        // No new red tower should have appeared at this build spot.
+        XCTAssertLessThanOrEqual(abs(afterPixels - beforePixels), 200)
+    }
+
     private func placeTower(_ app: XCUIApplication, at buildSpot: CGVector, option: TestTowerOption) {
         app.coordinate(withNormalizedOffset: buildSpot).tap()
         Thread.sleep(forTimeInterval: 0.15)

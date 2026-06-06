@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Tower type selection for empty build spots is complete.
+Economy system is complete.
 
 The repository now has:
 
@@ -38,19 +38,23 @@ The repository now has:
 - A UI test that verifies build menu display, movement, hiding, and typed Red/Green/Blue tower placement
 - A UI test that verifies selection, range display, switching, deselection, placement, and combat behavior
 - A UI test that verifies the placeholder tower barrel aims toward an early locked target
-- A small debug HUD showing wave and active enemy count
+- A debug HUD showing wave number, active enemy count, and current coin balance
+- An `EconomyManager` with 150 starting coins, per-kill +10 credit, and 50-coin tower cost
+- Build menu options dimmed (alpha 0.4) when the player cannot afford them
+- Blocked tower placement when the player has insufficient coins
+- A UI test that verifies the economy blocks placement when the player has spent all coins
 - No center branding text inside the battlefield
-- No upgrades, selling, economy, splash damage, status effects, multiple enemy types, final art, or physics
+- No upgrades, selling, splash damage, status effects, multiple enemy types, final art, physics, or win/lose conditions
 
 ## Next Task
 
-Add the next prototype slice: introduce the first economy or win/lose loop without expanding into upgrades, selling, or monetization.
+Add win/lose conditions: base health that decreases when enemies reach the path end, a game-over state when base health reaches zero, and a victory state when all wave enemies are defeated.
 
 Before starting, review the documentation workflow in `docs/AGENTS.md`.
 
 ## Immediate Goal
 
-Reach first playable prototype with:
+Reach first fully playable prototype with:
 
 - One map
 - One enemy type moving along a path
@@ -59,6 +63,8 @@ Reach first playable prototype with:
 - Placeholder tower selection with visible attack range and selected-state feedback
 - Red, Green, and Blue tower types with distinct visuals and projectile behavior
 - One wave
+- Economy (coins, tower cost, kill reward)
+- Win/lose conditions
 
 ## Blockers
 

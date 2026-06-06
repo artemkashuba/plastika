@@ -297,7 +297,41 @@ Decision:
 Leave Blue tower predictive aiming as a documented future TODO.
 
 Reason:
-
 - Predictive aiming depends on enemy speed, lead tuning, and broader combat balance
 - The current slice only needs Blue to be a slow direct projectile tower
 - Deferring it keeps this implementation scoped to the tower type menu and first typed behavior pass
+
+## 2026-06-06 (Economy)
+
+Decision:
+Set all prototype tower costs to 50 coins and all kill rewards to 10 coins, with 150 starting coins.
+
+Reason:
+- Uniform cost keeps the prototype simple and easy to balance later
+- 150 coins allows exactly 3 towers before the player must earn more
+- 10 coins per kill means 5 kills recover one tower placement, keeping the economy loop tight
+- Specific values can be tuned per tower type in a later pass
+
+Decision:
+Store tower cost on `TowerType` and kill reward on `PlaceholderEnemy`.
+
+Reason:
+- Cost belongs to the tower type definition alongside cooldown and projectile behavior
+- Kill reward belongs to the enemy entity so different enemy types can reward different amounts later
+- Keeps `EconomyManager` free of game-balance constants
+
+Decision:
+Credit kill rewards in `TowerManager.updateCombat` via the `onImpact` closure.
+
+Reason:
+- Kill confirmation already happens inside the impact closure
+- Avoids adding an economy callback to `EnemyManager`, which would couple it to economy
+- Captures `killReward` by value at fire time so a recycled enemy cannot affect the credit amount
+
+Decision:
+Dim unaffordable build menu options to alpha 0.4 and block their taps silently.
+
+Reason:
+- Visual dimming gives the player immediate feedback without adding a separate error UI
+- Silent block is consistent with the existing silent duplicate-placement block
+- Alpha 0.4 is visually clear on the colored option circles without requiring new art

@@ -59,6 +59,10 @@ enum TowerType: CaseIterable {
         turretColor
     }
 
+    var cost: Int {
+        50
+    }
+
     var attackCooldown: TimeInterval {
         switch self {
         case .red:

@@ -5,6 +5,7 @@ import SpriteKit
 final class PlaceholderEnemy: GameEntity {
     let node: SKNode
 
+    let killReward = 10
     private(set) var hitPoints = 1
     private(set) var lifeID = 0
 

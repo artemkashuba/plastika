@@ -65,24 +65,32 @@ final class EnemyManager {
             && enemy.node.position.distance(to: point) <= range
     }
 
-    func applyDamage(_ damage: Int, to enemy: PlaceholderEnemy) {
+    @discardableResult
+    func applyDamage(_ damage: Int, to enemy: PlaceholderEnemy) -> Bool {
         guard isActiveLife(enemy, lifeID: enemy.lifeID) else {
-            return
+            return false
         }
 
         if enemy.takeDamage(damage) {
             recycle(enemy)
+            return true
         }
+
+        return false
     }
 
-    func applyDamage(_ damage: Int, to enemy: PlaceholderEnemy, matchingLifeID lifeID: Int) {
+    @discardableResult
+    func applyDamage(_ damage: Int, to enemy: PlaceholderEnemy, matchingLifeID lifeID: Int) -> Bool {
         guard isActiveLife(enemy, lifeID: lifeID) else {
-            return
+            return false
         }
 
         if enemy.takeDamage(damage) {
             recycle(enemy)
+            return true
         }
+
+        return false
     }
 
     private func isActiveLife(_ enemy: PlaceholderEnemy, lifeID: Int) -> Bool {

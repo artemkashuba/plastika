@@ -71,9 +71,13 @@ final class GameScene: SKScene {
             currentTime: currentTime,
             enemyManager: systems.enemyManager,
             projectileManager: systems.projectileManager,
+            economyManager: systems.economyManager,
             in: self
         )
-        systems.uiManager.update(activeEnemyCount: systems.enemyManager.activeEnemyCount)
+        systems.uiManager.update(
+            activeEnemyCount: systems.enemyManager.activeEnemyCount,
+            coins: systems.economyManager.coins
+        )
     }
 
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -85,7 +89,10 @@ final class GameScene: SKScene {
 
         let location = touch.location(in: self)
 
-        if let menuSelection = systems.buildSpotManager.towerBuildMenuSelection(containing: location) {
+        if let menuSelection = systems.buildSpotManager.towerBuildMenuSelection(
+            containing: location,
+            coins: systems.economyManager.coins
+        ) {
             let didPlaceTower = systems.towerManager.placePlaceholderTower(
                 ofType: menuSelection.towerType,
                 on: menuSelection.buildSpot,
@@ -93,6 +100,7 @@ final class GameScene: SKScene {
             )
 
             if didPlaceTower {
+                systems.economyManager.spend(menuSelection.towerType.cost)
                 systems.buildSpotManager.markOccupied(menuSelection.buildSpot)
                 systems.buildSpotManager.hideBuildMenu()
             }
@@ -107,7 +115,7 @@ final class GameScene: SKScene {
 
         if let buildSpot = systems.buildSpotManager.emptyBuildSpot(containing: location) {
             systems.towerManager.clearSelection()
-            systems.buildSpotManager.showBuildMenu(for: buildSpot, in: self)
+            systems.buildSpotManager.showBuildMenu(for: buildSpot, coins: systems.economyManager.coins, in: self)
             return
         }
 

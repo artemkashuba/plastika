@@ -28,6 +28,7 @@ final class BuildSpotManager {
     private let menuOptionSpacing: CGFloat = 52
     private var buildSpotLayer: SKNode?
     private var buildMenuNode: SKNode?
+    private var menuOptionNodesByType: [TowerType: SKNode] = [:]
     private var activeMenuBuildSpot: BuildSpot?
     private var occupiedBuildSpotIDs: Set<Int> = []
 
@@ -35,6 +36,7 @@ final class BuildSpotManager {
         buildSpotLayer?.removeFromParent()
         buildSpotLayer = nil
         hideBuildMenu()
+        menuOptionNodesByType.removeAll(keepingCapacity: true)
         occupiedBuildSpotIDs.removeAll(keepingCapacity: true)
     }
 
@@ -62,7 +64,7 @@ final class BuildSpotManager {
         }
     }
 
-    func showBuildMenu(for buildSpot: BuildSpot, in scene: SKScene) {
+    func showBuildMenu(for buildSpot: BuildSpot, coins: Int, in scene: SKScene) {
         let menuNode = makeBuildMenuNode()
         activeMenuBuildSpot = buildSpot
         menuNode.position = CGPoint(x: buildSpot.position.x, y: buildSpot.position.y + menuYOffset)
@@ -71,6 +73,7 @@ final class BuildSpotManager {
             scene.addChild(menuNode)
         }
 
+        updateMenuOptionAffordability(coins: coins)
         menuNode.isHidden = false
     }
 
@@ -80,7 +83,7 @@ final class BuildSpotManager {
         buildMenuNode?.removeFromParent()
     }
 
-    func towerBuildMenuSelection(containing point: CGPoint) -> TowerBuildMenuSelection? {
+    func towerBuildMenuSelection(containing point: CGPoint, coins: Int) -> TowerBuildMenuSelection? {
         guard let activeMenuBuildSpot, let buildMenuNode, buildMenuNode.parent != nil else {
             return nil
         }
@@ -89,6 +92,10 @@ final class BuildSpotManager {
             let optionPosition = buildMenuNode.position.translated(by: menuOffset(for: towerType))
             return optionPosition.distance(to: point) <= menuOptionTapRadius
         }) else {
+            return nil
+        }
+
+        guard coins >= towerType.cost else {
             return nil
         }
 
@@ -109,11 +116,19 @@ final class BuildSpotManager {
         root.zPosition = 32
 
         TowerType.allCases.forEach { towerType in
-            root.addChild(makeBuildMenuOption(for: towerType, at: menuOffset(for: towerType)))
+            let optionNode = makeBuildMenuOption(for: towerType, at: menuOffset(for: towerType))
+            menuOptionNodesByType[towerType] = optionNode
+            root.addChild(optionNode)
         }
 
         buildMenuNode = root
         return root
+    }
+
+    private func updateMenuOptionAffordability(coins: Int) {
+        TowerType.allCases.forEach { towerType in
+            menuOptionNodesByType[towerType]?.alpha = coins >= towerType.cost ? 1.0 : 0.4
+        }
     }
 
     private func makeBuildMenuOption(for towerType: TowerType, at position: CGPoint) -> SKNode {

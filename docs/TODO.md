@@ -38,7 +38,7 @@
 - [x] Add Red, Green, and Blue prototype tower types
 - [x] Add type-specific direct and homing projectile behavior
 - [x] Add UI verification for build menu movement, hiding, and typed tower placement
-- [ ] Create economy system
+- [x] Create economy system
 - [ ] Create win/lose conditions
 
 ## Phase 2 - Vertical Slice

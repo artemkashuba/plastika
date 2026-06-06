@@ -63,6 +63,7 @@ final class TowerManager {
         currentTime: TimeInterval,
         enemyManager: EnemyManager,
         projectileManager: ProjectileManager,
+        economyManager: EconomyManager,
         in scene: SKScene
     ) {
         towersByBuildSpotID.forEach { buildSpotID, tower in
@@ -84,6 +85,8 @@ final class TowerManager {
             }
 
             nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + tower.type.attackCooldown
+
+            let killReward = target.killReward
 
             projectileManager.firePlaceholderProjectile(
                 from: tower.node.position,
@@ -107,12 +110,16 @@ final class TowerManager {
                     return target.node.position
                 },
                 in: scene
-            ) { [weak enemyManager, weak target] in
+            ) { [weak enemyManager, weak economyManager, weak target] in
                 guard let target else {
                     return
                 }
 
-                enemyManager?.applyDamage(1, to: target, matchingLifeID: targetLock.lifeID)
+                let killed = enemyManager?.applyDamage(1, to: target, matchingLifeID: targetLock.lifeID) ?? false
+
+                if killed {
+                    economyManager?.credit(killReward)
+                }
             }
         }
     }
