@@ -67,6 +67,12 @@ final class GameScene: SKScene {
 
     override func update(_ currentTime: TimeInterval) {
         super.update(currentTime)
+        systems.towerManager.updateCombat(
+            currentTime: currentTime,
+            enemyManager: systems.enemyManager,
+            projectileManager: systems.projectileManager,
+            in: self
+        )
         systems.uiManager.update(activeEnemyCount: systems.enemyManager.activeEnemyCount)
     }
 

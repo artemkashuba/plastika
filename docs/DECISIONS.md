@@ -146,3 +146,50 @@ Reason:
 - Verifies the real tap path without adding debug-only gameplay hooks
 - Confirms placeholder tower pixels appear after the first tap
 - Confirms a repeated tap on the same build spot does not create another visible tower
+
+## 2026-06-06
+
+Decision:
+Use `TowerManager` for the first combat tick.
+
+Reason:
+
+- Keeps `GameScene` thin by making it call one manager update method
+- Keeps tower cooldown, range, and targeting behavior close to placed tower state
+- Allows future tower behavior to expand without moving combat logic into scene code
+
+Decision:
+Use nearest-enemy targeting within an internal placeholder range.
+
+Reason:
+
+- Simple enough for the first combat slice
+- Easy to verify visually
+- Avoids adding range indicators, targeting modes, or tower type complexity early
+
+Decision:
+Use `ProjectileManager` for pooled placeholder projectile travel.
+
+Reason:
+
+- Keeps projectile node ownership and reuse separate from towers
+- Avoids SpriteKit physics for the first combat loop
+- Lets projectiles remain visible placeholder feedback without adding collision systems yet
+
+Decision:
+Use `EnemyManager` for basic HP damage, death, removal, and recycling.
+
+Reason:
+
+- Enemy lifecycle already belongs to `EnemyManager`
+- Prevents towers or projectiles from mutating active enemy tracking directly
+- Keeps one-hit prototype enemy death simple and leak-resistant
+
+Decision:
+Use a UI test for the first combat loop.
+
+Reason:
+
+- Exercises the real tap-to-place path
+- Confirms placeholder projectile pixels appear after tower placement
+- Confirms enemy pixels disappear after the tower has time to attack the wave

@@ -5,6 +5,12 @@ import SpriteKit
 final class PlaceholderEnemy: GameEntity {
     let node: SKNode
 
+    private(set) var hitPoints = 1
+
+    var isAlive: Bool {
+        hitPoints > 0 && node.parent != nil
+    }
+
     private let movementActionKey = "placeholderEnemy.pathMovement"
 
     init() {
@@ -18,7 +24,17 @@ final class PlaceholderEnemy: GameEntity {
     }
 
     func reset() {
+        hitPoints = 1
         node.removeAction(forKey: movementActionKey)
+    }
+
+    func takeDamage(_ damage: Int) -> Bool {
+        guard hitPoints > 0 else {
+            return false
+        }
+
+        hitPoints = max(0, hitPoints - damage)
+        return hitPoints == 0
     }
 
     func startMoving(along path: GamePath, completion: @escaping @MainActor () -> Void) {

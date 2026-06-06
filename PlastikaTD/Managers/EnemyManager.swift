@@ -49,11 +49,40 @@ final class EnemyManager {
         }
     }
 
+    func nearestEnemy(to point: CGPoint, within range: CGFloat) -> PlaceholderEnemy? {
+        activeEnemies
+            .filter(\.isAlive)
+            .filter { enemy in
+                enemy.node.position.distance(to: point) <= range
+            }
+            .min { first, second in
+                first.node.position.distance(to: point) < second.node.position.distance(to: point)
+            }
+    }
+
+    func applyDamage(_ damage: Int, to enemy: PlaceholderEnemy) {
+        guard activeEnemies.contains(where: { $0 === enemy }) else {
+            return
+        }
+
+        if enemy.takeDamage(damage) {
+            recycle(enemy)
+        }
+    }
+
     private func recycle(_ enemy: PlaceholderEnemy) {
         enemy.reset()
         enemy.node.removeFromParent()
 
         activeEnemies.removeAll { $0 === enemy }
         pooledEnemies.append(enemy)
+    }
+}
+
+private extension CGPoint {
+    func distance(to point: CGPoint) -> CGFloat {
+        let dx = x - point.x
+        let dy = y - point.y
+        return sqrt(dx * dx + dy * dy)
     }
 }

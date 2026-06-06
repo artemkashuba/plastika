@@ -14,7 +14,11 @@ Tower placement will use fixed circular build spots.
 
 Early prototype build spots are toy bases around the enemy path. Players can tap an empty build spot to place one placeholder tower on it.
 
-Placed placeholder towers do not support selection, upgrades, selling, range indicators, projectiles, combat, enemy HP interaction, or economy yet.
+Placed placeholder towers automatically target the nearest enemy within an internal placeholder range and periodically fire simple magenta placeholder projectiles.
+
+Prototype enemies currently have 1 HP. One projectile hit destroys an enemy and removes it from the battlefield.
+
+Placed placeholder towers do not support selection, upgrades, selling, range indicators, economy, splash damage, status effects, multiple tower types, or final art yet.
 
 1. Rifle Tower
    - Fast attack speed
@@ -28,6 +32,8 @@ Placed placeholder towers do not support selection, upgrades, selling, range ind
    - Slows enemies
 
 ### Enemies
+
+Early prototype enemies move along the hardcoded path and use basic 1 HP combat health.
 
 1. Scout
    - Fast

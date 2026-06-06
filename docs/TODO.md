@@ -26,8 +26,9 @@
 - [x] Add prototype debug HUD
 - [x] Create tower placement system
 - [x] Add UI verification for tower placement interaction
-- [ ] Create projectile system
-- [ ] Create combat system
+- [x] Create projectile system
+- [x] Create combat system
+- [x] Add UI verification for first combat loop
 - [ ] Create economy system
 - [ ] Create win/lose conditions
 
