@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Win/lose conditions are complete.
+Shooting improvements pass is complete.
 
 The repository now has:
 
@@ -28,7 +28,10 @@ The repository now has:
 - Red towers with fast attack speed and direct projectile behavior
 - Green towers with homing projectile behavior and slightly slower attack speed
 - Blue towers with slow attack speed and slow direct projectile behavior
-- A code TODO to add future predictive aiming for Blue towers once enemy speed and lead tuning exist
+- Blue tower predictive aiming — fires at the enemy's quadratic intercept position based on velocity and projectile speed
+- Homing (Green) missiles that chase their target until impact, regardless of the tower's attack range
+- Per-tower projectile colors: Red = orange, Green = lime, Blue = cyan
+- Impact flash effect at the hit position, color-matched to the projectile
 - Basic 1 HP placeholder enemies that are removed and recycled when hit
 - A UI test that verifies projectiles appear and enemies disappear after tower placement
 - Tap-to-select interaction for placed placeholder towers
@@ -54,6 +57,8 @@ The repository now has:
 ## Next Task
 
 Begin Phase 2 — Vertical Slice: add placeholder UI (coin display, health bar, wave counter as proper in-game UI rather than a debug overlay), sound effects, or tower upgrades.
+
+Alternatively, continue Phase 1 polish: add more enemy variety, second wave, or tower selling/upgrading.
 
 Before starting, review the documentation workflow in `docs/AGENTS.md`.
 

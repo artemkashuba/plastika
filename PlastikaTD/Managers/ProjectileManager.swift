@@ -19,6 +19,7 @@ final class ProjectileManager {
         from startPosition: CGPoint,
         to targetPosition: CGPoint,
         behavior: TowerProjectileBehavior,
+        color: SKColor,
         speed: CGFloat,
         targetPositionProvider: @escaping @MainActor () -> CGPoint?,
         in scene: SKScene,
@@ -31,16 +32,21 @@ final class ProjectileManager {
         }
 
         activeProjectiles.append(projectile)
+        projectile.configure(color: color)
 
-        let completion: @MainActor (Bool) -> Void = { [weak self, weak projectile] didImpact in
+        let completion: @MainActor (Bool) -> Void = { [weak self, weak projectile, weak scene] didImpact in
             guard let self, let projectile else {
                 return
             }
 
+            let impactPosition = projectile.node.position
             self.recycle(projectile)
 
             if didImpact {
                 onImpact()
+                if let scene {
+                    self.showImpactFlash(at: impactPosition, color: color, in: scene)
+                }
             }
         }
 
@@ -56,6 +62,24 @@ final class ProjectileManager {
                 completion: completion
             )
         }
+    }
+
+    private func showImpactFlash(at position: CGPoint, color: SKColor, in scene: SKScene) {
+        let flash = SKShapeNode(circleOfRadius: 6)
+        flash.position = position
+        flash.fillColor = color.withAlphaComponent(0.90)
+        flash.strokeColor = color.withAlphaComponent(0.50)
+        flash.lineWidth = 1.5
+        flash.zPosition = 27
+        scene.addChild(flash)
+
+        flash.run(SKAction.sequence([
+            SKAction.group([
+                SKAction.scale(to: 2.6, duration: 0.18),
+                SKAction.fadeOut(withDuration: 0.18)
+            ]),
+            SKAction.removeFromParent()
+        ]))
     }
 
     private func recycle(_ projectile: PlaceholderProjectile) {

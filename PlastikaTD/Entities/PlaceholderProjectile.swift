@@ -4,6 +4,8 @@ import SpriteKit
 @MainActor
 final class PlaceholderProjectile: GameEntity {
     let node: SKNode
+    private let glowNode: SKShapeNode
+    private let coreNode: SKShapeNode
 
     private let travelActionKey = "placeholderProjectile.travel"
 
@@ -25,6 +27,13 @@ final class PlaceholderProjectile: GameEntity {
         root.addChild(core)
 
         node = root
+        glowNode = glow
+        coreNode = core
+    }
+
+    func configure(color: SKColor) {
+        coreNode.fillColor = color
+        glowNode.fillColor = color.withAlphaComponent(0.28)
     }
 
     func reset() {

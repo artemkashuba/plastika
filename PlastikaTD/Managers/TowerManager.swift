@@ -89,22 +89,34 @@ final class TowerManager {
             let killReward = target.killReward
             let towerDamage = tower.type.damage
 
+            // For predictive-aiming towers (Blue), fire at the enemy's projected intercept position.
+            let firePosition: CGPoint
+            if tower.type.usesPredictiveAiming,
+               let intercept = predictedImpactPoint(
+                   enemyPosition: target.node.position,
+                   enemyVelocity: target.velocity,
+                   shooterPosition: tower.node.position,
+                   projectileSpeed: tower.type.projectileSpeed
+               ) {
+                firePosition = intercept
+            } else {
+                firePosition = targetPosition
+            }
+
             projectileManager.firePlaceholderProjectile(
                 from: tower.node.position,
-                to: targetPosition,
+                to: firePosition,
                 behavior: tower.type.projectileBehavior,
+                color: tower.type.projectileColor,
                 speed: tower.type.projectileSpeed,
                 targetPositionProvider: { [weak enemyManager, weak target] in
+                    // Range is NOT checked here — in-flight homing missiles chase their
+                    // target until impact regardless of the tower's attack range.
                     guard let enemyManager, let target else {
                         return nil
                     }
 
-                    guard enemyManager.isValidTarget(
-                        target,
-                        lifeID: targetLock.lifeID,
-                        from: tower.node.position,
-                        within: self.placeholderAttackRange
-                    ) else {
+                    guard enemyManager.isTrackedAndAlive(target, lifeID: targetLock.lifeID) else {
                         return nil
                     }
 
@@ -189,6 +201,54 @@ final class TowerManager {
         indicator.zPosition = 13
         rangeIndicator = indicator
         return indicator
+    }
+
+    /// Solves for the earliest positive intercept time `t` where a projectile traveling at
+    /// `projectileSpeed` can meet an enemy at `enemyPosition + enemyVelocity * t`.
+    /// Returns nil if no valid intercept exists (e.g. enemy is faster than the projectile).
+    private func predictedImpactPoint(
+        enemyPosition: CGPoint,
+        enemyVelocity: CGPoint,
+        shooterPosition: CGPoint,
+        projectileSpeed: CGFloat
+    ) -> CGPoint? {
+        let rpx = enemyPosition.x - shooterPosition.x
+        let rpy = enemyPosition.y - shooterPosition.y
+        let evx = enemyVelocity.x
+        let evy = enemyVelocity.y
+
+        let a = evx * evx + evy * evy - projectileSpeed * projectileSpeed
+        let b = 2 * (rpx * evx + rpy * evy)
+        let c = rpx * rpx + rpy * rpy
+
+        let t: CGFloat
+
+        if abs(a) < 0.01 {
+            guard abs(b) > 0.01 else { return nil }
+            let candidate = -c / b
+            guard candidate > 0 else { return nil }
+            t = candidate
+        } else {
+            let discriminant = b * b - 4 * a * c
+            guard discriminant >= 0 else { return nil }
+            let sqrtD = sqrt(discriminant)
+            let t1 = (-b - sqrtD) / (2 * a)
+            let t2 = (-b + sqrtD) / (2 * a)
+            if t1 > 0 && t2 > 0 {
+                t = min(t1, t2)
+            } else if t1 > 0 {
+                t = t1
+            } else if t2 > 0 {
+                t = t2
+            } else {
+                return nil
+            }
+        }
+
+        return CGPoint(
+            x: enemyPosition.x + enemyVelocity.x * t,
+            y: enemyPosition.y + enemyVelocity.y * t
+        )
     }
 
     private func tower(containing point: CGPoint) -> (buildSpotID: Int, tower: PlaceholderTower)? {
