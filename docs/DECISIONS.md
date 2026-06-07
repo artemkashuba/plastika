@@ -539,3 +539,56 @@ Reason:
 - Consistent with the existing SKNode-based UI approach
 - No scene transition overhead
 - The RestartButton name allows SpriteKit nodes(at:) hit-testing without UIManager needing a public hit-test method
+
+## 2026-06-07
+
+Decision:
+Split each tower's gun assembly into a fixed turret (on `aimNode`) and a separate `barrelNode`
+holding only the forward weapon geometry (barrels/pod/cannon), exposed via `TowerGunFactory.Assembly`.
+
+Reason:
+- Lets the barrel kick backward along the local +y (firing) axis on every shot without moving
+  or distorting the turret pivot that the tower rotates around
+- Keeps `barrelTipPosition`/`aim(at:)` correct and untouched — recoil is purely cosmetic and
+  layered on top of the existing aiming math
+- Reuses the existing `Assembly` struct so `BuildSpotManager`'s scaled gun previews are unaffected
+
+Decision:
+Drive recoil distance and muzzle-flash size from new `TowerType.recoilDistance` /
+`muzzleFlashScale` properties (Red < Green < Blue) rather than reusing `damage` directly.
+
+Reason:
+- Keeps the "feel" tuning independent from balance numbers — damage values can change later
+  without accidentally throwing off the recoil/flash visuals
+- Matches the user's request that heavier guns (Blue Heavy Cannon) recoil more than lighter
+  ones (Red Autocannon), using the same weight ordering as damage for consistency
+- Explicit per-type constants are easy to tune by feel during playtesting
+
+Decision:
+Trigger `playFireEffects()` (recoil + muzzle flash) from `TowerManager.updateCombat` at the
+exact moment the shoot sound plays, as a method on `PlaceholderTower` rather than a helper
+elsewhere.
+
+Reason:
+- `PlaceholderTower` already owns `aimNode`/`barrelTipOffset` — the effects need direct access
+  to that internal geometry and rotation state
+- Co-locating with the shot-fired call site keeps sound, recoil, flash, and projectile spawn
+  visibly synchronized in one place
+- Matches the established pattern (selection ring, sell badge) of keyed `SKAction` sequences
+  owned by the entity that displays them
+
+Decision:
+Render the reload-timer ring as a radial fill (faint static track + arc redrawn every frame
+via `SKAction.customAction`) rather than a literal clock face or discrete pie-wedge steps,
+shown only while the tower is reloading (fades in on fire, fades out once ready).
+
+Reason:
+- User chose "radial fill ring" + "only while reloading" when offered the visual/visibility
+  options — a clock face or stepped wedge would either look busier or move less smoothly
+- `SKAction.customAction(withDuration:actionBlock:)` lets the arc's `CGPath` be recomputed
+  every frame from `elapsed/duration`, giving a perfectly smooth sweep tied to the tower's
+  actual `attackCooldown` with no separate timer bookkeeping in `TowerManager`
+- Hiding it when idle (rather than always-on or selection-only) gives moment-to-moment
+  feedback on when each tower will fire again without permanently cluttering the battlefield
+- Lives on `PlaceholderTower` (a sibling of `aimNode`, not a child) so it doesn't rotate with
+  the turret and reuses the same keyed-`SKAction` ownership pattern as recoil/selection

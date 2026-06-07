@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Tower selling — complete.
+Shooting feel pass (recoil + muzzle flash + coin-fly reward) — complete.
 
 The repository now has:
 
@@ -56,13 +56,26 @@ The repository now has:
 
 ## Next Task
 
-Second wave with inter-wave countdown, then sound effects.
+Second wave with inter-wave countdown.
 
 ## Immediate Goal
 
 Add a second wave that spawns after a short inter-wave countdown once all wave-1 enemies are defeated.
 
 ## Previous Milestone
+
+Shooting feel pass is now live:
+
+- Barrel recoil on every shot — `TowerGunFactory` now splits each gun into a fixed turret (`aimNode`) and a separate `barrelNode` holding only the forward weapon geometry, which kicks back along the firing axis and springs back via a keyed `SKAction` sequence
+- Recoil distance scales with gun weight via `TowerType.recoilDistance` (Red 2.5pt < Green 4.5pt < Blue 7.5pt) — the Heavy Cannon visibly kicks much harder than the Autocannon
+- Muzzle flash — a brief white-hot core inside a tinted glow (color-matched to the tower's projectile) spawns at `barrelTipPosition` at the instant of firing, sized per `TowerType.muzzleFlashScale`, and dissolves in ~0.13s
+- Reload-timer ring — a small radial ring (faint static track + colored arc, tinted to the tower's turret color) appears as a rim around the tower's base the instant it fires, sweeps from empty to a full circle over its `attackCooldown` duration via `SKAction.customAction`, and fades out the moment it's ready to shoot again — visible only while reloading
+- All three effects fire from `PlaceholderTower.playFireEffects()`, called from `TowerManager.updateCombat` in the same instant as the shoot sound and projectile spawn
+- Coin-fly reward animation — on enemy kill, a small glowing coin arcs from the death position to the HUD coin counter (`UIManager.flyCoinReward`), then the counter pulses on landing; purely cosmetic, decoupled from the actual economy credit
+- Sound toggle now actually works — replaced unreliable `audioEngine.mainMixerNode` volume manipulation with explicit `isSoundEnabled` gating checked at every `SKAction.playSoundFileNamed` call site (`TowerManager` + `GameScene`)
+- Pause menu ARSENAL section — scrollable reference list of all tower types with proper names (Autocannon / Missile Pod / Heavy Cannon), descriptions, and DMG/RELOAD/RANGE/DPS spec chips
+
+## Previous Milestone — Tower Selling
 
 Tower selling is now live:
 
@@ -73,7 +86,7 @@ Tower selling is now live:
 - `BuildSpotManager.markUnoccupied(buildSpotID:)` frees the slot so it can be rebuilt
 - Tap detection via `nodes(at:)` name-matching ("SellBadge"), consistent with RestartButton pattern
 
-## Previous Previous Milestone
+## Previous Milestone — HUD
 
 The top-bar HUD is now live:
 

@@ -122,6 +122,7 @@ final class TowerManager {
             }
 
             nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + tower.type.attackCooldown
+            tower.playFireEffects()
             if isSoundEnabled {
                 tower.node.run(SKAction.playSoundFileNamed(tower.type.shootSound, waitForCompletion: false))
             }

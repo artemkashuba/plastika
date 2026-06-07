@@ -33,6 +33,24 @@ enum TowerType: CaseIterable {
     /// Damage per second at sustained fire rate.
     var dps: Double { Double(damage) / attackCooldown }
 
+    /// How far the barrel kicks back (in points) when firing. Heavier guns recoil harder.
+    var recoilDistance: CGFloat {
+        switch self {
+        case .red:   2.5
+        case .green: 4.5
+        case .blue:  7.5
+        }
+    }
+
+    /// Relative size of the muzzle flash burst — scales with the gun's bulk.
+    var muzzleFlashScale: CGFloat {
+        switch self {
+        case .red:   0.85
+        case .green: 1.05
+        case .blue:  1.40
+        }
+    }
+
     var baseColor: SKColor {
         switch self {
         case .red:

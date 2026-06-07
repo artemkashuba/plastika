@@ -50,6 +50,9 @@
 - [x] Add placeholder UI (top-bar HUD: coin icon + count, wave badge, heart icons for lives)
 - [x] Add tower selling
 - [x] Add sound effects (tower shoot × 3, enemy hit, enemy death, enemy breach, tower place, tower sell)
+- [x] Add coin-fly reward animation on enemy kill
+- [x] Add barrel recoil and muzzle-flash shooting animations (recoil scales with gun weight: Red < Green < Blue)
+- [x] Add a small radial reload-timer ring around each tower, visible only while reloading
 - [ ] Add tower upgrades
 - [ ] Add haptics
 - [ ] Add main menu

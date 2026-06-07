@@ -16,7 +16,7 @@ Early prototype build spots are toy bases around the enemy path. Players can tap
 
 Selecting a menu option places one prototype tower on that build spot. Occupied build spots cannot place a second tower.
 
-Placed prototype towers acquire the nearest enemy within an internal placeholder range, lock onto that enemy while it remains alive, in range, and tracked, and periodically fire simple magenta placeholder projectiles using their tower type behavior. The placeholder turret/barrel rotates toward the locked target so the tower visibly aims before and while shooting.
+Placed prototype towers acquire the nearest enemy within an internal placeholder range, lock onto that enemy while it remains alive, in range, and tracked, and periodically fire simple magenta placeholder projectiles using their tower type behavior. The placeholder turret/barrel rotates toward the locked target so the tower visibly aims before and while shooting. At the instant each shot is fired, the barrel kicks back along its firing axis and a brief muzzle flash flares at the barrel tip, color-matched to that tower's projectile — heavier guns (Heavy Cannon > Missile Pod > Autocannon) recoil and flash more dramatically, giving each tower type a distinct shooting "feel". A small radial ring also appears around the tower's base at that moment, sweeping from empty to full over its reload duration and fading out the instant it's ready to fire again — a quick, glanceable readout of when each tower will shoot next.
 
 Current prototype tower types:
 
