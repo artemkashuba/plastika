@@ -6,7 +6,7 @@ final class GameScene: SKScene {
     private let configuration: GameConfiguration
     private let systems: GameSystems
     private var didBuildScene = false
-    private var debugPathNode: SKShapeNode?
+    private var debugPathNode: SKNode?
     /// Scene-coordinate Y of the bottom edge of the notch / Dynamic Island / status bar.
     /// Computed once from view.safeAreaInsets.top and reused on restart.
     private var safeAreaTopInScene: CGFloat = 0
@@ -65,6 +65,41 @@ final class GameScene: SKScene {
         table.lineWidth = 4
         table.position = CGPoint(x: size.width / 2, y: size.height / 2)
         addChild(table)
+
+        // Warm up AVAudioEngine and preload all audio files into SpriteKit's buffer cache.
+        // SKAction.playSoundFileNamed starts the audio engine synchronously on first call,
+        // causing a 5-10 second freeze. Adding SKAudioNode instances here forces that work
+        // to happen at scene-build time (acceptable loading pause) instead of on first tap.
+        preloadSounds()
+    }
+
+    private func playSound(_ filename: String) {
+        guard systems.gameStateManager.isSoundEnabled else { return }
+        run(SKAction.playSoundFileNamed(filename, waitForCompletion: false))
+    }
+
+    private func preloadSounds() {
+        let files: [String] = [
+            "tower_shoot_red.wav",
+            "tower_shoot_green.wav",
+            "tower_shoot_blue.wav",
+            "enemy_hit.wav",
+            "enemy_death.wav",
+            "enemy_breach.wav",
+            "tower_place.wav",
+            "tower_sell.wav"
+        ]
+
+        let container = SKNode()
+        container.name = "SoundPreloadContainer"
+        addChild(container)
+
+        for filename in files {
+            let node = SKAudioNode(fileNamed: filename)
+            node.autoplayLooped = false  // do NOT play on add — load only
+            node.isPositional = false
+            container.addChild(node)
+        }
     }
 
     private func buildGameplaySlice() {
@@ -85,6 +120,17 @@ final class GameScene: SKScene {
         systems.enemyManager.onEnemyReachedEnd = { [weak self] in
             self?.handleEnemyReachedEnd()
         }
+
+        systems.gameStateManager.onResume = { [weak self] in
+            self?.isPaused = false
+        }
+
+        systems.gameStateManager.onSoundEnabledChange = { [weak self] enabled in
+            self?.systems.towerManager.isSoundEnabled = enabled
+        }
+
+        // Apply persisted sound setting immediately
+        systems.towerManager.isSoundEnabled = systems.gameStateManager.isSoundEnabled
     }
 
     private func handleEnemyReachedEnd() {
@@ -92,7 +138,7 @@ final class GameScene: SKScene {
             return
         }
 
-        run(SKAction.playSoundFileNamed("enemy_breach.wav", waitForCompletion: false))
+        playSound("enemy_breach.wav")
         let isDestroyed = systems.baseHealthManager.takeDamage()
 
         // Force a HUD update immediately so the heart loss animation triggers now.
@@ -146,6 +192,7 @@ final class GameScene: SKScene {
             enemyManager: systems.enemyManager,
             projectileManager: systems.projectileManager,
             economyManager: systems.economyManager,
+            uiManager: systems.uiManager,
             in: self
         )
         systems.uiManager.update(
@@ -168,10 +215,27 @@ final class GameScene: SKScene {
         let location = touch.location(in: self)
         let phase = systems.gameStateManager.state.phase
 
+        if phase == .paused { return }
+
         if phase == .gameOver || phase == .victory {
             if nodes(at: location).contains(where: { $0.name == "RestartButton" }) {
                 restartGame()
             }
+            return
+        }
+
+        if nodes(at: location).contains(where: { $0.name == "PauseButton" }),
+           phase == .sceneLoaded {
+            isPaused = true
+            let stats = PauseStats(
+                activeEnemies: systems.enemyManager.activeEnemyCount,
+                spawnedEnemies: systems.waveManager.spawnedCount,
+                totalEnemies: systems.waveManager.totalEnemyCount,
+                killCount: systems.enemyManager.killCount,
+                towerCounts: systems.towerManager.towerCountsByType,
+                coinsInvested: systems.towerManager.totalCoinsInvested
+            )
+            systems.gameStateManager.pause(stats: stats)
             return
         }
 
@@ -183,7 +247,7 @@ final class GameScene: SKScene {
                     coins: systems.economyManager.coins,
                     health: systems.baseHealthManager.health
                 )
-                run(SKAction.playSoundFileNamed("tower_sell.wav", waitForCompletion: false))
+                playSound("tower_sell.wav")
             }
             return
         }
@@ -202,7 +266,7 @@ final class GameScene: SKScene {
                 systems.economyManager.spend(menuSelection.towerType.cost)
                 systems.buildSpotManager.markOccupied(menuSelection.buildSpot)
                 systems.buildSpotManager.hideBuildMenu()
-                run(SKAction.playSoundFileNamed("tower_place.wav", waitForCompletion: false))
+                playSound("tower_place.wav")
             }
 
             return

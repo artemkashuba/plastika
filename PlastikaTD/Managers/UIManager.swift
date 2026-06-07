@@ -6,6 +6,8 @@ final class UIManager {
 
     private var hudNode: SKNode?
     private var coinLabel: SKLabelNode?
+    /// The coin icon in the HUD cluster — landing target for the kill-reward fly animation.
+    private var coinIconNode: SKShapeNode?
     private var heartNodes: [SKLabelNode] = []
     /// Tracks the last known health value so updateHearts can detect a loss and animate it.
     private var currentHealth = BaseHealthManager.startingHealth
@@ -22,6 +24,7 @@ final class UIManager {
         endOverlayNode?.removeFromParent()
         endOverlayNode = nil
         coinLabel = nil
+        coinIconNode = nil
         heartNodes = []
         currentHealth = BaseHealthManager.startingHealth
     }
@@ -37,6 +40,90 @@ final class UIManager {
     func update(coins: Int, health: Int) {
         coinLabel?.text = "\(coins)"
         updateHearts(health: health)
+    }
+
+    // MARK: - Coin reward animation
+
+    /// Spawns a small coin at `startPosition` (typically an enemy's death spot), arcs it toward
+    /// the HUD coin counter, and pulses the counter when it lands. Purely cosmetic feedback —
+    /// the actual credit is applied immediately by EconomyManager regardless of this animation.
+    func flyCoinReward(from startPosition: CGPoint, in scene: SKScene) {
+        guard let targetPosition = coinTargetPosition(in: scene) else {
+            return
+        }
+
+        let coin = makeFlyingCoinNode()
+        coin.position = startPosition
+        scene.addChild(coin)
+
+        // Gentle upward arc between the two points — reads as a little "hop" toward the HUD.
+        let midX = (startPosition.x + targetPosition.x) / 2
+        let arcHeight: CGFloat = 70
+        let controlPoint = CGPoint(x: midX, y: max(startPosition.y, targetPosition.y) + arcHeight)
+
+        let path = CGMutablePath()
+        path.move(to: startPosition)
+        path.addQuadCurve(to: targetPosition, control: controlPoint)
+
+        let duration: TimeInterval = 0.5
+        let follow = SKAction.follow(path, asOffset: false, orientToPath: false, duration: duration)
+        follow.timingMode = .easeIn
+        let shrink = SKAction.scale(to: 0.45, duration: duration)
+        shrink.timingMode = .easeIn
+
+        coin.run(SKAction.sequence([
+            SKAction.group([follow, shrink]),
+            SKAction.run { [weak self] in self?.pulseCoinLabel() },
+            SKAction.fadeOut(withDuration: 0.08),
+            SKAction.removeFromParent()
+        ]))
+    }
+
+    /// Scene-space position of the HUD coin icon — the landing point for fly animations.
+    private func coinTargetPosition(in scene: SKScene) -> CGPoint? {
+        guard let coinIconNode else {
+            return nil
+        }
+
+        return scene.convert(.zero, from: coinIconNode)
+    }
+
+    private func makeFlyingCoinNode() -> SKNode {
+        let coin = SKNode()
+        coin.zPosition = 45 // above the HUD bar (40) so it visibly "lands" on the counter
+
+        let glow = SKShapeNode(circleOfRadius: 12)
+        glow.fillColor = SKColor(red: 0.98, green: 0.80, blue: 0.12, alpha: 0.22)
+        glow.strokeColor = .clear
+        glow.zPosition = -1
+        coin.addChild(glow)
+
+        let icon = SKShapeNode(circleOfRadius: 7)
+        icon.fillColor = SKColor(red: 0.98, green: 0.80, blue: 0.12, alpha: 1.0)
+        icon.strokeColor = SKColor(red: 0.72, green: 0.56, blue: 0.06, alpha: 1.0)
+        icon.lineWidth = 1.4
+        coin.addChild(icon)
+
+        let innerRing = SKShapeNode(circleOfRadius: 3.5)
+        innerRing.fillColor = .clear
+        innerRing.strokeColor = SKColor(red: 0.72, green: 0.56, blue: 0.06, alpha: 0.55)
+        innerRing.lineWidth = 1
+        coin.addChild(innerRing)
+
+        return coin
+    }
+
+    private func pulseCoinLabel() {
+        guard let coinLabel else {
+            return
+        }
+
+        coinLabel.removeAction(forKey: "coinPulse")
+        let scaleUp = SKAction.scale(to: 1.32, duration: 0.07)
+        scaleUp.timingMode = .easeOut
+        let scaleDown = SKAction.scale(to: 1.0, duration: 0.20)
+        scaleDown.timingMode = .easeOut
+        coinLabel.run(SKAction.sequence([scaleUp, scaleDown]), withKey: "coinPulse")
     }
 
     // MARK: - End overlays
@@ -95,13 +182,45 @@ final class UIManager {
         waveBadge.position = CGPoint(x: width / 2, y: barCenterY)
         root.addChild(waveBadge)
 
-        // -- Hearts (right) --
+        // -- Hearts (right, shifted left to make room for pause button) --
         let heartsCluster = buildHeartsCluster(startingHealth: BaseHealthManager.startingHealth)
-        heartsCluster.position = CGPoint(x: width - 20, y: barCenterY)
+        heartsCluster.position = CGPoint(x: width - 54, y: barCenterY)
         root.addChild(heartsCluster)
+
+        // -- Pause button (far right) --
+        let pauseButton = buildPauseButton()
+        pauseButton.position = CGPoint(x: width - 18, y: barCenterY)
+        root.addChild(pauseButton)
 
         scene.addChild(root)
         hudNode = root
+    }
+
+    private func buildPauseButton() -> SKNode {
+        let root = SKNode()
+        root.name = "PauseButton"
+
+        // Invisible tap target (larger than the visual)
+        let tap = SKShapeNode(circleOfRadius: 18)
+        tap.name = "PauseButton"
+        tap.fillColor = .clear
+        tap.strokeColor = .clear
+        root.addChild(tap)
+
+        // Visual: two rounded vertical bars
+        let barL = SKShapeNode(rectOf: CGSize(width: 4, height: 14), cornerRadius: 2)
+        barL.fillColor = SKColor(white: 1.0, alpha: 0.70)
+        barL.strokeColor = .clear
+        barL.position = CGPoint(x: -4, y: 0)
+        root.addChild(barL)
+
+        let barR = SKShapeNode(rectOf: CGSize(width: 4, height: 14), cornerRadius: 2)
+        barR.fillColor = SKColor(white: 1.0, alpha: 0.70)
+        barR.strokeColor = .clear
+        barR.position = CGPoint(x: 4, y: 0)
+        root.addChild(barR)
+
+        return root
     }
 
     private func buildCoinCluster(coins: Int) -> SKNode {
@@ -114,6 +233,7 @@ final class UIManager {
         icon.lineWidth = 1.5
         icon.position = CGPoint(x: 9, y: 0)
         cluster.addChild(icon)
+        coinIconNode = icon
 
         // Inner coin detail ring
         let innerRing = SKShapeNode(circleOfRadius: 5)

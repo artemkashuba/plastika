@@ -13,6 +13,7 @@ final class TowerManager {
     private var nextAttackTimesByBuildSpotID: [Int: TimeInterval] = [:]
     private var targetLocksByBuildSpotID: [Int: TargetLock] = [:]
     private var selectedBuildSpotID: Int?
+    var isSoundEnabled: Bool = true
     private var rangeIndicator: SKShapeNode?
     private var sellBadgeNode: SKNode?
     private let sellBadgeYOffset: CGFloat = -50
@@ -64,6 +65,18 @@ final class TowerManager {
         hideSellBadge()
     }
 
+    // MARK: - Pause stats
+
+    var towerCountsByType: [TowerType: Int] {
+        towersByBuildSpotID.values.reduce(into: [:]) { counts, tower in
+            counts[tower.type, default: 0] += 1
+        }
+    }
+
+    var totalCoinsInvested: Int {
+        towersByBuildSpotID.values.reduce(0) { $0 + $1.type.cost }
+    }
+
     /// Removes the selected tower, frees its dictionaries, clears selection, and returns the
     /// build spot id and refund amount so the caller can credit the economy and free the build spot.
     /// Returns nil if no tower is currently selected.
@@ -87,6 +100,7 @@ final class TowerManager {
         enemyManager: EnemyManager,
         projectileManager: ProjectileManager,
         economyManager: EconomyManager,
+        uiManager: UIManager,
         in scene: SKScene
     ) {
         towersByBuildSpotID.forEach { buildSpotID, tower in
@@ -108,7 +122,9 @@ final class TowerManager {
             }
 
             nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + tower.type.attackCooldown
-            tower.node.run(SKAction.playSoundFileNamed(tower.type.shootSound, waitForCompletion: false))
+            if isSoundEnabled {
+                tower.node.run(SKAction.playSoundFileNamed(tower.type.shootSound, waitForCompletion: false))
+            }
 
             let killReward = target.killReward
             let towerDamage = tower.type.damage
@@ -119,7 +135,7 @@ final class TowerManager {
                let intercept = predictedImpactPoint(
                    enemyPosition: target.node.position,
                    enemyVelocity: target.velocity,
-                   shooterPosition: tower.node.position,
+                   shooterPosition: tower.barrelTipPosition,
                    projectileSpeed: tower.type.projectileSpeed
                ) {
                 firePosition = intercept
@@ -127,11 +143,13 @@ final class TowerManager {
                 firePosition = targetPosition
             }
 
+            let spawnOrigin = tower.barrelTipPosition
             projectileManager.firePlaceholderProjectile(
-                from: tower.node.position,
+                from: spawnOrigin,
                 to: firePosition,
                 behavior: tower.type.projectileBehavior,
                 color: tower.type.projectileColor,
+                radius: tower.type.projectileRadius,
                 speed: tower.type.projectileSpeed,
                 targetPositionProvider: { [weak enemyManager, weak target] in
                     // Range is NOT checked here — in-flight homing missiles chase their
@@ -147,17 +165,24 @@ final class TowerManager {
                     return target.node.position
                 },
                 in: scene
-            ) { [weak enemyManager, weak economyManager, weak target, weak tower] in
+            ) { [weak self, weak enemyManager, weak economyManager, weak uiManager, weak scene, weak target, weak tower] in
                 guard let target else {
                     return
                 }
 
+                // Capture the death spot before applyDamage recycles (and repositions) the enemy.
+                let deathPosition = target.node.position
                 let killed = enemyManager?.applyDamage(towerDamage, to: target, matchingLifeID: targetLock.lifeID) ?? false
 
                 if killed {
                     economyManager?.credit(killReward)
-                    tower?.node.run(SKAction.playSoundFileNamed("enemy_death.wav", waitForCompletion: false))
-                } else {
+                    if let uiManager, let scene {
+                        uiManager.flyCoinReward(from: deathPosition, in: scene)
+                    }
+                    if self?.isSoundEnabled == true {
+                        tower?.node.run(SKAction.playSoundFileNamed("enemy_death.wav", waitForCompletion: false))
+                    }
+                } else if self?.isSoundEnabled == true {
                     tower?.node.run(SKAction.playSoundFileNamed("enemy_hit.wav", waitForCompletion: false))
                 }
             }

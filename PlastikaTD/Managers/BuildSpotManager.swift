@@ -140,26 +140,30 @@ final class BuildSpotManager {
         root.name = "TowerBuildMenuOption.\(towerType.displayName)"
         root.position = position
 
+        // Drop shadow
         let shadow = SKShapeNode(circleOfRadius: menuOptionRadius + 3)
-        shadow.fillColor = SKColor(white: 0.0, alpha: 0.20)
+        shadow.fillColor = SKColor(white: 0.0, alpha: 0.22)
         shadow.strokeColor = .clear
         shadow.position = CGPoint(x: 1, y: -2)
         root.addChild(shadow)
 
-        let option = SKShapeNode(circleOfRadius: menuOptionRadius)
-        option.name = root.name
-        option.fillColor = towerType.menuColor
-        option.strokeColor = SKColor(white: 1.0, alpha: 0.86)
-        option.lineWidth = 3
-        option.zPosition = 1
-        root.addChild(option)
+        // Gunmetal plate background — matches build-spot aesthetic
+        let plate = SKShapeNode(circleOfRadius: menuOptionRadius)
+        plate.name = root.name
+        plate.fillColor = SKColor(red: 0.20, green: 0.24, blue: 0.22, alpha: 1.0)
+        plate.strokeColor = towerType.turretColor.withAlphaComponent(0.80)
+        plate.lineWidth = 2.5
+        plate.zPosition = 1
+        root.addChild(plate)
 
-        let inset = SKShapeNode(circleOfRadius: 7)
-        inset.fillColor = towerType.baseColor
-        inset.strokeColor = SKColor(white: 1.0, alpha: 0.34)
-        inset.lineWidth = 1
-        inset.zPosition = 2
-        root.addChild(inset)
+        // Gun preview — scaled-down real tower gun pointing upward
+        let previewScale: CGFloat = 0.44
+        let assembly = TowerGunFactory.makeAssembly(for: towerType)
+        let gun = assembly.aimNode
+        gun.position = CGPoint(x: 0, y: -(assembly.tipOffset.y / 2) * previewScale)
+        gun.setScale(previewScale)
+        gun.zPosition = 2
+        root.addChild(gun)
 
         return root
     }
@@ -180,26 +184,43 @@ final class BuildSpotManager {
         root.name = "BuildSpot"
         root.position = position
 
-        let shadow = SKShapeNode(circleOfRadius: 24)
-        shadow.fillColor = SKColor(white: 0.0, alpha: 0.16)
+        // Shadow — offset ellipse below the plate
+        let shadow = SKShapeNode(rectOf: CGSize(width: 46, height: 20), cornerRadius: 8)
+        shadow.fillColor = SKColor(white: 0.0, alpha: 0.22)
         shadow.strokeColor = .clear
-        shadow.position = CGPoint(x: 2, y: -3)
+        shadow.position = CGPoint(x: 3, y: -5)
         shadow.zPosition = 0
         root.addChild(shadow)
 
-        let base = SKShapeNode(circleOfRadius: 22)
-        base.fillColor = SKColor(red: 0.73, green: 0.84, blue: 0.64, alpha: 1.0)
-        base.strokeColor = SKColor(red: 0.98, green: 0.94, blue: 0.66, alpha: 1.0)
-        base.lineWidth = 4
-        base.zPosition = 1
-        root.addChild(base)
+        // Mounting plate — gunmetal square, game-board slot aesthetic
+        let plate = SKShapeNode(rectOf: CGSize(width: 40, height: 40), cornerRadius: 7)
+        plate.fillColor = SKColor(red: 0.26, green: 0.30, blue: 0.28, alpha: 1.0)
+        plate.strokeColor = SKColor(red: 0.52, green: 0.60, blue: 0.54, alpha: 0.88)
+        plate.lineWidth = 2.5
+        plate.zPosition = 1
+        root.addChild(plate)
 
-        let inset = SKShapeNode(circleOfRadius: 11)
-        inset.fillColor = SKColor(red: 0.38, green: 0.57, blue: 0.44, alpha: 1.0)
-        inset.strokeColor = SKColor(white: 1.0, alpha: 0.26)
-        inset.lineWidth = 2
-        inset.zPosition = 2
-        root.addChild(inset)
+        // Inner recess — slightly darker inset to show depth
+        let recess = SKShapeNode(rectOf: CGSize(width: 28, height: 28), cornerRadius: 4)
+        recess.fillColor = SKColor(red: 0.18, green: 0.21, blue: 0.20, alpha: 1.0)
+        recess.strokeColor = SKColor(white: 1.0, alpha: 0.12)
+        recess.lineWidth = 1
+        recess.zPosition = 2
+        root.addChild(recess)
+
+        // Centre crosshair — horizontal bar
+        let crossH = SKShapeNode(rectOf: CGSize(width: 14, height: 2), cornerRadius: 1)
+        crossH.fillColor = SKColor(white: 1.0, alpha: 0.28)
+        crossH.strokeColor = .clear
+        crossH.zPosition = 3
+        root.addChild(crossH)
+
+        // Centre crosshair — vertical bar
+        let crossV = SKShapeNode(rectOf: CGSize(width: 2, height: 14), cornerRadius: 1)
+        crossV.fillColor = SKColor(white: 1.0, alpha: 0.28)
+        crossV.strokeColor = .clear
+        crossV.zPosition = 3
+        root.addChild(crossV)
 
         return root
     }

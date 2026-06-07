@@ -13,14 +13,25 @@ enum TowerType: CaseIterable {
 
     var displayName: String {
         switch self {
-        case .red:
-            "Red Tower"
-        case .green:
-            "Green Tower"
-        case .blue:
-            "Blue Tower"
+        case .red:   "Autocannon"
+        case .green: "Missile Pod"
+        case .blue:  "Heavy Cannon"
         }
     }
+
+    var towerDescription: String {
+        switch self {
+        case .red:   "Twin barrels, relentless rate of fire. Shreds light enemies."
+        case .green: "Homing warheads chase targets. Reliable balanced damage."
+        case .blue:  "Slow, devastating rounds with predictive aim. Built for heavies."
+        }
+    }
+
+    /// Attack range in scene points. All types share 175 for now.
+    var range: CGFloat { 175 }
+
+    /// Damage per second at sustained fire rate.
+    var dps: Double { Double(damage) / attackCooldown }
 
     var baseColor: SKColor {
         switch self {
@@ -77,23 +88,26 @@ enum TowerType: CaseIterable {
 
     var damage: Int {
         switch self {
-        case .red:
-            1
-        case .green:
-            1
-        case .blue:
-            2
+        case .red:   1
+        case .green: 2
+        case .blue:  4
         }
     }
 
     var attackCooldown: TimeInterval {
         switch self {
-        case .red:
-            0.36
-        case .green:
-            0.58
-        case .blue:
-            0.90
+        case .red:   0.28
+        case .green: 0.65
+        case .blue:  1.40
+        }
+    }
+
+    /// Core projectile radius. Glow is drawn at 1.8× this value.
+    var projectileRadius: CGFloat {
+        switch self {
+        case .red:   2.5
+        case .green: 3.5
+        case .blue:  5.5
         }
     }
 

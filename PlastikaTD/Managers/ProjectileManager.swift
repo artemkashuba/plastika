@@ -20,6 +20,7 @@ final class ProjectileManager {
         to targetPosition: CGPoint,
         behavior: TowerProjectileBehavior,
         color: SKColor,
+        radius: CGFloat,
         speed: CGFloat,
         targetPositionProvider: @escaping @MainActor () -> CGPoint?,
         in scene: SKScene,
@@ -32,7 +33,7 @@ final class ProjectileManager {
         }
 
         activeProjectiles.append(projectile)
-        projectile.configure(color: color)
+        projectile.configure(color: color, radius: radius)
 
         let completion: @MainActor (Bool) -> Void = { [weak self, weak projectile, weak scene] didImpact in
             guard let self, let projectile else {
@@ -45,7 +46,7 @@ final class ProjectileManager {
             if didImpact {
                 onImpact()
                 if let scene {
-                    self.showImpactFlash(at: impactPosition, color: color, in: scene)
+                    self.showImpactFlash(at: impactPosition, color: color, radius: radius, in: scene)
                 }
             }
         }
@@ -64,8 +65,8 @@ final class ProjectileManager {
         }
     }
 
-    private func showImpactFlash(at position: CGPoint, color: SKColor, in scene: SKScene) {
-        let flash = SKShapeNode(circleOfRadius: 6)
+    private func showImpactFlash(at position: CGPoint, color: SKColor, radius: CGFloat, in scene: SKScene) {
+        let flash = SKShapeNode(circleOfRadius: radius * 1.2)
         flash.position = position
         flash.fillColor = color.withAlphaComponent(0.90)
         flash.strokeColor = color.withAlphaComponent(0.50)

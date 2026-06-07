@@ -17,37 +17,98 @@ final class PlaceholderEnemy: GameEntity {
     }
 
     private let movementActionKey = "placeholderEnemy.pathMovement"
-    private let healthBarWidth: CGFloat = 30
+    private let healthBarWidth: CGFloat = 36
     private let healthBarNode: SKNode
     private let healthBarForeground: SKShapeNode
+    /// Rotates to face the direction of travel. Shadow and health bar stay at root level.
+    private let bodyNode: SKNode
 
     init() {
-        let body = SKShapeNode(circleOfRadius: 16)
-        body.name = "PlaceholderEnemy"
-        body.fillColor = SKColor(red: 0.94, green: 0.25, blue: 0.20, alpha: 1.0)
-        body.strokeColor = SKColor(red: 1.0, green: 0.86, blue: 0.50, alpha: 1.0)
-        body.lineWidth = 3
-        body.zPosition = 20
+        let root = SKNode()
+        root.name = "PlaceholderEnemy"
+        root.zPosition = 20
 
+        // Shadow — wide flat ellipse offset below the unit
+        let shadow = SKShapeNode(ellipseOf: CGSize(width: 46, height: 18))
+        shadow.fillColor = SKColor(white: 0.0, alpha: 0.30)
+        shadow.strokeColor = .clear
+        shadow.position = CGPoint(x: 3, y: -8)
+        shadow.zPosition = -1
+        root.addChild(shadow)
+
+        // Body node — rotates to face direction of travel (+y = forward)
+        let bodyNode = SKNode()
+        bodyNode.zPosition = 0
+        root.addChild(bodyNode)
+
+        // Left track
+        let trackL = SKShapeNode(rectOf: CGSize(width: 9, height: 28), cornerRadius: 3)
+        trackL.fillColor = SKColor(red: 0.14, green: 0.12, blue: 0.11, alpha: 1.0)
+        trackL.strokeColor = SKColor(white: 0.35, alpha: 0.50)
+        trackL.lineWidth = 1
+        trackL.position = CGPoint(x: -16, y: 0)
+        bodyNode.addChild(trackL)
+
+        // Right track
+        let trackR = SKShapeNode(rectOf: CGSize(width: 9, height: 28), cornerRadius: 3)
+        trackR.fillColor = SKColor(red: 0.14, green: 0.12, blue: 0.11, alpha: 1.0)
+        trackR.strokeColor = SKColor(white: 0.35, alpha: 0.50)
+        trackR.lineWidth = 1
+        trackR.position = CGPoint(x: 16, y: 0)
+        bodyNode.addChild(trackR)
+
+        // Hull
+        let hull = SKShapeNode(rectOf: CGSize(width: 24, height: 22), cornerRadius: 5)
+        hull.fillColor = SKColor(red: 0.68, green: 0.20, blue: 0.16, alpha: 1.0)
+        hull.strokeColor = SKColor(red: 0.88, green: 0.52, blue: 0.28, alpha: 1.0)
+        hull.lineWidth = 2
+        bodyNode.addChild(hull)
+
+        // Turret
+        let turret = SKShapeNode(circleOfRadius: 7)
+        turret.fillColor = SKColor(red: 0.50, green: 0.14, blue: 0.12, alpha: 1.0)
+        turret.strokeColor = SKColor(red: 0.85, green: 0.42, blue: 0.24, alpha: 0.80)
+        turret.lineWidth = 1.5
+        turret.position = CGPoint(x: 0, y: 1)
+        turret.zPosition = 1
+        bodyNode.addChild(turret)
+
+        // Barrel — points forward (+y), shows facing direction
+        let barrel = SKShapeNode(rectOf: CGSize(width: 4, height: 11), cornerRadius: 2)
+        barrel.fillColor = SKColor(red: 0.18, green: 0.14, blue: 0.13, alpha: 1.0)
+        barrel.strokeColor = .clear
+        barrel.position = CGPoint(x: 0, y: 12)
+        barrel.zPosition = 2
+        bodyNode.addChild(barrel)
+
+        // Turret specular highlight
+        let turretHighlight = SKShapeNode(circleOfRadius: 3)
+        turretHighlight.fillColor = SKColor(white: 1.0, alpha: 0.38)
+        turretHighlight.strokeColor = .clear
+        turretHighlight.position = CGPoint(x: -3, y: 3)
+        turretHighlight.zPosition = 3
+        bodyNode.addChild(turretHighlight)
+
+        // Health bar — at root level so it stays horizontal regardless of body rotation
         let barContainer = SKNode()
-        barContainer.position = CGPoint(x: 0, y: 26)
-        barContainer.zPosition = 1
+        barContainer.position = CGPoint(x: 0, y: 24)
+        barContainer.zPosition = 4
         barContainer.isHidden = true
+        root.addChild(barContainer)
 
-        let background = SKShapeNode(rectOf: CGSize(width: 30, height: 4), cornerRadius: 2)
+        let background = SKShapeNode(rectOf: CGSize(width: 36, height: 4), cornerRadius: 2)
         background.fillColor = SKColor(white: 0.0, alpha: 0.55)
         background.strokeColor = .clear
         barContainer.addChild(background)
 
-        let foreground = SKShapeNode(rectOf: CGSize(width: 30, height: 4), cornerRadius: 2)
+        let foreground = SKShapeNode(rectOf: CGSize(width: 36, height: 4), cornerRadius: 2)
         foreground.fillColor = SKColor(red: 0.20, green: 0.85, blue: 0.30, alpha: 1.0)
         foreground.strokeColor = .clear
         foreground.zPosition = 1
         barContainer.addChild(foreground)
 
-        body.addChild(barContainer)
-
-        self.node = body
+        self.node = root
+        self.bodyNode = bodyNode
         self.healthBarNode = barContainer
         self.healthBarForeground = foreground
     }
@@ -92,6 +153,8 @@ final class PlaceholderEnemy: GameEntity {
             let vy = ((end.y - start.y) / dist) * path.movementSpeed
             movementActions.append(SKAction.run { [weak self] in
                 self?.velocity = CGPoint(x: vx, y: vy)
+                // Rotate body to face the direction of travel (+y = forward in local space)
+                self?.bodyNode.zRotation = atan2(vy, vx) - (.pi / 2)
             })
             movementActions.append(SKAction.move(to: end, duration: duration))
         }

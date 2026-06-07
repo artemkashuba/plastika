@@ -31,9 +31,12 @@ final class PlaceholderProjectile: GameEntity {
         coreNode = core
     }
 
-    func configure(color: SKColor) {
+    func configure(color: SKColor, radius: CGFloat) {
         coreNode.fillColor = color
         glowNode.fillColor = color.withAlphaComponent(0.28)
+        let r = max(1, radius)
+        coreNode.path = CGPath(ellipseIn: CGRect(x: -r, y: -r, width: r * 2, height: r * 2), transform: nil)
+        glowNode.path = CGPath(ellipseIn: CGRect(x: -r * 1.8, y: -r * 1.8, width: r * 3.6, height: r * 3.6), transform: nil)
     }
 
     func reset() {

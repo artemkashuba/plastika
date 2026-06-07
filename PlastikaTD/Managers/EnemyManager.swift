@@ -11,6 +11,8 @@ final class EnemyManager {
         activeEnemies.count
     }
 
+    private(set) var killCount: Int = 0
+
     func resetForNewScene() {
         (activeEnemies + pooledEnemies).forEach { enemy in
             enemy.reset()
@@ -20,6 +22,7 @@ final class EnemyManager {
         activeEnemies.removeAll(keepingCapacity: true)
         pooledEnemies.removeAll(keepingCapacity: true)
         onEnemyReachedEnd = nil
+        killCount = 0
     }
 
     func preparePool(capacity: Int) {
@@ -82,6 +85,7 @@ final class EnemyManager {
         }
 
         if enemy.takeDamage(damage) {
+            killCount += 1
             recycle(enemy)
             return true
         }
@@ -96,6 +100,7 @@ final class EnemyManager {
         }
 
         if enemy.takeDamage(damage) {
+            killCount += 1
             recycle(enemy)
             return true
         }
