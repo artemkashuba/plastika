@@ -9,6 +9,9 @@ final class UIManager {
     /// The coin icon in the HUD cluster — landing target for the kill-reward fly animation.
     private var coinIconNode: SKShapeNode?
     private var heartNodes: [SKLabelNode] = []
+    /// The wave-badge label — updated on demand via `setWave` (wave start / countdown ticks),
+    /// not every frame, since it only changes on discrete progression events.
+    private var waveLabel: SKLabelNode?
     /// Tracks the last known health value so updateHearts can detect a loss and animate it.
     private var currentHealth = BaseHealthManager.startingHealth
 
@@ -25,6 +28,7 @@ final class UIManager {
         endOverlayNode = nil
         coinLabel = nil
         coinIconNode = nil
+        waveLabel = nil
         heartNodes = []
         currentHealth = BaseHealthManager.startingHealth
     }
@@ -40,6 +44,24 @@ final class UIManager {
     func update(coins: Int, health: Int) {
         coinLabel?.text = "\(coins)"
         updateHearts(health: health)
+    }
+
+    /// Updates the HUD wave badge. Called only on discrete progression events (a wave
+    /// starting, or each inter-wave countdown tick) — not every frame — since the text
+    /// only ever changes at those moments. `countdown` non-nil shows "WAVE N IN S";
+    /// nil shows the plain "WAVE N" state.
+    func setWave(number: Int, countdown: Int? = nil) {
+        guard let waveLabel else {
+            return
+        }
+
+        if let countdown {
+            waveLabel.text = "WAVE \(number) IN \(countdown)"
+            waveLabel.fontSize = 10
+        } else {
+            waveLabel.text = "WAVE \(number)"
+            waveLabel.fontSize = 12
+        }
     }
 
     // MARK: - Coin reward animation
@@ -275,6 +297,7 @@ final class UIManager {
         label.verticalAlignmentMode = .center
         label.position = .zero
         badge.addChild(label)
+        waveLabel = label
 
         return badge
     }

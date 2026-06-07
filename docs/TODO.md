@@ -53,6 +53,9 @@
 - [x] Add coin-fly reward animation on enemy kill
 - [x] Add barrel recoil and muzzle-flash shooting animations (recoil scales with gun weight: Red < Green < Blue)
 - [x] Add a small radial reload-timer ring around each tower, visible only while reloading
+- [x] Add a second wave with an inter-wave countdown (3s "WAVE 2 IN 3..." HUD announcement)
+- [x] Add Pink "Laser Lance" tower — continuous-beam single-target damage, smooth fractional HP drain, 75-coin cost, 4-option build menu
+- [x] Add neon breathing pulse to the laser beam, and a flickering plasma-burn mark where it makes contact with its target
 - [ ] Add tower upgrades
 - [ ] Add haptics
 - [ ] Add main menu
@@ -60,6 +63,7 @@
 
 ## Phase 3 - Polish
 
+- [x] Draft AI-generation art-asset brief and style guide (`docs/ART_ASSET_BRIEF.md`) — prep for the reskin below
 - [ ] Replace placeholder art
 - [ ] Improve animations
 - [ ] Add skins

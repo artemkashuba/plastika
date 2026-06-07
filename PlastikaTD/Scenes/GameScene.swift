@@ -40,6 +40,9 @@ final class GameScene: SKScene {
         buildGameplaySlice()
         setupCallbacks()
         systems.uiManager.configureOverlay(in: self, safeAreaTop: safeAreaTopInScene)
+        // The HUD wave badge is built above, after the wave already started (and fired its
+        // initial onWaveProgressChanged before the callback was wired) — sync it explicitly.
+        systems.uiManager.setWave(number: systems.waveManager.currentWaveNumber)
         systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
     }
 
@@ -109,7 +112,7 @@ final class GameScene: SKScene {
 
         addChild(systems.buildSpotManager.makeBuildSpotLayer())
 
-        systems.waveManager.startPrototypeWave(
+        systems.waveManager.beginWaveProgression(
             in: self,
             path: systems.pathManager.activePath,
             enemyManager: systems.enemyManager
@@ -127,6 +130,10 @@ final class GameScene: SKScene {
 
         systems.gameStateManager.onSoundEnabledChange = { [weak self] enabled in
             self?.systems.towerManager.isSoundEnabled = enabled
+        }
+
+        systems.waveManager.onWaveProgressChanged = { [weak self] waveNumber, countdown in
+            self?.systems.uiManager.setWave(number: waveNumber, countdown: countdown)
         }
 
         // Apply persisted sound setting immediately
@@ -177,6 +184,7 @@ final class GameScene: SKScene {
         buildGameplaySlice()
         setupCallbacks()
         systems.uiManager.configureOverlay(in: self, safeAreaTop: safeAreaTopInScene)
+        systems.uiManager.setWave(number: systems.waveManager.currentWaveNumber)
         systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
     }
 
@@ -200,7 +208,13 @@ final class GameScene: SKScene {
             health: systems.baseHealthManager.health
         )
 
-        if systems.waveManager.isSpawningComplete && systems.enemyManager.activeEnemyCount == 0 {
+        let allWavesCleared = systems.waveManager.updateProgression(
+            activeEnemyCount: systems.enemyManager.activeEnemyCount,
+            in: self,
+            path: systems.pathManager.activePath,
+            enemyManager: systems.enemyManager
+        )
+        if allWavesCleared {
             triggerVictory()
         }
     }
@@ -233,7 +247,9 @@ final class GameScene: SKScene {
                 totalEnemies: systems.waveManager.totalEnemyCount,
                 killCount: systems.enemyManager.killCount,
                 towerCounts: systems.towerManager.towerCountsByType,
-                coinsInvested: systems.towerManager.totalCoinsInvested
+                coinsInvested: systems.towerManager.totalCoinsInvested,
+                waveNumber: systems.waveManager.currentWaveNumber,
+                totalWaveCount: systems.waveManager.totalWaveCount
             )
             systems.gameStateManager.pause(stats: stats)
             return

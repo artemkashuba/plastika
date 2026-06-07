@@ -10,6 +10,10 @@ struct PauseStats {
     let killCount: Int
     let towerCounts: [TowerType: Int]
     let coinsInvested: Int
+    /// 1-based index of the wave currently in progress (or about to start, during a countdown).
+    let waveNumber: Int
+    /// Total number of waves in the level's script — pairs with `waveNumber` for "1/2" display.
+    let totalWaveCount: Int
 }
 
 // MARK: - Manager

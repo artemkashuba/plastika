@@ -592,3 +592,226 @@ Reason:
   feedback on when each tower will fire again without permanently cluttering the battlefield
 - Lives on `PlaceholderTower` (a sibling of `aimNode`, not a child) so it doesn't rotate with
   the turret and reuses the same keyed-`SKAction` ownership pattern as recoil/selection
+
+Decision:
+Use a single bright white for the reload-ring's progress arc on every tower type, instead of
+tinting it to each tower's turret color (`type.turretColor`).
+
+Reason:
+- User feedback: per-tower tinting made the ring's color feel inconsistent across the
+  battlefield; a uniform white reads as one consistent UI element regardless of tower type
+- White also guarantees contrast against all three base-plate colors (red/green/blue) and the
+  battlefield background, where a tinted arc could blend into a same-hued tower's own visuals
+
+## 2026-06-07 — Art direction reference & Phase 3 prep
+
+Decision:
+Adopt a user-shared reference screenshot (a polished "claymation/plastic-toy" mobile
+tower-defense UI) as the north star for the eventual full art pass, source the new
+assets via AI image generation, and treat the pass itself as the already-roadmapped
+Phase 3 "Replace placeholder art" item rather than starting it now. As immediate prep,
+draft `docs/ART_ASSET_BRIEF.md` — a style guide, asset inventory, technical spec sheet,
+and AI-prompt-template set the eventual pass can pick up and run with.
+
+Reason:
+- The reference screenshot lines up almost exactly with the "Plastic toy appearance" /
+  "Tabletop battlefield presentation" already written into `GAME_DESIGN.md`'s Art
+  Direction section — it's a confirmation of the existing vision, not a pivot
+- User chose "AI image generation" as the art source and "treat it as the planned
+  Phase 3 polish pass" when offered the options — gameplay work (second wave, upgrades)
+  continues uninterrupted, and the reskin happens on its already-planned schedule
+- A full reskin requires actual rendered/illustrated assets that don't yet exist —
+  writing a brief now (style descriptors, full asset inventory, SpriteKit integration
+  plan, ready-to-adapt prompt templates) means that work can start fast and stay
+  visually consistent across dozens of generations whenever Phase 3 begins
+- The brief explicitly maps onto the existing turret/barrel split
+  (`Assembly.aimNode`/`Assembly.barrelNode`) so recoil, aiming, and the reload ring
+  keep working unchanged once sprite-based art replaces the procedural shapes
+
+## 2026-06-07 — Second wave & inter-wave countdown
+
+Decision:
+Replace the single hardcoded `prototypeWave` with a formula-driven wave script: a
+`scriptedWaveCount` constant plus a private `waveDefinition(at:)` generator that derives
+each wave's enemy count and spawn interval from a linear difficulty curve (base values +
+a fixed per-wave step, spawn interval floored at a minimum). Drive wave-to-wave
+progression from a new `WaveManager.updateProgression(...)` call in `GameScene.update(_:)`,
+and announce a 3-second "WAVE 2 IN 3…2…1…" countdown via a new `onWaveProgressChanged`
+callback the moment all of a wave's enemies are cleared — all without introducing a new
+`GamePhase`.
+
+Reason:
+- **Formula over a hardcoded per-wave array**: the user explicitly asked that "each level
+  should have increased amount of enemies, so the difficulty should grow" as a *standing
+  rule*, not a one-off tweak between two waves. A generator centralizes that rule —
+  `scriptedWaveCount` alone controls how many waves exist, and every wave it produces is
+  guaranteed harder than the last by construction. Adding wave 3, 4, ... later requires no
+  manual balancing of individual entries, and the curve (steps + floor) is the single place
+  to retune overall pacing
+- **Linear curve with a spawn-interval floor**: `baseEnemyCount` (6) + `enemyCountStepPerWave`
+  (3) and `baseSpawnInterval` (0.85s) − `spawnIntervalStepPerWave` (0.15s), clamped at
+  `minimumSpawnInterval` (0.4s) — reproduces the original hand-picked Wave 1 (6 @ 0.85s) /
+  Wave 2 (9 @ 0.70s) numbers exactly, while guaranteeing later waves keep escalating without
+  ever spawning so fast it becomes unreadable or unfair
+- **No new game phase**: the countdown is cosmetic pacing, not a distinct mode — the
+  player can keep building, selling, and watching combat resolve during the break, so
+  staying in `.sceneLoaded` keeps input/update gating simple and avoids a phase whose
+  only job would be "like sceneLoaded, but don't check for the next wave yet"
+- **3-second countdown**: long enough to read clearly as "3…2…1…go" and give the player
+  a breather/regroup moment, short enough that it doesn't feel like dead air on a short
+  multi-wave slice
+- **`isAdvancingToNextWave` guard**: `updateProgression` runs every frame while
+  `activeEnemyCount == 0`; without a latch it would re-enter and restart the countdown
+  (or re-trigger victory) on every subsequent frame until the next wave's first enemy spawns
+- **Callback fires on every wave start, including the first**: rather than special-casing
+  "is this the initial wave," `WaveManager` always announces progress through
+  `onWaveProgressChanged`. The very first announcement lands before `GameScene` wires the
+  callback (ordering of `buildGameplaySlice()` vs. `setupCallbacks()`/`configureOverlay`),
+  so `GameScene` explicitly calls `setWave(number:)` once, right after `configureOverlay`
+  builds the HUD, to sync the initial "WAVE 1" badge — keeping `WaveManager` simple and
+  consistent rather than reordering `didMove`/`restartGame` and risking subtler side effects
+- **`PauseStats` gained `waveNumber`/`totalWaveCount`**: the existing "spawned: X/Y" pause
+  stat only ever meant "this wave's spawn count," but that was invisible/ambiguous with a
+  single wave. Surfacing "ENEMIES — WAVE 1/2" in the section header makes the scope explicit
+  now that there's more than one wave to track
+
+## 2026-06-07
+
+Decision:
+Add a fourth tower type, Pink ("Laser Lance") — a 75-coin continuous-beam tower that
+locks onto a single target and burns it down with a persistent laser, draining its HP
+smoothly rather than in discrete per-shot bursts.
+
+Reason:
+
+- The existing roster (Red/Green/Blue) is entirely discrete-projectile; a beam tower
+  gives the player a meaningfully different tactical tool (guaranteed, always-on
+  single-target damage vs. burst/splash/homing variety) and a reason to pay the premium
+- The user explicitly asked for "a laser… aiming to one target… HP star [bar] draining
+  smoothly," and selected the "true continuous beam" / "highest DPS (~4.5)" / "new
+  beam-focused visual" options when offered alternatives — locking in a from-scratch
+  beam combat model rather than reusing the rapid-pulse projectile system
+
+Decision:
+Introduce `TowerAttackStyle { case projectile; case beam }` and branch combat/visuals on it,
+rather than retrofitting the projectile pipeline to fake a beam.
+
+Reason:
+
+- The existing combat model (`ProjectileManager`, discrete cooldown → fire → impact cycle,
+  recoil/muzzle-flash/reload-ring) is fundamentally shot-based; forcing a beam through it
+  would mean firing dozens of invisible "projectiles" per second — wasteful and fragile
+- A clean style switch lets `TowerManager.updateCombat` and `PlaceholderTower`'s effect
+  calls dispatch to the right model with zero risk of changing Red/Green/Blue behavior —
+  100% of the existing projectile machinery is untouched
+- `dps` becomes style-aware too: projectile towers keep deriving it from `damage`/
+  `attackCooldown`; beam towers report `laserDamagePerSecond` directly, since they have
+  no discrete shot to derive a rate from
+
+Decision:
+Make `PlaceholderEnemy.fractionalHealth: Double` the canonical health value, with the
+existing `hitPoints: Int` becoming a ceiling-rounded derived mirror.
+
+Reason:
+
+- "Smooth HP drain" needs sub-1 damage increments (a beam ticks `dps * deltaTime`, often
+  a fraction of a hitpoint per frame); an `Int`-only model can only snap the bar between
+  whole-HP steps
+- Layering `SKAction` tweens onto an `Int` bar (the rejected "rapid-pulse" alternative)
+  would fight the bar's existing instant-update logic and complicate kill detection
+- Ceiling-rounding `hitPoints` from `fractionalHealth` keeps every existing Int-based
+  consumer (`takeDamage`, `hitPoints == 0` kill checks, `isAlive`) numerically identical
+  for whole-number damage — Red/Green/Blue see zero behavior change — while
+  `updateHealthBar()` now renders the exact fractional remainder for genuinely continuous
+  draining under laser fire
+
+Decision:
+Draw the beam as a glow+core `SKShapeNode` line pair, parented to `barrelNode` (inside
+`aimNode`), redrawn each frame from the barrel tip outward by the tip-to-target distance —
+with no recoil, muzzle flash, or reload ring for beam towers.
+
+Reason:
+
+- Because `aimNode` is already rotated toward the locked target via the existing `aim(at:)`
+  call, a beam drawn as its child inherits that rotation "for free" — `showBeam` only ever
+  needs to recompute the beam's *length*, never its angle, eliminating separate world-space
+  math
+- Mirrors the existing muzzle-flash "tinted glow behind a bright core" visual language, so
+  the new beam reads as part of the same tower roster's visual identity rather than a
+  bolted-on effect
+- A persistent always-on beam has no discrete "shot" moment to recoil/flash/reload around;
+  keeping those effects at `recoilDistance = 0` / `muzzleFlashScale = 0` / `attackCooldown = 0`
+  for `.pink` (rather than running them on a fake cadence) avoids visual noise that would
+  contradict the "continuous beam" concept
+
+Decision:
+Tune Pink to ~4.5 DPS — the highest single-target DPS in the roster — and price it at
+75 coins (vs. 50 for Red/Green/Blue).
+
+Reason:
+
+- User-selected option: "Highest DPS, ~4.5" was chosen over "mid-pack DPS (~3) but
+  always-on accuracy" when offered the choice
+- Existing roster context: Red ≈ 3.57, Green ≈ 3.08, Blue ≈ 2.86 DPS — Pink at 4.5
+  is a clear step up, giving the 50% cost premium (75 vs. 50) a concrete payoff
+- A guaranteed-hit, always-on-target beam is inherently more reliable than projectile
+  travel time/misses/splash falloff, so pairing that reliability with the top DPS makes
+  Pink a premium "win more" choice rather than a strictly-better default
+
+Decision:
+Give the laser beam a continuous "neon sign" breathing pulse — looping, slightly
+out-of-phase alpha and line-width oscillation on its glow and core layers — rather
+than leaving it as a static painted line.
+
+Reason:
+
+- A perfectly static beam reads as flat/lifeless next to the rest of the roster's
+  animated "feel" (recoil, muzzle flash, reload rings, coin-fly rewards) — direct
+  user feedback called the laser out as "looking a bit static"
+- Two layers pulsing at different periods with a phase offset (rather than one
+  uniform pulse, or both layers in lockstep) is what makes it read as an organic,
+  "alive" energy conduit instead of a mechanical blink — mirrors how real neon
+  tubes/lasers look slightly unstable rather than perfectly steady
+- Driving it off `SKAction.repeatForever`/`customAction` started once at beam-node
+  creation (not every `showBeam` frame) keeps it cheap and decoupled from the
+  per-frame path redraw — and keeps the loop quietly running while the beam is
+  hidden, so re-acquiring a target resumes mid-breath rather than resetting
+
+Decision:
+Give the laser a "burn" impact effect — a small flickering plasma cluster (tinted
+glow + white-hot core) — at the point where the beam makes contact, owned by
+`PlaceholderEnemy` (`showBeamBurn(color:)`/`hideBeamBurn()`) rather than by the
+tower or `ProjectileManager`.
+
+Reason:
+
+- Direct user suggestion ("a mini fire animation should appear on the end of laser
+  beam"); reinforces the Laser Lance's "burns it down" flavor and pairs naturally
+  with the just-finished beam pulse — both push the laser from "static" to "alive"
+- The existing one-shot `ProjectileManager.showImpactFlash` is fundamentally the
+  wrong shape for this: it's a scene-space flash that fires once and disappears,
+  whereas a beam stays locked on a *moving* target for as long as range allows, so
+  its impact mark needs to be persistent and need to track that motion every frame
+- Parenting the effect to the enemy (at its anchor point — the exact position
+  `updateBeamCombat` already aims the beam at) means it tracks the target for free
+  with zero per-frame position math, and disappears for free on death/recycle via
+  the existing `reset()` path — no new bookkeeping in `TowerManager` beyond
+  show/hide calls keyed off the lock state it already tracks
+- Colors mirror the tower's own muzzle-flash language (`color`-tinted glow around a
+  white-hot core) — a magenta-tinted "plasma burn" rather than generic orange fire,
+  so the mark visibly belongs to *this* laser and pops against the enemy's
+  red-orange chassis instead of blending into it
+- The flicker uses fast, irregular sine-wave combinations (distinct cadence from
+  the beam's slow "neon" breathing) so it reads as an erratic flame-lick rather
+  than a second metronomic pulse competing with the first
+
+Decision:
+Generalize `BuildSpotManager.menuOffset(for:)` from a hardcoded 3-case switch to an
+index-based, centered formula over `TowerType.allCases`.
+
+Reason:
+
+- A 4th tower type breaks the old `-spacing/0/+spacing` switch, which had no slot for it
+- `CGFloat(index) - CGFloat(allCases.count - 1) / 2) * spacing` reproduces the exact
+  existing Red/Green/Blue offsets for 3 entries while automatically and symmetrically
+  spacing any future Nth tower type — no further hand-editing required when the roster grows

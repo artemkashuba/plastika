@@ -103,7 +103,7 @@ struct PauseMenuView: View {
 
     private func enemySection(_ stats: PauseStats) -> some View {
         VStack(alignment: .leading, spacing: 12) {
-            sectionHeader("ENEMIES")
+            sectionHeader("ENEMIES — WAVE \(stats.waveNumber)/\(stats.totalWaveCount)")
 
             HStack(spacing: 0) {
                 statCell(
@@ -189,10 +189,18 @@ struct PauseMenuView: View {
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 6) {
-                    specChip(label: "DMG",    value: "\(type.damage)")
-                    specChip(label: "RELOAD", value: String(format: "%gs", type.attackCooldown))
-                    specChip(label: "RANGE",  value: "\(Int(type.range))")
-                    specChip(label: "DPS",    value: String(format: "%.1f", type.dps))
+                    if type.attackStyle == .beam {
+                        // Beam towers have no discrete shot to quote a DMG/RELOAD figure for —
+                        // they deal continuous damage instead, so lead with that distinction.
+                        specChip(label: "MODE",  value: "BEAM")
+                        specChip(label: "DPS",   value: String(format: "%.1f", type.dps))
+                        specChip(label: "RANGE", value: "\(Int(type.range))")
+                    } else {
+                        specChip(label: "DMG",    value: "\(type.damage)")
+                        specChip(label: "RELOAD", value: String(format: "%gs", type.attackCooldown))
+                        specChip(label: "RANGE",  value: "\(Int(type.range))")
+                        specChip(label: "DPS",    value: String(format: "%.1f", type.dps))
+                    }
                 }
             }
         }

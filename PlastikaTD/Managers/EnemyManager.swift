@@ -108,6 +108,25 @@ final class EnemyManager {
         return false
     }
 
+    /// Mirrors `applyDamage(_:to:matchingLifeID:)` for continuous, fractional damage sources
+    /// (laser beams). Same lifeID-guarded validity check and kill/recycle handling — the only
+    /// difference is the per-tick amount can be a fractional `Double` (typically `dps * deltaTime`),
+    /// which `PlaceholderEnemy.takeContinuousDamage` uses to drain the health bar smoothly.
+    @discardableResult
+    func applyContinuousDamage(_ amount: Double, to enemy: PlaceholderEnemy, matchingLifeID lifeID: Int) -> Bool {
+        guard isActiveLife(enemy, lifeID: lifeID) else {
+            return false
+        }
+
+        if enemy.takeContinuousDamage(amount) {
+            killCount += 1
+            recycle(enemy)
+            return true
+        }
+
+        return false
+    }
+
     private func isActiveLife(_ enemy: PlaceholderEnemy, lifeID: Int) -> Bool {
         activeEnemies.contains { $0 === enemy }
             && enemy.lifeID == lifeID

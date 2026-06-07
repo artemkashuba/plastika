@@ -12,6 +12,10 @@ final class TowerManager {
     private var towersByBuildSpotID: [Int: PlaceholderTower] = [:]
     private var nextAttackTimesByBuildSpotID: [Int: TimeInterval] = [:]
     private var targetLocksByBuildSpotID: [Int: TargetLock] = [:]
+    /// `currentTime` from the previous `updateCombat` call — used to derive `deltaTime` for
+    /// beam-style towers, whose damage accrues continuously as `dps * deltaTime` rather than
+    /// in discrete per-shot bursts. `nil` until the first frame after a (re)load.
+    private var lastCombatUpdateTime: TimeInterval?
     private var selectedBuildSpotID: Int?
     var isSoundEnabled: Bool = true
     private var rangeIndicator: SKShapeNode?
@@ -31,6 +35,7 @@ final class TowerManager {
         towersByBuildSpotID.removeAll(keepingCapacity: true)
         nextAttackTimesByBuildSpotID.removeAll(keepingCapacity: true)
         targetLocksByBuildSpotID.removeAll(keepingCapacity: true)
+        lastCombatUpdateTime = nil
     }
 
     func placePlaceholderTower(ofType towerType: TowerType, on buildSpot: BuildSpot, in scene: SKScene) -> Bool {
@@ -103,17 +108,53 @@ final class TowerManager {
         uiManager: UIManager,
         in scene: SKScene
     ) {
+        let deltaTime = lastCombatUpdateTime.map { max(0, currentTime - $0) } ?? 0
+        lastCombatUpdateTime = currentTime
+
         towersByBuildSpotID.forEach { buildSpotID, tower in
+            let isBeamTower = tower.type.attackStyle == .beam
+            // Captured *before* refreshing the lock below — `targetLock(forBuildSpotID:...)`
+            // silently swaps in a fresh target the instant the old one becomes invalid (dies,
+            // leaves range, etc.), so this is our only chance to know who the beam was just
+            // resting on, in order to switch its burn effect off down in the branches below.
+            let previousBeamTarget = isBeamTower ? targetLocksByBuildSpotID[buildSpotID]?.enemy : nil
+
             guard let targetLock = targetLock(
                 forBuildSpotID: buildSpotID,
                 tower: tower,
                 enemyManager: enemyManager
             ), let target = targetLock.enemy else {
+                tower.hideBeam()
+                previousBeamTarget?.hideBeamBurn()
                 return
             }
 
             let targetPosition = target.node.position
             tower.aim(at: targetPosition)
+
+            if isBeamTower {
+                // The lock can only have moved on to a *different* enemy in the same tick the
+                // old one became invalid (dead/out-of-range/etc) — `target.hideBeamBurn()` in
+                // `updateBeamCombat`'s kill branch already covers the "died" case, so this
+                // catches the remaining "still alive but no longer locked" cases (e.g. walked
+                // out of beam range) before the new target's burn lights up below.
+                if let previousBeamTarget, previousBeamTarget !== target {
+                    previousBeamTarget.hideBeamBurn()
+                }
+
+                updateBeamCombat(
+                    tower: tower,
+                    target: target,
+                    targetPosition: targetPosition,
+                    targetLock: targetLock,
+                    deltaTime: deltaTime,
+                    enemyManager: enemyManager,
+                    economyManager: economyManager,
+                    uiManager: uiManager,
+                    scene: scene
+                )
+                return
+            }
 
             let nextAttackTime = nextAttackTimesByBuildSpotID[buildSpotID] ?? 0
 
@@ -186,6 +227,44 @@ final class TowerManager {
                 } else if self?.isSoundEnabled == true {
                     tower?.node.run(SKAction.playSoundFileNamed("enemy_hit.wav", waitForCompletion: false))
                 }
+            }
+        }
+    }
+
+    /// Drives one frame of continuous-beam combat for a locked-on laser tower: keeps the
+    /// beam visual drawn from barrel tip to the target, and drains the target's HP smoothly
+    /// via fractional, deltaTime-scaled damage (see `PlaceholderEnemy.takeContinuousDamage`).
+    private func updateBeamCombat(
+        tower: PlaceholderTower,
+        target: PlaceholderEnemy,
+        targetPosition: CGPoint,
+        targetLock: TargetLock,
+        deltaTime: TimeInterval,
+        enemyManager: EnemyManager,
+        economyManager: EconomyManager,
+        uiManager: UIManager,
+        scene: SKScene
+    ) {
+        tower.showBeam(to: targetPosition, color: tower.type.projectileColor)
+        target.showBeamBurn(color: tower.type.projectileColor)
+
+        guard deltaTime > 0 else {
+            return
+        }
+
+        let damageThisTick = tower.type.dps * deltaTime
+        let killReward = target.killReward
+        let deathPosition = target.node.position
+
+        let killed = enemyManager.applyContinuousDamage(damageThisTick, to: target, matchingLifeID: targetLock.lifeID)
+
+        if killed {
+            economyManager.credit(killReward)
+            uiManager.flyCoinReward(from: deathPosition, in: scene)
+            tower.hideBeam()
+            target.hideBeamBurn()
+            if isSoundEnabled {
+                tower.node.run(SKAction.playSoundFileNamed("enemy_death.wav", waitForCompletion: false))
             }
         }
     }

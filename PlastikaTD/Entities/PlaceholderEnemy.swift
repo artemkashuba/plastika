@@ -8,6 +8,12 @@ final class PlaceholderEnemy: GameEntity {
     let killReward = 10
     private let maxHitPoints = 5
     private(set) var hitPoints = 5
+    /// Canonical health value — `hitPoints` is a ceiling-rounded mirror kept in sync for
+    /// Int-based consumers (kill detection, `isAlive`). Tracking health as a `Double` lets
+    /// continuous sources (e.g. a laser beam) drain it in tiny fractional steps every frame,
+    /// and lets `updateHealthBar` render that exact value so the bar empties smoothly rather
+    /// than snapping between whole-HP increments.
+    private var fractionalHealth: Double = 5.0
     private(set) var lifeID = 0
     /// Current velocity in points per second, updated at each path segment. Zero before first move.
     private(set) var velocity: CGPoint = .zero
@@ -17,11 +23,19 @@ final class PlaceholderEnemy: GameEntity {
     }
 
     private let movementActionKey = "placeholderEnemy.pathMovement"
+    private let beamBurnActionKey = "placeholderEnemy.beamBurn"
     private let healthBarWidth: CGFloat = 36
     private let healthBarNode: SKNode
     private let healthBarForeground: SKShapeNode
     /// Rotates to face the direction of travel. Shadow and health bar stay at root level.
     private let bodyNode: SKNode
+    /// Small flickering "plasma burn" cluster shown at the point where a laser beam makes
+    /// contact (mirrors the tower's muzzle-flash language: tinted glow + white-hot core).
+    /// Lives at root level — NOT a child of `bodyNode` — so it sits at a fixed spot on the
+    /// chassis regardless of which way the enemy is currently facing, coinciding with the
+    /// beam's actual endpoint (`node.position`, the exact point `updateBeamCombat` aims at).
+    /// Created lazily on first use; nil for enemies a beam has never touched.
+    private var beamBurnNode: SKNode?
 
     init() {
         let root = SKNode()
@@ -115,22 +129,121 @@ final class PlaceholderEnemy: GameEntity {
 
     func reset() {
         hitPoints = maxHitPoints
+        fractionalHealth = Double(maxHitPoints)
         velocity = .zero
         node.removeAction(forKey: movementActionKey)
+        hideBeamBurn()
         healthBarNode.isHidden = true
         healthBarForeground.xScale = 1.0
         healthBarForeground.position = CGPoint(x: 0, y: 0)
         healthBarForeground.fillColor = SKColor(red: 0.20, green: 0.85, blue: 0.30, alpha: 1.0)
     }
 
+    /// Discrete, whole-point damage from a single shot (Red/Green/Blue projectile impacts).
     func takeDamage(_ damage: Int) -> Bool {
         guard hitPoints > 0 else {
             return false
         }
 
-        hitPoints = max(0, hitPoints - damage)
-        updateHealthBar()
+        applyHealthLoss(Double(damage))
         return hitPoints == 0
+    }
+
+    /// Continuous, fractional damage applied every frame a laser beam stays locked on this
+    /// enemy (`amount` is typically `dps * deltaTime`, so it can be a tiny sub-1 value).
+    /// Unlike `takeDamage`, this drains `fractionalHealth` — and therefore the health bar —
+    /// in genuinely smooth, frame-by-frame steps rather than snapping between whole hits.
+    @discardableResult
+    func takeContinuousDamage(_ amount: Double) -> Bool {
+        guard hitPoints > 0 else {
+            return false
+        }
+
+        applyHealthLoss(amount)
+        return hitPoints == 0
+    }
+
+    /// Subtracts `amount` from the canonical fractional health, re-derives the Int
+    /// `hitPoints` mirror (ceiling-rounded, so it only reaches 0 exactly when health is
+    /// fully drained), and redraws the bar from the precise fractional remainder.
+    private func applyHealthLoss(_ amount: Double) {
+        fractionalHealth = max(0, fractionalHealth - amount)
+        hitPoints = Int(fractionalHealth.rounded(.up))
+        updateHealthBar()
+    }
+
+    // MARK: - Beam burn (laser impact effect)
+
+    /// Shows — creating lazily on first use — a small flickering "plasma burn" cluster at
+    /// the point where a locked-on laser beam makes contact: a `color`-tinted glow around a
+    /// white-hot core, the same tinted-glow-plus-bright-core language `PlaceholderTower`
+    /// already uses for its muzzle flash and beam, just relocated to the point of impact.
+    /// Call once per frame while a beam-style tower's lock holds on this enemy — cheap and
+    /// idempotent after the first call (only re-reveals if previously hidden).
+    func showBeamBurn(color: SKColor) {
+        if let beamBurnNode {
+            beamBurnNode.isHidden = false
+            return
+        }
+
+        let burn = SKNode()
+        burn.position = CGPoint(x: 0, y: 2)
+        burn.zPosition = 3.5
+        node.addChild(burn)
+
+        let glow = SKShapeNode(circleOfRadius: 7)
+        glow.fillColor = color.withAlphaComponent(0.40)
+        glow.strokeColor = .clear
+        burn.addChild(glow)
+
+        let core = SKShapeNode(circleOfRadius: 2.5)
+        core.fillColor = SKColor(white: 1.0, alpha: 0.92)
+        core.strokeColor = .clear
+        core.zPosition = 1
+        burn.addChild(core)
+
+        beamBurnNode = burn
+        startBeamBurnFlicker(glow: glow, core: core)
+    }
+
+    /// Hides the burn effect (if one exists). Call whenever the beam loses its lock on this
+    /// enemy — target out of range, tower switched targets, enemy died, etc — and from
+    /// `reset()` so a recycled enemy never carries a stale glow into its next life. Safe to
+    /// call on any enemy; a no-op if a beam has never touched this one.
+    func hideBeamBurn() {
+        beamBurnNode?.isHidden = true
+    }
+
+    /// Kicks off a fast, irregular flicker on the burn cluster the instant it's first shown —
+    /// runs forever, independent of how often `showBeamBurn` is called. Each layer combines
+    /// two out-of-phase sine waves at different (integer-multiple) frequencies so the loop is
+    /// seamless yet reads as an erratic flame-lick rather than a smooth metronomic pulse —
+    /// distinct in cadence from the beam's own slow "neon" breathing on the tower end.
+    private func startBeamBurnFlicker(glow: SKShapeNode, core: SKShapeNode) {
+        let glowBaseAlpha = glow.alpha
+        let glowBaseScale = glow.xScale
+        let period: TimeInterval = 0.6
+
+        let glowFlicker = SKAction.customAction(withDuration: period) { node, elapsed in
+            guard let shape = node as? SKShapeNode else { return }
+            let phase = (elapsed / CGFloat(period)) * (2 * .pi)
+            let wobble = sin(phase * 3) * 0.6 + sin(phase * 7 + 1.3) * 0.4
+            shape.alpha = glowBaseAlpha + wobble * 0.18
+            shape.setScale(glowBaseScale + wobble * 0.14)
+        }
+        glow.run(.repeatForever(glowFlicker), withKey: beamBurnActionKey)
+
+        let coreBaseAlpha = core.alpha
+        let coreBaseScale = core.xScale
+
+        let coreFlicker = SKAction.customAction(withDuration: period) { node, elapsed in
+            guard let shape = node as? SKShapeNode else { return }
+            let phase = (elapsed / CGFloat(period)) * (2 * .pi)
+            let wobble = sin(phase * 5 + 0.6) * 0.5 + sin(phase * 11 + 2.4) * 0.5
+            shape.alpha = coreBaseAlpha + wobble * 0.16
+            shape.setScale(coreBaseScale + wobble * 0.20)
+        }
+        core.run(.repeatForever(coreFlicker), withKey: beamBurnActionKey)
     }
 
     func startMoving(along path: GamePath, completion: @escaping @MainActor () -> Void) {
@@ -166,11 +279,16 @@ final class PlaceholderEnemy: GameEntity {
         node.run(SKAction.sequence(movementActions + [finish]), withKey: movementActionKey)
     }
 
+    /// Renders directly from `fractionalHealth` (not the Int `hitPoints` mirror) so every
+    /// damage source — discrete hits and continuous beam ticks alike — draws the bar at its
+    /// exact current health fraction. For Int-only damage this is numerically identical to
+    /// the old `hitPoints`-based fraction; for fractional beam damage it's what makes the
+    /// drain look genuinely continuous rather than stepped.
     private func updateHealthBar() {
         healthBarNode.isHidden = false
 
-        let fraction = CGFloat(max(0, hitPoints)) / CGFloat(maxHitPoints)
-        healthBarForeground.xScale = max(0, fraction)
+        let fraction = CGFloat(max(0, fractionalHealth) / Double(maxHitPoints))
+        healthBarForeground.xScale = fraction
         healthBarForeground.position = CGPoint(x: -(healthBarWidth / 2) * (1 - fraction), y: 0)
         healthBarForeground.fillColor = healthBarColor(for: fraction)
     }

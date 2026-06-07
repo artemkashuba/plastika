@@ -168,15 +168,20 @@ final class BuildSpotManager {
         return root
     }
 
+    /// Spaces every `TowerType` evenly along a horizontal row, centred on the build spot.
+    /// Index-based and centred around the row's midpoint, so the layout scales cleanly to
+    /// any number of tower types — for the original 3 (red/green/blue) this reproduces the
+    /// exact -spacing/0/+spacing offsets the menu always had; the 4th (pink) slots in
+    /// symmetrically alongside them at ±spacing/2 and ±3·spacing/2.
     private func menuOffset(for towerType: TowerType) -> CGPoint {
-        switch towerType {
-        case .red:
-            CGPoint(x: -menuOptionSpacing, y: 0)
-        case .green:
-            .zero
-        case .blue:
-            CGPoint(x: menuOptionSpacing, y: 0)
+        let allTypes = TowerType.allCases
+
+        guard let index = allTypes.firstIndex(of: towerType) else {
+            return .zero
         }
+
+        let centeredIndex = CGFloat(index) - CGFloat(allTypes.count - 1) / 2
+        return CGPoint(x: centeredIndex * menuOptionSpacing, y: 0)
     }
 
     private func makeBuildSpotNode(at position: CGPoint) -> SKNode {

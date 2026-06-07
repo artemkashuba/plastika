@@ -149,6 +149,43 @@ enum TowerGunFactory {
             barrelNode.addChild(muzzle)
 
             tipOffset = CGPoint(x: 0, y: 33)
+
+        // ── PINK: laser lance ────────────────────────────────────────────────
+        case .pink:
+            let turret = SKShapeNode(circleOfRadius: 9)
+            turret.fillColor = type.turretColor
+            turret.strokeColor = SKColor(white: 1.0, alpha: 0.40)
+            turret.lineWidth = 2
+            turret.zPosition = 1
+            aimNode.addChild(turret)
+
+            // Slim emitter housing — the "barrel" a beam projects from
+            let housing = SKShapeNode(rectOf: CGSize(width: 9, height: 22), cornerRadius: 4)
+            housing.fillColor = type.barrelColor
+            housing.strokeColor = SKColor(white: 1.0, alpha: 0.24)
+            housing.lineWidth = 1
+            housing.position = CGPoint(x: 0, y: 14)
+            housing.zPosition = 2
+            barrelNode.addChild(housing)
+
+            // Lens glow — soft tinted halo behind the bright emitter core
+            let lensGlow = SKShapeNode(circleOfRadius: 6.5)
+            lensGlow.fillColor = type.projectileColor.withAlphaComponent(0.35)
+            lensGlow.strokeColor = .clear
+            lensGlow.position = CGPoint(x: 0, y: 24)
+            lensGlow.zPosition = 2
+            barrelNode.addChild(lensGlow)
+
+            // Lens — bright white-hot core where the beam originates
+            let lens = SKShapeNode(circleOfRadius: 4)
+            lens.fillColor = SKColor(white: 1.0, alpha: 0.92)
+            lens.strokeColor = type.projectileColor.withAlphaComponent(0.85)
+            lens.lineWidth = 2
+            lens.position = CGPoint(x: 0, y: 24)
+            lens.zPosition = 3
+            barrelNode.addChild(lens)
+
+            tipOffset = CGPoint(x: 0, y: 25)
         }
 
         return Assembly(aimNode: aimNode, tipOffset: tipOffset, barrelNode: barrelNode)
