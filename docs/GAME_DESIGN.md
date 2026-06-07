@@ -16,6 +16,8 @@ Early prototype build spots are toy bases around the enemy path. Players can tap
 
 Selecting a menu option places one prototype tower on that build spot. Occupied build spots cannot place a second tower.
 
+Three of the four prototype tower types (Red, Green, Blue) sit on an identical round toy-turret base — a glossy circular plate with a specular highlight, like plastic toys from the same product line. The Laser Lance breaks from that mould: its base is a flat-topped hexagonal "energy platform" ringed with three small glowing power vents that idle-pulse out of sync with one another — a permanent, always-on "tell" that reads as a fundamentally different kind of machine even at rest, before it ever fires a shot.
+
 Placed prototype towers acquire the nearest enemy within an internal placeholder range, lock onto that enemy while it remains alive, in range, and tracked. Most towers periodically fire simple magenta placeholder projectiles using their tower type behavior — the placeholder turret/barrel rotates toward the locked target so the tower visibly aims before and while shooting. At the instant each shot is fired, the barrel kicks back along its firing axis and a brief muzzle flash flares at the barrel tip, color-matched to that tower's projectile — heavier guns (Heavy Cannon > Missile Pod > Autocannon) recoil and flash more dramatically, giving each tower type a distinct shooting "feel". A small radial ring also appears around the tower's base at that moment, sweeping from empty to full over its reload duration and fading out the instant it's ready to fire again — a quick, glanceable readout of when each tower will shoot next.
 
 One tower type — the Laser Lance — fights differently: instead of discrete shots, it projects a persistent glowing beam at its locked target for as long as the lock holds, dealing continuous damage every frame rather than firing in bursts. It never recoils, flashes, or shows a reload ring, since it has no discrete "shot" to animate around — its tell is the beam itself, always-on while a target is in range.
@@ -44,7 +46,7 @@ Current prototype tower types:
    - ≈ 2.9 DPS
 
 4. Pink Tower — "Laser Lance" (75 coins)
-   - Pink/magenta visual identity — hot-magenta beam, slim emitter housing with a glowing lens instead of a barrel
+   - Stands apart from the rest of the roster at a glance: instead of the round toy-turret base every other tower shares, it sits on an angular hexagonal "energy platform" ringed with three small power vents that idly pulse a living neon-red glow — always breathing, even before it ever locks a target — while its slim emitter housing and glowing lens keep the pink/magenta chassis identity, and its signature beam glows a vivid neon red rather than matching its housing, reading as a hot, electric "laser red"
    - Locks onto a single target and projects a continuous beam at it for as long as the lock holds, draining its HP smoothly every frame and leaving a small flickering plasma-burn mark where the beam makes contact (no discrete shots, no cooldown, no recoil/flash/reload ring)
    - ≈ 4.5 DPS — the highest single-target DPS in the roster, reflecting its higher cost and guaranteed-hit reliability
 
@@ -52,9 +54,9 @@ Prototype enemies have 5 HP. A health bar appears above each enemy after the fir
 
 Players can tap a placed prototype tower to select it. The selected tower scales slightly, shows a thin white selection ring, and displays a subtle white circular range indicator centered on the tower's actual attack range. Tapping another placed tower transfers selection; tapping empty battlefield space clears selection and hides any open build menu.
 
-All projectiles are color-coded by tower type (Red = orange, Green = lime, Blue = cyan) and produce a small expanding flash on impact. The Laser Lance's signature magenta tint instead colors its continuous beam.
+All projectiles are color-coded by tower type (Red = orange, Green = lime, Blue = cyan) and produce a small expanding flash on impact. The Laser Lance's signature neon-red tint instead colors its continuous beam — and the flickering plasma-burn mark it leaves where that beam makes contact.
 
-Placed prototype towers do not support upgrades, selling, economy, splash damage, status effects, final art, or multiple enemy types yet.
+Placed prototype towers support selling, the economy loop, and now upgrades (see below); they still lack splash damage, status effects, final art, and multiple enemy types.
 
 Future themed tower concepts:
 
@@ -68,6 +70,8 @@ Future themed tower concepts:
 
 3. Glue Tower
    - Slows enemies
+
+Design guidance for growing this roster: keep it tight, and make sure every entry earns its place. The current four already model four genuinely different ways to deal damage — direct-fire, homing, predictive-aim, and continuous-beam — rather than DPS-variant reskins of one mechanic; new types (Rifle/Cannon/Glue and beyond) should clear the same bar by owning a clear "best at X" niche (burst vs. sustained, single-target vs. crowd, damage vs. utility/control). A wider roster only adds strategic depth if each tower remains worth building in some real situation — padding the list with towers that are strictly outclassed by others does the opposite.
 
 ### Enemies
 
@@ -84,11 +88,24 @@ Early prototype enemies move along the hardcoded path and use basic 1 HP combat 
    - Slow
    - High HP
 
+Design guidance for this roster: give each type meaningfully different stats (and, later, resistances/status interactions) so they create real tactical variety — but keep every counter "soft". No enemy type should be effectively unkillable by anything except one specific tower (a "lock-and-key" pattern that turns combat into a memorization/savings check rather than a tactical decision); a player should always have at least one sub-optimal-but-viable way to deal with anything on the board. Flying or path-ignoring enemy types should be avoided entirely — they tend to break the core "defend the path" loop rather than enrich it.
+
 ### Economy
 
 - Coins earned from kills
 - Towers purchased with coins
-- Towers can be upgraded
+- Towers can be upgraded: tap a selected tower to reveal a second cyan "▲ cost"
+  badge above it (mirroring the gold sell badge below). Each tap spends coins and
+  advances the tower one tier, up to 2 tiers (3 total stages: base, +1, +2).
+  Every tier adds a flat +50% of the tower's *base* damage/DPS — additive, not
+  compounding — while range, attack speed, and everything else about the tower
+  stays exactly as placed. Upgrade cost ramps off the tower's own placement price
+  (tier 1 ≈ 60% of cost, tier 2 = 100% of cost), so fully committing to one tower
+  is a deliberate, escalating investment. A small glowing "tier pip" appears under
+  the tower's base plate per upgrade purchased — a permanent, at-a-glance readout
+  of how invested that tower is. Selling an upgraded tower refunds half of
+  everything spent on it (placement plus every upgrade), not just half of the
+  original placement cost
 
 ### Victory
 

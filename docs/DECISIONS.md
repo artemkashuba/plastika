@@ -806,6 +806,28 @@ Reason:
   than a second metronomic pulse competing with the first
 
 Decision:
+Recolor the Laser Lance's beam (and, by extension, its plasma-burn impact mark —
+both are tinted from `TowerType.projectileColor`) from hot magenta to a vivid
+neon red, while leaving its chassis/housing/lens pink-magenta as before.
+
+Reason:
+
+- Direct user request: "make this laser red, and neon style." When offered the
+  choice between recoloring the whole tower (chassis + beam, for visual cohesion)
+  or just the beam, the user explicitly chose "just the beam"
+- `projectileColor` already does double duty as each tower's "signature effect
+  color" distinct from its chassis identity — the Red Tower's chassis is brick-red
+  but its actual projectile/effect color is orange, so a beam color that diverges
+  from its housing's hue has direct precedent in this roster, not a one-off oddity
+- Picked a saturated, blue-leaning crimson (`1.0, 0.10, 0.22`) rather than a warm
+  red — it stays clearly distinct from the Red Tower's orange-red effect color, the
+  towers' brick-red chassis tones, and the enemy's red-orange hull, so "this is a
+  different, electric kind of red" reads instantly rather than blending in
+- No code changes were needed beyond the single `projectileColor` case: the beam
+  (`showBeam`), its neon pulse (`startBeamPulse`), and its plasma-burn mark
+  (`showBeamBurn`) all derive their tint from that one property already
+
+Decision:
 Generalize `BuildSpotManager.menuOffset(for:)` from a hardcoded 3-case switch to an
 index-based, centered formula over `TowerType.allCases`.
 
@@ -815,3 +837,236 @@ Reason:
 - `CGFloat(index) - CGFloat(allCases.count - 1) / 2) * spacing` reproduces the exact
   existing Red/Green/Blue offsets for 3 entries while automatically and symmetrically
   spacing any future Nth tower type — no further hand-editing required when the roster grows
+
+Decision:
+Give the Pink Laser Lance a unique chassis silhouette — a flat-topped hexagonal
+"energy platform" ringed with three idle-pulsing power vents (tinted in its own
+neon-red `projectileColor`) — replacing, for `.pink` only, the round toy-turret
+base + specular highlight every other tower type shares. The vent glow starts
+breathing once, at placement time, and runs forever regardless of combat state.
+
+Reason:
+
+- Direct user request: "let's implement unique design for this tower." Offered a
+  choice between a few directions, the user explicitly picked "Angular chassis +
+  idle energy glow" — a new silhouette *and* an always-on living-energy "tell"
+- Investigation showed all four tower types previously rendered from one hardcoded
+  base-plate skeleton in `PlaceholderTower.init` (shadow ellipse, circular plate,
+  specular highlight, selection ring) — only the gun assembly inside `aimNode`
+  differed per type. Branching `init` on `type` was the smallest change that lets
+  Pink diverge structurally without touching the other three towers at all
+- Kept the shadow ellipse, plate stroke color/width, and circular selection ring
+  shared across all four types — soft blurred shadows and a glossy cool-white rim
+  read as "toy plastic" regardless of base shape, and the selection ring is a UI
+  affordance (not a chassis design element), so changing it would only break
+  cross-tower consistency without adding to Pink's identity
+- Chose a hexagon over other angular shapes because a flat-topped silhouette
+  (`polygonPath(sides: 6, radius: 17, rotation: 0)`) reads as a "landing pad" /
+  tech platform from the top-down camera angle this game uses — instantly distinct
+  from a circle without looking out of place next to the rest of the roster
+- Tinted the vent glows with `type.projectileColor` (the same neon-red that colors
+  the beam and its plasma-burn mark) rather than introducing a new accent color —
+  ties the chassis's idle "tell" into the same living-energy identity established
+  by the beam pulse and burn flicker, instead of adding an unrelated visual motif
+- Made the idle pulse start once, in `init` (immediately, not lazily on first fire
+  like `startBeamPulse`) — the Laser Lance's "always charged and ready" personality
+  should be visible the moment it's placed, before it ever locks a target, setting
+  it apart as a fundamentally different *kind* of machine even at rest
+- Reused the established `customAction` + sine-wave idle-animation pattern (see
+  `startBeamPulse`/`startBeamBurnFlicker`) and gave each of the three vents a
+  different phase offset spread evenly across the loop — sine is 2π-periodic
+  regardless of additive offset, so every vent still loops seamlessly while never
+  breathing in lockstep with the others, reading as a cycling energy core
+- Added `polygonPath(sides:radius:rotation:)` as a `private static` helper next to
+  `radialArcPath`, mirroring its angle-math approach to building shape paths via
+  trigonometry — keeps the file's established style for custom `CGPath` geometry
+
+Decision:
+Adopt a small set of external tower-defense design principles as standing guidance
+for upcoming roster work, and record them directly in the relevant `GAME_DESIGN.md`
+sections plus new `TODO.md` entries (Phase 2 — Vertical Slice):
+- Keep the tower roster tight; every type must own a clear "best at X" niche
+- Design enemy counters "soft" — no lock-and-key enemies, no flying/path-ignoring types
+- Add "total time control" (act while paused, speed-up toggle) and "total information"
+  (tap-to-inspect stat readouts, wave previews) as concrete Phase 2 features
+
+Reason:
+
+- User asked me to read a r/gamedesign thread on TD design principles and fold
+  anything useful into our plans. Reddit itself is not directly fetchable from this
+  environment, so I cross-referenced the thread's likely subject — Lars Doucet's
+  widely-cited "Optimizing Tower Defense for FOCUS and THINKING" (Defender's Quest
+  postmortem) — plus a general survey of TD design-pillar writeups, and picked the
+  handful of principles that map cleanly onto where this project is headed next
+- "No lock-and-key enemies" / "no air units" land squarely on the still-unbuilt
+  Scout/Soldier/Tank roster named in `GAME_DESIGN.md`'s Enemies section — better to
+  bake the guidance in now, before any enemy-specific stats or resistances exist,
+  than to retrofit balance later
+- "Pointless variety" validates a pattern this project already follows by accident:
+  the existing four towers are direct/homing/predictive/beam — four genuinely
+  different damage mechanics, not reskinned DPS variants — so the guidance is framed
+  as "keep doing this" for the Rifle/Cannon/Glue concepts already on the future list
+- "Total time control" and "total information" are concrete, well-precedented mobile-TD
+  UX features (pause-and-build, speed-up, tap-to-inspect) that fit naturally alongside
+  the upgrade/haptics/menu work already queued in Phase 2 — added as their own TODO
+  items rather than folded into "Improve animations"/"Polish" since they're systems
+  work, not a visual pass
+- Declined to adopt principles that conflict with decisions already made for this
+  project: e.g. "No 3D" / "No scrolling" / fixed-vs-mazing are non-issues here (2D
+  SpriteKit, fixed camera, fixed build spots around a hardcoded path were chosen long
+  ago for exactly the reasons the source articles give), so they weren't re-litigated
+
+## 2026-06-08 (Laser Sound)
+
+Decision:
+Give the Pink Laser Lance a one-shot "ignition" sound — fired exactly once, at the
+instant its beam locks onto a target ("the laser starts heating") — built from a real
+recorded sample the user supplied, rather than a synthesized continuous loop.
+
+Reason:
+
+- The first design explored here was a *continuous* "energy hum" re-triggered every
+  loop-length while the beam stayed locked on — a from-scratch synthesized,
+  integer-Hz-periodic clip, fully implemented and numerically verified as seamless. The
+  user then supplied a real laser-gun recording with a fundamentally simpler brief —
+  "use the first second of this clip; it should play every time the laser starts
+  heating" — and, when asked how the two should combine, explicitly chose to replace the
+  hum outright rather than layer them. A literal reading of "starts heating" is a
+  discrete *ignition* transient, not a sustained drone, so the one-shot brief is also the
+  textually correct interpretation — the hum mechanism was removed wholesale (rather
+  than kept alongside as dead code) once the simpler, user-directed design was clear
+- The one-shot reading is also the architecturally simplest: it slots directly into the
+  project's existing, 100%-fire-and-forget sound model
+  (`SKAction.playSoundFileNamed(_:waitForCompletion: false)`, gated on `isSoundEnabled`)
+  with **zero** new looping/scheduling machinery — a direct sibling of the regular
+  shot-sound trigger already in `updateCombat`, just hung on a state transition instead
+  of a cooldown. This is a strict simplification versus the removed hum design, which
+  needed its own re-trigger schedule (`beamHumNextTriggerTimesByBuildSpotID`) to fake
+  sustained playback on top of an API with no native looping
+- The only genuinely new piece is detecting *when* to fire it — the precise "beam just
+  switched on" transition. `TowerManager` now tracks a per-build-spot
+  `beamActiveByBuildSpotID: [Int: Bool]` ("was the beam projecting last frame?"), and
+  `triggerLaserIgnition` fires the clip exactly when that flag isn't already `true` while
+  the beam is active *this* frame, then sets it `true` so the rest of the lock stays
+  silent. The flag resets to `false` — not left stale — the instant the beam goes quiet:
+  lock lost (`updateCombat`'s no-target branch), target killed (`updateBeamCombat`'s
+  `killed` branch), tower sold (`sellSelectedTower`), or scene reset
+  (`resetForNewScene`) — the same four sites the removed hum schedule used to clear, so
+  the next lock-on always ignites fresh rather than staying mute on a stale flag
+- Chose to honor the user's real recorded sample rather than synthesizing a replacement:
+  a punchy, textured "power-up" transient is exactly the kind of sound where a real
+  recording's natural harmonic complexity reads more convincingly than procedural
+  synthesis, and the user explicitly supplied one for this purpose. That makes
+  `tower_beam_pink_start.wav` the project's first sound built from a real sample —
+  every other one (including the removed hum) is procedurally synthesized — without
+  breaking the fire-and-forget playback model those synthesized sounds also rely on
+- Trimmed and converted with `ffmpeg -t 1.0 -ar 22050 -ac 1 -acodec pcm_s16le` to take
+  precisely the user-specified "first second" and match the project's established
+  22050Hz mono 16-bit WAV format byte-for-byte (verified: exactly 22050 frames / 1.0000s)
+- Named it `tower_beam_pink_start.wav`, extending the established
+  `tower_<type>_<effect>` convention with a descriptor ("start") that names the *moment*
+  it plays — ignition/start-up — distinguishing it from both the discrete
+  `tower_shoot_*` per-shot family and the sustained-loop `_hum` concept it replaces
+- `TowerType.laserStartSound: String?` replaces the removed `laserHumSoundFile: String?`
+  / `laserHumLoopDuration: TimeInterval` pair: a one-shot needs only a filename — there's
+  no loop length to track once nothing re-triggers, so the second property simply
+  disappears rather than becoming dead weight
+- Added the new filename to `GameScene.preloadSounds()` as a like-for-like swap (still 9
+  entries) so the audio engine warms it up at scene-load time, avoiding a
+  first-ignition stutter the same way the existing preload avoids a first-tap one
+
+## 2026-06-08 (Tower Upgrades)
+
+Decision: Every placed tower can now be upgraded twice after placement (3 total
+"stages": base, +1, +2), via a second cyan "▲ cost" badge that appears above a
+selected tower (mirroring the existing gold sell badge below it). Each tier adds
+a flat +50% of the tower's *base* damage/DPS — additive, not compounding — and
+nothing else about the tower changes: `range`, `attackCooldown`, projectile
+behavior, and visual identity all stay exactly as placed. Cost ramps per tier off
+the tower's own placement price (tier 1 ≈ 60% of cost, tier 2 = 100% of cost), and
+selling now refunds half of total investment (placement + every upgrade bought),
+not just half of placement cost.
+
+Reason:
+
+- **Scope confirmed up front, not improvised mid-build**: the two open questions
+  ("what should an upgrade improve?" and "how many tiers?") were resolved before
+  any code was written — damage/DPS only, 2 upgrades for 3 stages. Keeping the
+  scaled dimension singular (no creeping into range/cooldown/multi-stat curves)
+  keeps the curve trivially easy to communicate to the player at a glance ("this
+  tower hits harder now") and trivially easy to balance later — one knob, not five
+- **+50% per tier, additive not compounding**: chosen over a compounding curve
+  (1.0× → 1.5× → 2.25×) specifically because additive steps are *equal-sized* —
+  tier 2 feels exactly as impactful as tier 1, rather than the curve runaway-ing
+  or flattening depending on which direction you compound. Equal steps are easier
+  to playtest-and-tune later: nudging the constant moves both tiers proportionally
+  with no risk of one tier becoming pointless relative to the other
+- **Cost curve (60% then 100% of placement price)**: deliberately escalating, so
+  fully committing to one tower (130 coins all-in for Red/Green/Blue — 50 + 30 +
+  50 — and 195 for Pink — 75 + 45 + 75) reads as a real strategic choice — "do I
+  max this one tower, or spread coins across the board?" — rather than a trivial
+  top-up
+  once kill income starts piling up. Anchoring both tiers to the tower's own
+  `cost` (rather than flat constants) keeps the curve self-consistent across the
+  whole roster without per-type tuning, in keeping with AGENTS.md's
+  simplest-workable-curve-first philosophy
+- **The ratchet fix (a real bug caught during design, not at runtime)**:
+  independently rounding `base × multiplier` per tier breaks down for
+  low-base-damage towers — Red's base damage of 1 makes both `1 × 1.5 = 1.5` and
+  `1 × 2.0 = 2.0` round to 2, so naively its *second* upgrade would cost full
+  price and change literally nothing (the worst possible player experience: pay
+  coins, get nothing, with no error or warning). Fixed by walking the curve
+  tier-by-tier and enforcing `value = max(previousValue + 1, scaled)` — every
+  tier is guaranteed to strictly improve on the last, for every tower in the
+  roster, while towers whose curve already lands cleanly (Green: 2→3→4, Blue:
+  4→6→8) are completely untouched by the ratchet (it never has to kick in).
+  Recording this here specifically because it's the kind of subtle
+  integer-rounding correctness issue a future contributor extending the curve
+  (e.g. adding a 5th tower with base damage 1 or 2) would otherwise silently
+  reintroduce
+- **`upgradeLevel` lives on `PlaceholderTower`, not in a `TowerManager`
+  dictionary**: `TowerManager`'s existing per-buildspot `[Int: X]` dictionaries
+  (cooldowns, target locks, beam-active state) are reserved for
+  combat-*scheduling* bookkeeping — transient state about "what's happening this
+  frame," not "what this tower fundamentally is." `upgradeLevel` is squarely the
+  latter: it's part of the tower's identity going forward, exactly like its
+  immutable `let type`. Placing it as `private(set) var upgradeLevel = 0`,
+  mutated only through a single `upgrade()` entry point, keeps that identity
+  consistent and trivially greppable, and avoids yet another buildspot-keyed
+  dictionary that has to be kept in sync on placement/sell/reset
+- **`TowerType.damageMultiplier`/`upgradeCost`/`sellRefund`/`totalInvestedCost`
+  as level-parameterized functions, not stored properties**: `TowerType` itself
+  carries no instance state (it's a `CaseIterable` enum of static identities), so
+  every upgrade-aware figure has to be a function of an explicit level. This
+  converts `sellRefund` from a flat `cost / 2` constant into
+  `sellRefund(atUpgradeLevel:)` built atop a new `totalInvestedCost(atUpgradeLevel:)`
+  — a clean signature change with zero architectural relocation, and it composes
+  naturally with `PlaceholderTower.currentDamage`/`currentDPS`, which apply the
+  curve per-instance using the tower's own `upgradeLevel` (mirroring exactly how
+  `TowerType.dps` already derives style-aware *base* figures from `damage` /
+  `attackCooldown` / `laserDamagePerSecond`)
+- **Dual-badge differentiation by position + color + icon, not by relabeling**:
+  rather than overload the existing sell badge or introduce a wholly new
+  interaction pattern, the upgrade badge reuses the *exact* established
+  tap-to-act pill shape and `nodes(at:)` name-matching convention
+  (`"UpgradeBadge"`, paralleling `"SellBadge"`), differentiated only by three
+  simultaneous, mutually-reinforcing signals: opposite vertical position (above
+  vs. below the tower), opposite-intent accent color (cyan "spend to improve" vs.
+  gold "cash out"), and a distinct icon (up-chevron vs. coin). Three signals
+  rather than one means the two pills read unambiguously even at a glance, with
+  no risk of mis-taps between "improve" and "liquidate" — about as costly a
+  mix-up as this UI could produce
+- **Tier-pip visual feedback, tinted per-type**: a small glowing pip appears
+  under the tower's base plate per upgrade purchased — permanent, at-a-glance
+  proof of investment that persists even when the tower isn't selected (unlike
+  the badges, which only show on selection). Built from the same
+  "glow-behind-bright-core" visual language as the energy-vent glows and muzzle
+  flashes, and tinted in the tower's own `turretColor` so it reads as part of
+  *that* tower's identity rather than a generic overlay
+- **Reused `tower_place.wav` for the upgrade sound**: rather than commission a
+  new asset for a single tap action, reasoned that both moments — placing a
+  tower and upgrading one — represent the same player feeling ("coins committed,
+  tower changed for the better"), and mirrored how Pink already reuses Blue's
+  `shootSound` for an unused slot. Keeps with AGENTS.md's avoid-unnecessary-work
+  simplicity principle; a dedicated "upgrade chime" can be revisited if
+  playtesting shows the reuse reads as flat or confusing

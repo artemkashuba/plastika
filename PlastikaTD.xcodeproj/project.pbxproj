@@ -41,6 +41,7 @@
 		1A0000522C12400100000001 /* enemy_breach.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000522C12400000000001 /* enemy_breach.wav */; };
 		1A0000532C12400100000001 /* tower_place.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000532C12400000000001 /* tower_place.wav */; };
 		1A0000542C12400100000001 /* tower_sell.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000542C12400000000001 /* tower_sell.wav */; };
+		1A0000552C12400100000001 /* tower_beam_pink_start.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000552C12400000000001 /* tower_beam_pink_start.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -90,6 +91,7 @@
 		1A0000522C12400000000001 /* enemy_breach.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = enemy_breach.wav; sourceTree = "<group>"; };
 		1A0000532C12400000000001 /* tower_place.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tower_place.wav; sourceTree = "<group>"; };
 		1A0000542C12400000000001 /* tower_sell.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tower_sell.wav; sourceTree = "<group>"; };
+		1A0000552C12400000000001 /* tower_beam_pink_start.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tower_beam_pink_start.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -228,6 +230,7 @@
 				1A0000522C12400000000001 /* enemy_breach.wav */,
 				1A0000532C12400000000001 /* tower_place.wav */,
 				1A0000542C12400000000001 /* tower_sell.wav */,
+				1A0000552C12400000000001 /* tower_beam_pink_start.wav */,
 			);
 			path = Sounds;
 			sourceTree = "<group>";
@@ -322,6 +325,7 @@
 				1A0000522C12400100000001 /* enemy_breach.wav in Resources */,
 				1A0000532C12400100000001 /* tower_place.wav in Resources */,
 				1A0000542C12400100000001 /* tower_sell.wav in Resources */,
+				1A0000552C12400100000001 /* tower_beam_pink_start.wav in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

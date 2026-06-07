@@ -144,8 +144,53 @@ enum TowerType: CaseIterable {
         }
     }
 
-    var sellRefund: Int {
-        cost / 2
+    /// Maximum number of times any tower can be upgraded — 2 tiers on top of its base
+    /// stats, for 3 total "stages" (base, +1, +2). Kept uniform across the whole roster
+    /// for this first pass: AGENTS.md favors the simplest workable curve over per-type
+    /// tuning until actual playtesting surfaces a balance problem worth solving.
+    static let maxUpgradeLevel = 2
+
+    /// Coin cost to upgrade from `currentLevel` to `currentLevel + 1`, or `nil` once
+    /// `currentLevel` is already at `maxUpgradeLevel`. Ramps per tier — the first upgrade
+    /// costs roughly 60% of the tower's placement price, the second costs as much as the
+    /// tower itself — so fully committing to one tower is a deliberate, escalating
+    /// investment rather than an afterthought once coins start piling up.
+    func upgradeCost(fromLevel currentLevel: Int) -> Int? {
+        switch currentLevel {
+        case 0:  Int((Double(cost) * 0.6).rounded())
+        case 1:  cost
+        default: nil
+        }
+    }
+
+    /// Damage/DPS multiplier applied at the given upgrade level. Each tier adds a flat
+    /// 50% of the tower's *base* output (additive, not compounding), so the jump from
+    /// tier 0 → 1 and tier 1 → 2 are equally sized — easy to read, easy to communicate
+    /// in UI ("+50% per tier"), and impossible to get surprised by via runaway scaling.
+    /// Per the confirmed design, upgrades scale damage/DPS only — `range`, `attackCooldown`,
+    /// and every other per-type stat stay fixed identity, untouched by upgrade level.
+    func damageMultiplier(atUpgradeLevel level: Int) -> Double {
+        1.0 + Double(level) * 0.5
+    }
+
+    /// Total coins sunk into this tower to reach the given upgrade level — its placement
+    /// cost plus every upgrade purchased along the way (tier 0→1, then 1→2, ...). The
+    /// basis for `sellRefund`, so selling an upgraded tower returns a fair share of the
+    /// *whole* investment rather than just its original sticker price.
+    func totalInvestedCost(atUpgradeLevel level: Int) -> Int {
+        var total = cost
+        for currentLevel in 0..<level {
+            total += upgradeCost(fromLevel: currentLevel) ?? 0
+        }
+        return total
+    }
+
+    /// Coin refund for selling this tower at the given upgrade level — half of everything
+    /// ever spent on it (placement *and* upgrades). Mirrors the original "half of cost"
+    /// refund philosophy, just extended to cover upgrade spend too, so investing in
+    /// upgrades never becomes a trap if the player changes their mind later.
+    func sellRefund(atUpgradeLevel level: Int) -> Int {
+        totalInvestedCost(atUpgradeLevel: level) / 2
     }
 
     var shootSound: String {
@@ -154,6 +199,21 @@ enum TowerType: CaseIterable {
         case .green: "tower_shoot_green.wav"
         case .blue:  "tower_shoot_blue.wav"
         case .pink:  "tower_shoot_blue.wav" // unused — beam towers have no discrete shot sound
+        }
+    }
+
+    /// Filename of this beam tower's one-shot "ignition" cue — fired exactly once at the
+    /// instant its beam locks onto a target ("the laser starts heating"), then left alone
+    /// for as long as that lock holds (see `TowerManager.triggerLaserIgnition`). Unlike
+    /// every other sound in the roster (all procedurally synthesized), this clip is the
+    /// first second of a real recorded laser-gun sample, trimmed and converted to the
+    /// project's standard 22050Hz mono 16-bit format — chosen because a punchy, textured
+    /// "power-up" transient reads more convincingly from a real source than a synthesized
+    /// one. `nil` for projectile towers — they have no beam to ignite.
+    var laserStartSound: String? {
+        switch self {
+        case .pink: "tower_beam_pink_start.wav"
+        default:    nil
         }
     }
 
@@ -205,8 +265,10 @@ enum TowerType: CaseIterable {
     }
 
     /// Signature effect color — tints muzzle flashes and projectiles for projectile towers,
-    /// and doubles as the laser beam's color for `.pink` (a hot magenta beam to match its
-    /// pink identity while staying clearly distinct from the other towers' palettes).
+    /// and doubles as the laser beam's color for `.pink` (a glowing neon-red beam — a
+    /// deliberate departure from its pink/magenta chassis, chosen so the laser itself reads
+    /// as a hot, electric "laser red" and stays clearly distinct from the warmer brick-reds
+    /// and oranges used elsewhere in the roster and on the enemy chassis).
     var projectileColor: SKColor {
         switch self {
         case .red:
@@ -216,7 +278,7 @@ enum TowerType: CaseIterable {
         case .blue:
             SKColor(red: 0.10, green: 0.82, blue: 1.0, alpha: 1.0)
         case .pink:
-            SKColor(red: 1.0, green: 0.20, blue: 0.70, alpha: 1.0)
+            SKColor(red: 1.0, green: 0.10, blue: 0.22, alpha: 1.0)
         }
     }
 

@@ -5,16 +5,30 @@ final class PlaceholderTower: GameEntity {
     let node: SKNode
     let type: TowerType
 
+    /// Current upgrade tier — 0 (base) up to `TowerType.maxUpgradeLevel`. Lives here
+    /// (alongside `type`) rather than in one of `TowerManager`'s per-buildspot dictionaries,
+    /// because it's part of "what this tower currently is" — identity/state — not
+    /// combat-scheduling bookkeeping like cooldowns or target locks. Mutated only via
+    /// `upgrade()`, which `TowerManager.upgradeSelectedTower` calls after gating on
+    /// affordability and `TowerType.maxUpgradeLevel`.
+    private(set) var upgradeLevel = 0
+
     private let selectionActionKey = "placeholderTower.selection"
     private let recoilActionKey = "placeholderTower.recoil"
     private let reloadIndicatorActionKey = "placeholderTower.reloadIndicator"
     private let beamPulseActionKey = "placeholderTower.beamPulse"
+    private let energyVentPulseActionKey = "placeholderTower.energyVentPulse"
     private let aimNode: SKNode
     private let selectionRing: SKShapeNode
     /// Forward weapon geometry (no turret base) — kicks back along local +y when firing.
     private let barrelNode: SKNode
     /// Small radial ring shown only while the tower is reloading; nil once it fades out.
     private var reloadIndicatorNode: SKNode?
+    /// Cluster of small glowing "tier pips" sitting just under the base plate — one per
+    /// upgrade level purchased. nil at base tier (no pips to show); rebuilt from scratch
+    /// by `updateUpgradeIndicator` every time `upgradeLevel` changes, since the count
+    /// (not just the visibility) needs to change.
+    private var upgradeIndicatorNode: SKNode?
     /// Persistent laser-beam visual (glow + bright core) for beam-style towers. Lives inside
     /// `aimNode` so it automatically points at the target alongside the turret — `showBeam`
     /// only needs to redraw its length each frame. Created lazily on first use; nil for
@@ -36,6 +50,53 @@ final class PlaceholderTower: GameEntity {
         )
     }
 
+    /// This tower's current per-shot damage, scaled by its upgrade level. Mirrors
+    /// `TowerType.damage` (0, and unused, for beam towers — see `currentDPS`).
+    ///
+    /// Walks the multiplier curve tier-by-tier and *ratchets* each step up by at least
+    /// +1 over the previous tier's value, rather than independently rounding
+    /// `base * multiplier` per level. Plain independent rounding has a real failure mode
+    /// for the roster's lowest-damage gun (Red, base damage 1): `1 × 1.5 = 1.5` and
+    /// `1 × 2.0 = 2.0` both round to 2, so its second upgrade would be a complete no-op —
+    /// the player pays coins for a strictly-worse-than-nothing outcome (no benefit, but a
+    /// real cost). The ratchet guarantees every purchased tier visibly does *something*
+    /// for every tower, while leaving towers whose curve already lands on clean integers
+    /// (Green, Blue) completely untouched — `max` only ever engages where rounding alone
+    /// would otherwise stall.
+    var currentDamage: Int {
+        guard upgradeLevel > 0 else {
+            return type.damage
+        }
+
+        var value = type.damage
+        for level in 1...upgradeLevel {
+            let scaled = Int((Double(type.damage) * type.damageMultiplier(atUpgradeLevel: level)).rounded())
+            value = max(value + 1, scaled)
+        }
+        return value
+    }
+
+    /// This tower's current damage-per-second, scaled by its upgrade level — derived from
+    /// `currentDamage`/cooldown for projectile towers, and from `laserDamagePerSecond`
+    /// directly for beam towers, exactly mirroring how `TowerType.dps` derives the base
+    /// figure (see that property's doc comment for why beam towers need their own branch).
+    var currentDPS: Double {
+        switch type.attackStyle {
+        case .projectile: Double(currentDamage) / type.attackCooldown
+        case .beam:       type.laserDamagePerSecond * type.damageMultiplier(atUpgradeLevel: upgradeLevel)
+        }
+    }
+
+    /// Bumps this tower's upgrade tier by one and refreshes its tier-pip visual. The
+    /// caller (`TowerManager.upgradeSelectedTower`) is responsible for checking
+    /// `TowerType.maxUpgradeLevel` and affordability *before* calling this — it trusts
+    /// the caller and just applies the change, mirroring how `reset()` trusts its caller
+    /// to have already cleared selection state.
+    func upgrade() {
+        upgradeLevel += 1
+        updateUpgradeIndicator()
+    }
+
     init(type: TowerType) {
         let root = SKNode()
         root.name = "PlaceholderTower"
@@ -49,20 +110,32 @@ final class PlaceholderTower: GameEntity {
         shadow.zPosition = -1
         root.addChild(shadow)
 
-        // Base plate
-        let base = SKShapeNode(circleOfRadius: 17)
-        base.fillColor = type.baseColor
-        base.strokeColor = SKColor(red: 0.76, green: 0.92, blue: 1.0, alpha: 1.0)
-        base.lineWidth = 3
-        root.addChild(base)
+        // Base plate — every tower shares the same round toy-turret plate + glossy specular
+        // highlight here, *except* Pink: the Laser Lance gets a unique angular "energy
+        // platform" silhouette (flat-topped hexagon ringed with idle-pulsing power vents)
+        // in their place, so it reads as a fundamentally different *kind* of machine at a
+        // glance — not just a different paint job on the same chassis.
+        var energyVentGlows: [SKShapeNode] = []
 
-        // Specular highlight
-        let highlight = SKShapeNode(circleOfRadius: 5)
-        highlight.fillColor = SKColor(white: 1.0, alpha: 0.52)
-        highlight.strokeColor = .clear
-        highlight.position = CGPoint(x: -8, y: 9)
-        highlight.zPosition = 1
-        root.addChild(highlight)
+        if type == .pink {
+            let (platform, ventGlows) = Self.makeEnergyPlatform(type: type)
+            root.addChild(platform)
+            energyVentGlows = ventGlows
+        } else {
+            let base = SKShapeNode(circleOfRadius: 17)
+            base.fillColor = type.baseColor
+            base.strokeColor = SKColor(red: 0.76, green: 0.92, blue: 1.0, alpha: 1.0)
+            base.lineWidth = 3
+            root.addChild(base)
+
+            // Specular highlight
+            let highlight = SKShapeNode(circleOfRadius: 5)
+            highlight.fillColor = SKColor(white: 1.0, alpha: 0.52)
+            highlight.strokeColor = .clear
+            highlight.position = CGPoint(x: -8, y: 9)
+            highlight.zPosition = 1
+            root.addChild(highlight)
+        }
 
         let assembly = TowerGunFactory.makeAssembly(for: type)
         root.addChild(assembly.aimNode)
@@ -82,6 +155,13 @@ final class PlaceholderTower: GameEntity {
         self.barrelTipOffset = tipOffset
         self.type = type
         node = root
+
+        // Pink's energy-vent glow starts breathing the instant the tower exists — unlike
+        // the beam pulse (which only kicks off on first fire), this chassis "tell" should
+        // be visible from the moment the tower is placed, before it ever locks a target.
+        if energyVentGlows.isEmpty == false {
+            startEnergyVentPulse(glows: energyVentGlows)
+        }
     }
 
     func reset() {
@@ -226,6 +306,88 @@ final class PlaceholderTower: GameEntity {
         )
     }
 
+    // MARK: - Energy platform (Pink chassis)
+
+    /// Builds Pink's unique "energy platform" base — a flat-topped hexagonal plate (standing
+    /// in for the round plate + specular highlight every other tower shares) ringed with
+    /// three small glowing power vents, evenly spaced and tinted in the laser's own
+    /// signature color so the chassis itself feels wired into the same energy identity as
+    /// its beam and burn mark. Returns the assembled platform plus the bare vent-glow shapes
+    /// so `init` can hand them to `startEnergyVentPulse` once `self` is fully set up.
+    private static func makeEnergyPlatform(type: TowerType) -> (platform: SKNode, ventGlows: [SKShapeNode]) {
+        let platform = SKNode()
+
+        let plate = SKShapeNode(path: polygonPath(sides: 6, radius: 17, rotation: 0))
+        plate.fillColor = type.baseColor
+        plate.strokeColor = SKColor(red: 0.76, green: 0.92, blue: 1.0, alpha: 1.0)
+        plate.lineWidth = 3
+        platform.addChild(plate)
+
+        var ventGlows: [SKShapeNode] = []
+        let ventCount = 3
+
+        for index in 0..<ventCount {
+            let angle = (CGFloat.pi / 2) + (CGFloat(index) / CGFloat(ventCount)) * (2 * .pi)
+            let position = CGPoint(x: cos(angle) * 12.5, y: sin(angle) * 12.5)
+
+            // Dark socket — gives the glow somewhere to "sit", like a recessed power port.
+            let socket = SKShapeNode(circleOfRadius: 3.2)
+            socket.fillColor = SKColor(white: 0.10, alpha: 0.85)
+            socket.strokeColor = .clear
+            socket.position = position
+            socket.zPosition = 1
+            platform.addChild(socket)
+
+            // Glowing core — tinted with the laser's own signature color (the new neon-red),
+            // tying the chassis's idle "tell" to the same living-energy identity as the beam
+            // and the plasma-burn mark it leaves on its targets.
+            let glow = SKShapeNode(circleOfRadius: 2.0)
+            glow.fillColor = type.projectileColor.withAlphaComponent(0.80)
+            glow.strokeColor = .clear
+            glow.position = position
+            glow.zPosition = 2
+            platform.addChild(glow)
+
+            ventGlows.append(glow)
+        }
+
+        return (platform, ventGlows)
+    }
+
+    /// Kicks off a slow, gently out-of-phase idle "breathing" pulse on the energy platform's
+    /// power-vent glows — started exactly once, the instant the tower is placed, and runs
+    /// forever, completely independent of combat state. Where the beam's neon pulse only
+    /// begins once the laser first fires (`startBeamPulse`), this keeps the chassis itself
+    /// looking permanently charged and ready — the Laser Lance's "always-on" personality is
+    /// visible at rest, not just mid-beam. Each vent starts at a different point in the
+    /// cycle (evenly spread across the loop) so they never breathe in lockstep — reading as
+    /// an energy core cycling through its conduits rather than a synchronized blink. Sine is
+    /// 2π-periodic regardless of the additive phase offset, so every vent's loop still ends
+    /// exactly where it began — seamless, just like `startBeamBurnFlicker`'s combined waves.
+    private func startEnergyVentPulse(glows: [SKShapeNode]) {
+        guard glows.isEmpty == false else {
+            return
+        }
+
+        let period: TimeInterval = 1.4
+
+        for (index, glow) in glows.enumerated() {
+            let baseAlpha = glow.alpha
+            let baseScale = glow.xScale
+            let phaseOffset = (CGFloat(index) / CGFloat(glows.count)) * (2 * .pi)
+
+            let pulse = SKAction.customAction(withDuration: period) { node, elapsed in
+                guard let shape = node as? SKShapeNode else { return }
+                let phase = (elapsed / CGFloat(period)) * (2 * .pi) + phaseOffset
+                let wobble = sin(phase)
+                shape.alpha = baseAlpha + wobble * 0.28
+                shape.setScale(baseScale + wobble * 0.22)
+            }
+
+            glow.run(.repeatForever(pulse), withKey: energyVentPulseActionKey)
+        }
+    }
+
     // MARK: - Fire effects
 
     /// Plays the barrel recoil kick, spawns a muzzle flash at the barrel tip, and shows the
@@ -364,6 +526,76 @@ final class PlaceholderTower: GameEntity {
         let startAngle = CGFloat.pi / 2
         let endAngle = startAngle - clamped * (2 * .pi)
         path.addArc(center: .zero, radius: radius, startAngle: startAngle, endAngle: endAngle, clockwise: true)
+        return path
+    }
+
+    // MARK: - Upgrade indicator
+
+    /// Rebuilds the tier-pip cluster from scratch to match the current `upgradeLevel` —
+    /// a small horizontal row of glowing dots (tinted in the tower's own `turretColor`,
+    /// "glow behind a bright core" — the same visual language as the energy-vent glows
+    /// and muzzle flashes) sitting just under the base plate. Hidden entirely at base
+    /// tier (nothing to show); one pip at tier 1, two side-by-side at tier 2 (the max).
+    /// Rebuilding rather than toggling visibility is simplest here since the *count*
+    /// changes, not just whether any pips show.
+    private func updateUpgradeIndicator() {
+        upgradeIndicatorNode?.removeFromParent()
+        upgradeIndicatorNode = nil
+
+        guard upgradeLevel > 0 else {
+            return
+        }
+
+        let container = SKNode()
+        container.position = CGPoint(x: 0, y: -25)
+        container.zPosition = 2
+        node.addChild(container)
+        upgradeIndicatorNode = container
+
+        let pipSpacing: CGFloat = 9
+        let totalWidth = CGFloat(upgradeLevel - 1) * pipSpacing
+        let startX = -totalWidth / 2
+
+        for index in 0..<upgradeLevel {
+            let x = startX + CGFloat(index) * pipSpacing
+
+            let glow = SKShapeNode(circleOfRadius: 3.4)
+            glow.fillColor = type.turretColor.withAlphaComponent(0.35)
+            glow.strokeColor = .clear
+            glow.position = CGPoint(x: x, y: 0)
+            container.addChild(glow)
+
+            let core = SKShapeNode(circleOfRadius: 1.7)
+            core.fillColor = type.turretColor
+            core.strokeColor = .clear
+            core.position = CGPoint(x: x, y: 0)
+            core.zPosition = 1
+            container.addChild(core)
+        }
+    }
+
+    /// Builds a regular `sides`-gon path centred on the origin with vertices at `radius`,
+    /// the first vertex placed `rotation` radians from the +x axis. For a hexagon,
+    /// `rotation = 0` yields a flat-topped/flat-bottomed silhouette — a "landing pad" read
+    /// from above that instantly distinguishes Pink's platform from the round bases the rest
+    /// of the roster shares. Mirrors `radialArcPath`'s angle-math approach to building custom
+    /// shape paths via trigonometry rather than hand-plotted points.
+    private static func polygonPath(sides: Int, radius: CGFloat, rotation: CGFloat) -> CGPath {
+        let path = CGMutablePath()
+        let angleStep = (2 * .pi) / CGFloat(sides)
+
+        for index in 0..<sides {
+            let angle = rotation + angleStep * CGFloat(index)
+            let point = CGPoint(x: cos(angle) * radius, y: sin(angle) * radius)
+
+            if index == 0 {
+                path.move(to: point)
+            } else {
+                path.addLine(to: point)
+            }
+        }
+
+        path.closeSubpath()
         return path
     }
 }

@@ -90,7 +90,8 @@ final class GameScene: SKScene {
             "enemy_death.wav",
             "enemy_breach.wav",
             "tower_place.wav",
-            "tower_sell.wav"
+            "tower_sell.wav",
+            "tower_beam_pink_start.wav"
         ]
 
         let container = SKNode()
@@ -264,6 +265,21 @@ final class GameScene: SKScene {
                     health: systems.baseHealthManager.health
                 )
                 playSound("tower_sell.wav")
+            }
+            return
+        }
+
+        if nodes(at: location).contains(where: { $0.name == "UpgradeBadge" }) {
+            if systems.towerManager.upgradeSelectedTower(economyManager: systems.economyManager, in: self) {
+                systems.uiManager.update(
+                    coins: systems.economyManager.coins,
+                    health: systems.baseHealthManager.health
+                )
+                // Reuses the placement cue — both moments are "coins committed, tower
+                // changed for the better", and adding a dedicated sample for this single
+                // tap isn't worth the asset work yet (mirrors how Pink reuses Blue's
+                // shoot sound for its unused `shootSound` slot).
+                playSound("tower_place.wav")
             }
             return
         }

@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Pink "Laser Lance" tower — complete.
+Tower upgrades — complete.
 
 The repository now has:
 
@@ -52,22 +52,35 @@ The repository now has:
 - A Restart button on both overlays that fully resets and restarts wave progression from wave 1
 - Combat and input gated on `.sceneLoaded` phase; overlays block all gameplay input
 - No center branding text inside the battlefield
-- No upgrades, selling (per-wave), splash damage, status effects, multiple enemy types, or final art
+- Tower upgrades are in (2 tiers, damage/DPS-only scaling — see milestone below); still no per-wave selling, splash damage, status effects, multiple enemy types, or final art
 
 ## Next Task
 
-Tower upgrades (next unchecked Phase 2 item in `TODO.md`).
+Add haptics (next unchecked Phase 2 item in `TODO.md`).
 
 ## Immediate Goal
 
-Decide on an upgrade model (e.g., per-tower tiers affecting damage/range/cooldown) and design the UI for triggering an upgrade from a selected tower.
+Identify the moments that most deserve tactile feedback (tower placement, firing, enemy kills, base damage, wave start/clear, button taps?) and decide which haptic style (`UIImpactFeedbackGenerator` weight, `UINotificationFeedbackGenerator` for win/loss, etc.) fits each — keeping the same "small vertical slice" approach as every other feel-pass feature so far (recoil, muzzle flash, reload ring).
+
+## Previous Milestone — Tower Upgrades
+
+Tower upgrades are now live — every tower can be improved twice after placement (3 total "stages": base, +1, +2):
+
+- Tap a selected tower to reveal *two* badges now: the existing gold "refund" sell badge below it, and a new cyan "▲ cost" upgrade badge above it — same dark-pill tap-to-act shape and `nodes(at:)` name-matching pattern (`"UpgradeBadge"`), just recolored (cash-out gold vs. spend-to-improve cyan), repositioned (below vs. above), and iconified differently (coin vs. up-chevron) so the two opposite-intent actions read unambiguously at a glance without crowding either pill
+- Tapping the upgrade badge spends coins (gated through the same `EconomyManager.canAfford`/`spend` the placement and selling flows already use), bumps the tower's `upgradeLevel` by one, refreshes the badge in place (new cost, or it disappears entirely once `TowerType.maxUpgradeLevel` is reached), and adds one more small glowing "tier pip" to a cluster sitting just under the tower's base plate — a permanent, at-a-glance readout of how invested this specific tower is, tinted in its own `turretColor` and built from the same "glow behind a bright core" visual language as the energy-vent glows and muzzle flashes
+- Per the confirmed design, upgrades scale **damage/DPS only** — `range`, `attackCooldown`, and every other per-type stat stay fixed identity, untouched by upgrade level. Each tier adds a flat +50% of the tower's *base* output (1.0× → 1.5× → 2.0×, additive not compounding) — equally-sized, easy-to-communicate jumps. `TowerType.damageMultiplier(atUpgradeLevel:)` is the single source of truth for the curve; `PlaceholderTower.currentDamage`/`currentDPS` apply it per-instance (mirroring how `TowerType.dps` already derives style-aware base figures) and are now what `TowerManager.updateCombat`/`updateBeamCombat` actually fire with — `tower.type.damage`/`.dps` remain the *base* reference figures the static ARSENAL panel quotes
+- `currentDamage` *ratchets* each tier up by at least +1 over the previous rather than independently rounding `base × multiplier` — a real failure mode surfaced during design: Red's base damage of 1 makes `1 × 1.5 = 1.5` and `1 × 2.0 = 2.0` both round to 2, so its second upgrade would otherwise be a pure no-op (the player pays coins for literally nothing). The ratchet guarantees every purchased tier visibly does *something* for every tower in the roster, while leaving towers whose curve already lands cleanly (Green, Blue) completely untouched
+- Cost ramps per tier off the tower's own placement price — tier 1 ≈ 60% of cost, tier 2 = 100% of cost (`TowerType.upgradeCost(fromLevel:)`) — so fully maxing out one tower is a deliberate, escalating commitment rather than an afterthought once coins pile up. `upgradeLevel` lives directly on `PlaceholderTower` (`private(set) var`, mutated only via `upgrade()`) — it's part of "what this tower currently is," alongside its immutable `type`, not combat-scheduling bookkeeping like `TowerManager`'s per-buildspot cooldown/lock dictionaries
+- `sellRefund` is no longer a flat `cost / 2` constant — `TowerType.sellRefund(atUpgradeLevel:)` now returns half of the tower's *total* investment (`totalInvestedCost` = placement + every upgrade purchased), so selling an upgraded tower returns a fair share of everything spent on it. `TowerManager.totalCoinsInvested` (the Pause-menu stat) was updated the same way
 
 ## Previous Milestone — Pink "Laser Lance" Tower
 
 A fourth tower type, the continuous-beam Laser Lance, is now live:
 
 - New `TowerAttackStyle { case projectile; case beam }` cleanly separates the established discrete-shot combat model (Red/Green/Blue — completely untouched) from the new persistent-beam model (Pink only); `TowerType.dps` is now style-aware, deriving from `damage`/`attackCooldown` for projectile towers and reporting `laserDamagePerSecond` directly for beam towers
-- Pink ("Laser Lance", 75 coins — vs. 50 for the others) locks onto a single target like every other tower, but instead of firing discrete shots it projects a persistent glowing magenta beam at that target for as long as the lock holds, dealing continuous damage every frame at ≈ 4.5 DPS — the highest single-target DPS in the roster, justifying its premium cost
+- Pink ("Laser Lance", 75 coins — vs. 50 for the others) locks onto a single target like every other tower, but instead of firing discrete shots it projects a persistent glowing neon-red beam at that target for as long as the lock holds, dealing continuous damage every frame at ≈ 4.5 DPS — the highest single-target DPS in the roster, justifying its premium cost. Its housing keeps a pink/magenta chassis identity, but the beam itself (and the plasma-burn mark it leaves on contact) glows a vivid "laser red" — a deliberate contrast chosen to read as hot and electric
+- Pink also stands apart structurally, not just chromatically: `PlaceholderTower.init` now branches on `type` so the Laser Lance sits on a unique angular hexagonal "energy platform" (built from a new `polygonPath(sides:radius:rotation:)` trig helper) ringed with three small glowing power vents — tinted in its own neon-red `projectileColor` — instead of the round toy-turret base + specular highlight every other tower shares. A new `startEnergyVentPulse` loop kicks off once, at placement time (not lazily on first fire, unlike the beam's pulse), idly breathing each vent out of phase with the others — the "always charged and ready" personality is visible the instant the tower is placed, before it ever locks a target
+- The Laser Lance also now *sounds* different, not just looks different: the instant its beam locks onto a target — "the laser starts heating" — a punchy "ignition" cue plays once. It's the project's first real recorded sample (every other sound is procedurally synthesized): the first second of a user-supplied laser-gun recording, trimmed and converted via `ffmpeg` to the project's standard 22050Hz mono 16-bit format (`tower_beam_pink_start.wav`). Architecturally it's the simplest possible fit — a plain one-shot fired through the same `SKAction.playSoundFileNamed(_:waitForCompletion: false)` every other tower sound already uses, gated on `isSoundEnabled`, with zero new looping/scheduling machinery. The only new piece is detecting *when* to fire it: `TowerManager.triggerLaserIgnition` compares each frame's "is the beam projecting now" against a per-build-spot `beamActiveByBuildSpotID` memory of last frame's state, and fires exactly on the off → on transition — once per lock-on, never on every frame the beam stays lit. That memory is reset to `false` (not left stale) the instant the beam goes silent — lock lost, target killed, tower sold, or scene reset — so the next lock-on always ignites fresh
 - `PlaceholderEnemy.fractionalHealth: Double` is now the canonical health value (with `hitPoints: Int` as a ceiling-rounded derived mirror) — the health bar renders directly from the fractional remainder, so it drains in genuinely smooth, continuous steps under laser fire while remaining numerically identical to the old behavior for ordinary whole-HP hits from Red/Green/Blue
 - `TowerManager.updateCombat` now tracks per-frame `deltaTime` and dispatches beam-style towers to a dedicated `updateBeamCombat` branch — drawing the beam visual every frame and applying `dps * deltaTime` fractional damage via the new `EnemyManager.applyContinuousDamage`/`PlaceholderEnemy.takeContinuousDamage` — entirely separate from (and without touching) the projectile-firing path below it
 - `PlaceholderTower.showBeam(to:color:)`/`hideBeam()` draw a "glow + bright core" line pair (mirroring the existing muzzle-flash visual language) as children of `barrelNode`, so the beam inherits the turret's target-facing rotation "for free" and only needs its length redrawn each frame

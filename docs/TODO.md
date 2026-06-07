@@ -56,10 +56,15 @@
 - [x] Add a second wave with an inter-wave countdown (3s "WAVE 2 IN 3..." HUD announcement)
 - [x] Add Pink "Laser Lance" tower — continuous-beam single-target damage, smooth fractional HP drain, 75-coin cost, 4-option build menu
 - [x] Add neon breathing pulse to the laser beam, and a flickering plasma-burn mark where it makes contact with its target
-- [ ] Add tower upgrades
+- [x] Give the Laser Lance a unique chassis — angular hexagonal "energy platform" with idle-pulsing power vents (always-on from placement, independent of combat)
+- [x] Give the Laser Lance a one-shot "ignition" sound — a real recorded laser-gun sample (trimmed to its first second, converted to the project's standard format) that fires exactly once at the instant the beam locks onto a target ("the laser starts heating"), fitting the existing fire-and-forget one-shot sound model with no new looping machinery
+- [x] Add tower upgrades — tap a selected tower's cyan "▲ cost" badge (mirrors the gold sell badge, positioned above instead of below) to spend coins and bump it through 2 tiers (3 stages total), each adding +50% damage/DPS over base; cost ramps per tier (≈60% of placement price, then 100%); a small glowing tier-pip cluster appears under the base plate; sell refund now accounts for upgrade spend too
 - [ ] Add haptics
 - [ ] Add main menu
 - [ ] Add level select
+- [ ] Add enemy variety — Scout/Soldier/Tank with meaningfully different stats (not palette swaps) and "soft" counters: every type should stay killable, if inefficiently, by more than one tower (avoid lock-and-key design, and avoid flying/path-ignoring enemy types entirely)
+- [ ] Add "total time control" UX — let the player issue build/sell actions while paused, plus a 2x/4x speed-up toggle for skipping through easy or already-won waves
+- [ ] Add "total information" readouts — tap-to-inspect full stats on enemies (mirrors the existing tower ARSENAL panel: HP, speed, resistances/status effects) and a wave preview showing upcoming enemy types/counts before they spawn
 
 ## Phase 3 - Polish
 
