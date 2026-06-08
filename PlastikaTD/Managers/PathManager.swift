@@ -8,6 +8,12 @@ struct GamePath {
     var startPoint: CGPoint? {
         waypoints.first
     }
+
+    /// The path's final waypoint — where enemies breach the base. The Mortar aims its shells
+    /// relative to this so it bombards the leading edge of the advance.
+    var endPoint: CGPoint? {
+        waypoints.last
+    }
 }
 
 @MainActor
@@ -21,30 +27,43 @@ final class PathManager {
             CGPoint(x: 178, y: 612),
             CGPoint(x: 334, y: 710)
         ],
-        movementSpeed: 96
+        movementSpeed: 76
     )
 
     func resetForNewScene() {
     }
 
-    func makeDebugPathNode() -> SKShapeNode {
-        let path = CGMutablePath()
+    func makeDebugPathNode() -> SKNode {
+        let cgPath = CGMutablePath()
 
         guard let firstPoint = activePath.waypoints.first else {
-            return SKShapeNode()
+            return SKNode()
         }
 
-        path.move(to: firstPoint)
+        cgPath.move(to: firstPoint)
         activePath.waypoints.dropFirst().forEach { point in
-            path.addLine(to: point)
+            cgPath.addLine(to: point)
         }
 
-        let node = SKShapeNode(path: path)
-        node.strokeColor = SKColor(white: 1.0, alpha: 0.28)
-        node.lineWidth = 8
-        node.lineCap = .round
-        node.lineJoin = .round
-        node.zPosition = 5
-        return node
+        let root = SKNode()
+        root.zPosition = 5
+
+        // Road base — wide dark asphalt strip
+        let road = SKShapeNode(path: cgPath)
+        road.strokeColor = SKColor(red: 0.16, green: 0.14, blue: 0.12, alpha: 0.88)
+        road.lineWidth = 28
+        road.lineCap = .round
+        road.lineJoin = .round
+        root.addChild(road)
+
+        // Center dashes — faint lane marking running along the road
+        let stripe = SKShapeNode(path: cgPath)
+        stripe.strokeColor = SKColor(white: 1.0, alpha: 0.10)
+        stripe.lineWidth = 2
+        stripe.lineCap = .butt
+        stripe.lineJoin = .round
+        root.addChild(stripe)
+
+        return root
     }
 }

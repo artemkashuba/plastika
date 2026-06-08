@@ -11,21 +11,49 @@ final class TowerManager {
 
     private var towersByBuildSpotID: [Int: PlaceholderTower] = [:]
     private var nextAttackTimesByBuildSpotID: [Int: TimeInterval] = [:]
+    /// Tracks whether a beam tower's beam was actively projecting as of the previous combat
+    /// frame. Compared each frame against "is it projecting now" to catch the precise
+    /// off → on transition — "the laser starts heating" — that fires the one-shot ignition
+    /// sound exactly once per lock-on rather than every frame the beam stays lit. Entries
+    /// only exist for beam towers; cleared to `false` (not left stale) the instant the beam
+    /// goes silent — lock lost, target killed, tower sold, scene reset — so the next
+    /// lock-on always ignites fresh rather than staying silent on a stale "already on" flag.
+    private var beamActiveByBuildSpotID: [Int: Bool] = [:]
     private var targetLocksByBuildSpotID: [Int: TargetLock] = [:]
+    /// `currentTime` from the previous `updateCombat` call — used to derive `deltaTime` for
+    /// beam-style towers, whose damage accrues continuously as `dps * deltaTime` rather than
+    /// in discrete per-shot bursts. `nil` until the first frame after a (re)load.
+    private var lastCombatUpdateTime: TimeInterval?
     private var selectedBuildSpotID: Int?
+    var isSoundEnabled: Bool = true
     private var rangeIndicator: SKShapeNode?
+    private var sellBadgeNode: SKNode?
+    private let sellBadgeYOffset: CGFloat = -50
+    /// Mirrors `sellBadgeNode`/`sellBadgeYOffset` exactly — same tap-to-act pattern, just
+    /// for "spend coins to bump this tower's tier" instead of "sell it for a refund".
+    /// Sits *above* the tower (positive offset) while the sell badge sits below, so both
+    /// can be visible together without overlapping. Absent (not just hidden) once a tower
+    /// reaches `TowerType.maxUpgradeLevel` — there's nothing left to buy.
+    private var upgradeBadgeNode: SKNode?
+    private let upgradeBadgeYOffset: CGFloat = 50
 
     func resetForNewScene() {
         clearSelection(animated: false)
         rangeIndicator?.removeFromParent()
         rangeIndicator = nil
+        sellBadgeNode?.removeFromParent()
+        sellBadgeNode = nil
+        upgradeBadgeNode?.removeFromParent()
+        upgradeBadgeNode = nil
 
         towersByBuildSpotID.values.forEach { tower in
             tower.reset()
         }
         towersByBuildSpotID.removeAll(keepingCapacity: true)
         nextAttackTimesByBuildSpotID.removeAll(keepingCapacity: true)
+        beamActiveByBuildSpotID.removeAll(keepingCapacity: true)
         targetLocksByBuildSpotID.removeAll(keepingCapacity: true)
+        lastCombatUpdateTime = nil
     }
 
     func placePlaceholderTower(ofType towerType: TowerType, on buildSpot: BuildSpot, in scene: SKScene) -> Bool {
@@ -57,6 +85,41 @@ final class TowerManager {
 
         selectedBuildSpotID = nil
         rangeIndicator?.removeFromParent()
+        hideSellBadge()
+        hideUpgradeBadge()
+    }
+
+    // MARK: - Pause stats
+
+    var towerCountsByType: [TowerType: Int] {
+        towersByBuildSpotID.values.reduce(into: [:]) { counts, tower in
+            counts[tower.type, default: 0] += 1
+        }
+    }
+
+    var totalCoinsInvested: Int {
+        towersByBuildSpotID.values.reduce(0) { total, tower in
+            total + tower.type.totalInvestedCost(atUpgradeLevel: tower.upgradeLevel)
+        }
+    }
+
+    /// Removes the selected tower, frees its dictionaries, clears selection, and returns the
+    /// build spot id and refund amount so the caller can credit the economy and free the build spot.
+    /// Returns nil if no tower is currently selected.
+    func sellSelectedTower(in scene: SKScene) -> (buildSpotID: Int, refund: Int)? {
+        guard let buildSpotID = selectedBuildSpotID,
+              let tower = towersByBuildSpotID[buildSpotID] else {
+            return nil
+        }
+
+        let refund = tower.type.sellRefund(atUpgradeLevel: tower.upgradeLevel)
+        tower.node.removeFromParent()
+        towersByBuildSpotID[buildSpotID] = nil
+        nextAttackTimesByBuildSpotID[buildSpotID] = nil
+        beamActiveByBuildSpotID[buildSpotID] = nil
+        targetLocksByBuildSpotID[buildSpotID] = nil
+        clearSelection(animated: false)
+        return (buildSpotID, refund)
     }
 
     func updateCombat(
@@ -64,19 +127,81 @@ final class TowerManager {
         enemyManager: EnemyManager,
         projectileManager: ProjectileManager,
         economyManager: EconomyManager,
+        uiManager: UIManager,
+        pathEndPoint: CGPoint,
         in scene: SKScene
     ) {
+        let deltaTime = lastCombatUpdateTime.map { max(0, currentTime - $0) } ?? 0
+        lastCombatUpdateTime = currentTime
+
         towersByBuildSpotID.forEach { buildSpotID, tower in
+            // Mortar towers don't lock a single target or fire straight shots — they pick the
+            // leading enemy each volley and lob an exploding shell onto its predicted road
+            // position. Handled entirely in its own branch, bypassing the lock/beam logic below.
+            if tower.type.projectileBehavior == .mortar {
+                updateMortarCombat(
+                    buildSpotID: buildSpotID,
+                    tower: tower,
+                    currentTime: currentTime,
+                    enemyManager: enemyManager,
+                    projectileManager: projectileManager,
+                    economyManager: economyManager,
+                    uiManager: uiManager,
+                    pathEndPoint: pathEndPoint,
+                    in: scene
+                )
+                return
+            }
+
+            let isBeamTower = tower.type.attackStyle == .beam
+            // Captured *before* refreshing the lock below — `targetLock(forBuildSpotID:...)`
+            // silently swaps in a fresh target the instant the old one becomes invalid (dies,
+            // leaves range, etc.), so this is our only chance to know who the beam was just
+            // resting on, in order to switch its burn effect off down in the branches below.
+            let previousBeamTarget = isBeamTower ? targetLocksByBuildSpotID[buildSpotID]?.enemy : nil
+
             guard let targetLock = targetLock(
                 forBuildSpotID: buildSpotID,
                 tower: tower,
                 enemyManager: enemyManager
             ), let target = targetLock.enemy else {
+                tower.hideBeam()
+                previousBeamTarget?.hideBeamBurn()
+                // Beam fell silent (lock lost / no target in range) — mark it inactive so
+                // the *next* lock-on fires the ignition sound fresh rather than staying
+                // silent because it thinks the beam never stopped. No-op for projectile
+                // towers, which never populate this dictionary in the first place.
+                beamActiveByBuildSpotID[buildSpotID] = false
                 return
             }
 
             let targetPosition = target.node.position
             tower.aim(at: targetPosition)
+
+            if isBeamTower {
+                // The lock can only have moved on to a *different* enemy in the same tick the
+                // old one became invalid (dead/out-of-range/etc) — `target.hideBeamBurn()` in
+                // `updateBeamCombat`'s kill branch already covers the "died" case, so this
+                // catches the remaining "still alive but no longer locked" cases (e.g. walked
+                // out of beam range) before the new target's burn lights up below.
+                if let previousBeamTarget, previousBeamTarget !== target {
+                    previousBeamTarget.hideBeamBurn()
+                }
+
+                updateBeamCombat(
+                    buildSpotID: buildSpotID,
+                    tower: tower,
+                    target: target,
+                    targetPosition: targetPosition,
+                    targetLock: targetLock,
+                    deltaTime: deltaTime,
+                    enemyManager: enemyManager,
+                    economyManager: economyManager,
+                    uiManager: uiManager,
+                    scene: scene
+                )
+                return
+            }
 
             let nextAttackTime = nextAttackTimesByBuildSpotID[buildSpotID] ?? 0
 
@@ -85,9 +210,13 @@ final class TowerManager {
             }
 
             nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + tower.type.attackCooldown
+            tower.playFireEffects()
+            if isSoundEnabled {
+                tower.node.run(SKAction.playSoundFileNamed(tower.type.shootSound, waitForCompletion: false))
+            }
 
             let killReward = target.killReward
-            let towerDamage = tower.type.damage
+            let towerDamage = tower.currentDamage
 
             // For predictive-aiming towers (Blue), fire at the enemy's projected intercept position.
             let firePosition: CGPoint
@@ -95,7 +224,7 @@ final class TowerManager {
                let intercept = predictedImpactPoint(
                    enemyPosition: target.node.position,
                    enemyVelocity: target.velocity,
-                   shooterPosition: tower.node.position,
+                   shooterPosition: tower.barrelTipPosition,
                    projectileSpeed: tower.type.projectileSpeed
                ) {
                 firePosition = intercept
@@ -103,11 +232,14 @@ final class TowerManager {
                 firePosition = targetPosition
             }
 
+            let spawnOrigin = tower.barrelTipPosition
             projectileManager.firePlaceholderProjectile(
-                from: tower.node.position,
+                from: spawnOrigin,
                 to: firePosition,
                 behavior: tower.type.projectileBehavior,
                 color: tower.type.projectileColor,
+                radius: tower.type.projectileRadius,
+                style: tower.type.projectileVisualStyle,
                 speed: tower.type.projectileSpeed,
                 targetPositionProvider: { [weak enemyManager, weak target] in
                     // Range is NOT checked here — in-flight homing missiles chase their
@@ -123,17 +255,167 @@ final class TowerManager {
                     return target.node.position
                 },
                 in: scene
-            ) { [weak enemyManager, weak economyManager, weak target] in
+            ) { [weak self, weak enemyManager, weak economyManager, weak uiManager, weak scene, weak target, weak tower] in
                 guard let target else {
                     return
                 }
 
+                // Capture the death spot before applyDamage recycles (and repositions) the enemy.
+                let deathPosition = target.node.position
                 let killed = enemyManager?.applyDamage(towerDamage, to: target, matchingLifeID: targetLock.lifeID) ?? false
 
                 if killed {
                     economyManager?.credit(killReward)
+                    if let uiManager, let scene {
+                        uiManager.flyCoinReward(from: deathPosition, in: scene)
+                    }
+                    if self?.isSoundEnabled == true {
+                        tower?.node.run(SKAction.playSoundFileNamed("enemy_death.wav", waitForCompletion: false))
+                    }
+                } else if self?.isSoundEnabled == true {
+                    tower?.node.run(SKAction.playSoundFileNamed("enemy_hit.wav", waitForCompletion: false))
                 }
             }
+        }
+    }
+
+    /// Drives one frame of mortar combat: tracks the leading enemy with the tube, and on each
+    /// reload lobs an exploding shell onto where that enemy will be standing when the shell
+    /// lands (current position + velocity × flight time). On impact, splash damage hits every
+    /// enemy within the blast radius, each kill is credited + coin-flown, and the artillery
+    /// boom plays *with the explosion* (not the launch) so the satisfying sound lands on the hit.
+    private func updateMortarCombat(
+        buildSpotID: Int,
+        tower: PlaceholderTower,
+        currentTime: TimeInterval,
+        enemyManager: EnemyManager,
+        projectileManager: ProjectileManager,
+        economyManager: EconomyManager,
+        uiManager: UIManager,
+        pathEndPoint: CGPoint,
+        in scene: SKScene
+    ) {
+        // Bombard the front of the advance, not whatever's nearest the tower.
+        guard let target = enemyManager.leadEnemy(
+            within: tower.type.range,
+            from: tower.node.position,
+            towardEnd: pathEndPoint
+        ) else {
+            return
+        }
+
+        // Predicted landing point: where the lead enemy will be when the shell touches down.
+        let flightDuration = tower.type.mortarFlightDuration
+        let landingPoint = CGPoint(
+            x: target.node.position.x + target.velocity.x * CGFloat(flightDuration),
+            y: target.node.position.y + target.velocity.y * CGFloat(flightDuration)
+        )
+
+        // Keep the tube tracking the landing bearing even while reloading.
+        tower.aim(at: landingPoint)
+
+        let nextAttackTime = nextAttackTimesByBuildSpotID[buildSpotID] ?? 0
+        guard currentTime >= nextAttackTime else {
+            return
+        }
+
+        nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + tower.type.attackCooldown
+        tower.playFireEffects()
+
+        let splashDamage = tower.currentDamage
+        let splashRadius = tower.type.splashRadius
+
+        projectileManager.fireMortarShell(
+            from: tower.barrelTipPosition,
+            to: landingPoint,
+            color: tower.type.projectileColor,
+            radius: tower.type.projectileRadius,
+            flightDuration: flightDuration,
+            peakHeight: 70,
+            explosionRadius: splashRadius,
+            in: scene
+        ) { [weak self, weak enemyManager, weak economyManager, weak uiManager, weak scene] in
+            guard let enemyManager else { return }
+
+            let kills = enemyManager.applyAreaDamage(splashDamage, at: landingPoint, radius: splashRadius)
+            for kill in kills {
+                economyManager?.credit(kill.reward)
+                if let uiManager, let scene {
+                    uiManager.flyCoinReward(from: kill.position, in: scene)
+                }
+            }
+
+            if self?.isSoundEnabled == true, let scene {
+                scene.run(SKAction.playSoundFileNamed("tower_shoot_blue.wav", waitForCompletion: false))
+            }
+        }
+    }
+
+    /// Drives one frame of continuous-beam combat for a locked-on laser tower: keeps the
+    /// beam visual drawn from barrel tip to the target, drains the target's HP smoothly
+    /// via fractional, deltaTime-scaled damage (see `PlaceholderEnemy.takeContinuousDamage`),
+    /// and fires the one-shot "ignition" sound at the instant the beam first lights up.
+    private func updateBeamCombat(
+        buildSpotID: Int,
+        tower: PlaceholderTower,
+        target: PlaceholderEnemy,
+        targetPosition: CGPoint,
+        targetLock: TargetLock,
+        deltaTime: TimeInterval,
+        enemyManager: EnemyManager,
+        economyManager: EconomyManager,
+        uiManager: UIManager,
+        scene: SKScene
+    ) {
+        tower.showBeam(to: targetPosition, color: tower.type.projectileColor)
+        target.showBeamBurn(color: tower.type.projectileColor)
+        triggerLaserIgnition(buildSpotID: buildSpotID, tower: tower)
+
+        guard deltaTime > 0 else {
+            return
+        }
+
+        let damageThisTick = tower.currentDPS * deltaTime
+        let killReward = target.killReward
+        let deathPosition = target.node.position
+
+        let killed = enemyManager.applyContinuousDamage(damageThisTick, to: target, matchingLifeID: targetLock.lifeID)
+
+        if killed {
+            economyManager.credit(killReward)
+            uiManager.flyCoinReward(from: deathPosition, in: scene)
+            tower.hideBeam()
+            target.hideBeamBurn()
+            // Beam just went silent — mark it inactive so the next lock-on (a fresh target
+            // acquired next frame, or a future one) ignites fresh rather than staying mute.
+            beamActiveByBuildSpotID[buildSpotID] = false
+            if isSoundEnabled {
+                tower.node.run(SKAction.playSoundFileNamed("enemy_death.wav", waitForCompletion: false))
+            }
+        }
+    }
+
+    /// Fires a beam tower's one-shot "ignition" sound at the precise instant its beam
+    /// transitions from off to on — "the laser starts heating" — and never again while
+    /// that same lock holds. `beamActiveByBuildSpotID` is the off/on memory that makes the
+    /// transition detectable: this only plays when the build spot's last-known state was
+    /// "not active" (absent, the first time, or explicitly `false` after the beam went
+    /// silent). The actual playback is the same fire-and-forget `playSoundFileNamed`
+    /// mechanism every other tower sound uses (mirrors the regular shot-sound trigger in
+    /// `updateCombat`) — beam towers just hang it on a state transition instead of a
+    /// cooldown. `nil` `laserStartSound` (i.e. every non-beam type) makes this a no-op.
+    private func triggerLaserIgnition(buildSpotID: Int, tower: PlaceholderTower) {
+        guard let soundFile = tower.type.laserStartSound else {
+            return
+        }
+
+        guard beamActiveByBuildSpotID[buildSpotID] != true else {
+            return
+        }
+
+        beamActiveByBuildSpotID[buildSpotID] = true
+        if isSoundEnabled {
+            tower.node.run(SKAction.playSoundFileNamed(soundFile, waitForCompletion: false))
         }
     }
 
@@ -174,9 +456,180 @@ final class TowerManager {
             selectedTower.setSelected(false, animated: true)
         }
 
+        hideSellBadge()
+        hideUpgradeBadge()
         selectedBuildSpotID = buildSpotID
         tower.setSelected(true, animated: true)
         moveRangeIndicator(to: tower.node.position, in: scene)
+        showSellBadge(for: tower, in: scene)
+        showUpgradeBadge(for: tower, in: scene)
+    }
+
+    /// Spends coins to bump the selected tower up one tier and refreshes its visuals —
+    /// tier pips on the tower itself plus the badge (its cost changes, or it disappears
+    /// entirely once the tower hits `TowerType.maxUpgradeLevel`). Returns `false` (and
+    /// changes nothing) if no tower is selected, it's already maxed, or the player can't
+    /// afford the next tier — mirrors `sellSelectedTower`'s "do it, or report that you
+    /// can't" shape. Takes `economyManager` directly (as `updateCombat` already does)
+    /// rather than round-tripping the cost through `GameScene`, since only this tower's
+    /// own state determines what its next tier actually costs.
+    @discardableResult
+    func upgradeSelectedTower(economyManager: EconomyManager, in scene: SKScene) -> Bool {
+        guard let buildSpotID = selectedBuildSpotID,
+              let tower = towersByBuildSpotID[buildSpotID],
+              let cost = tower.type.upgradeCost(fromLevel: tower.upgradeLevel),
+              economyManager.canAfford(cost) else {
+            return false
+        }
+
+        economyManager.spend(cost)
+        tower.upgrade()
+
+        // Rebuild in place — the badge's cost (or its very existence, if this was the
+        // last affordable tier) just changed.
+        hideUpgradeBadge()
+        showUpgradeBadge(for: tower, in: scene)
+        return true
+    }
+
+    private func showSellBadge(for tower: PlaceholderTower, in scene: SKScene) {
+        let badge = makeSellBadgeNode(refund: tower.type.sellRefund(atUpgradeLevel: tower.upgradeLevel))
+        badge.position = CGPoint(
+            x: tower.node.position.x,
+            y: tower.node.position.y + sellBadgeYOffset
+        )
+        scene.addChild(badge)
+        sellBadgeNode = badge
+    }
+
+    private func hideSellBadge() {
+        sellBadgeNode?.removeFromParent()
+        sellBadgeNode = nil
+    }
+
+    /// Mirrors `showSellBadge` exactly, positioned above the tower instead of below.
+    /// Stays absent (not just hidden) once the tower is already at `TowerType.maxUpgradeLevel`
+    /// — `upgradeCost(fromLevel:)` returns `nil` there, so there's nothing to show or buy.
+    private func showUpgradeBadge(for tower: PlaceholderTower, in scene: SKScene) {
+        guard let cost = tower.type.upgradeCost(fromLevel: tower.upgradeLevel) else {
+            return
+        }
+
+        let badge = makeUpgradeBadgeNode(cost: cost)
+        badge.position = CGPoint(
+            x: tower.node.position.x,
+            y: tower.node.position.y + upgradeBadgeYOffset
+        )
+        scene.addChild(badge)
+        upgradeBadgeNode = badge
+    }
+
+    private func hideUpgradeBadge() {
+        upgradeBadgeNode?.removeFromParent()
+        upgradeBadgeNode = nil
+    }
+
+    private func makeSellBadgeNode(refund: Int) -> SKNode {
+        let root = SKNode()
+        root.name = "SellBadge"
+        root.zPosition = 33
+
+        // Dark pill background
+        let pill = SKShapeNode(rectOf: CGSize(width: 68, height: 28), cornerRadius: 14)
+        pill.name = "SellBadge"
+        pill.fillColor = SKColor(red: 0.06, green: 0.10, blue: 0.12, alpha: 0.90)
+        pill.strokeColor = SKColor(red: 0.98, green: 0.80, blue: 0.12, alpha: 0.80)
+        pill.lineWidth = 1.5
+        root.addChild(pill)
+
+        // Coin icon — filled yellow circle (matches HUD coin cluster, slightly smaller)
+        let coinIcon = SKShapeNode(circleOfRadius: 7)
+        coinIcon.name = "SellBadge"
+        coinIcon.fillColor = SKColor(red: 0.98, green: 0.80, blue: 0.12, alpha: 1.0)
+        coinIcon.strokeColor = SKColor(red: 0.72, green: 0.56, blue: 0.06, alpha: 1.0)
+        coinIcon.lineWidth = 1
+        coinIcon.position = CGPoint(x: -16, y: 0)
+        root.addChild(coinIcon)
+
+        // Inner coin detail ring
+        let innerRing = SKShapeNode(circleOfRadius: 3.5)
+        innerRing.name = "SellBadge"
+        innerRing.fillColor = .clear
+        innerRing.strokeColor = SKColor(red: 0.72, green: 0.56, blue: 0.06, alpha: 0.55)
+        innerRing.lineWidth = 1
+        innerRing.position = CGPoint(x: -16, y: 0)
+        root.addChild(innerRing)
+
+        // Refund amount label
+        let label = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+        label.name = "SellBadge"
+        label.text = "\(refund)"
+        label.fontSize = 14
+        label.fontColor = SKColor(red: 0.98, green: 0.90, blue: 0.60, alpha: 1.0)
+        label.horizontalAlignmentMode = .left
+        label.verticalAlignmentMode = .center
+        label.position = CGPoint(x: -6, y: 0)
+        root.addChild(label)
+
+        return root
+    }
+
+    /// Mirrors `makeSellBadgeNode`'s pill/icon/label structure exactly — same shape, same
+    /// dark fill, same font and label layout — but recolored from the sell badge's
+    /// "cash-out gold" to a glowing cyan "spend to power up" accent, and swaps the coin
+    /// icon for an up-chevron (this badge *costs* coins rather than refunding them, and
+    /// makes the tower stronger rather than removing it). Position above vs. below the
+    /// tower is the other half of the differentiation — together they read unambiguously
+    /// even at a glance, without needing more visual noise crammed into a 68×28 pill.
+    private func makeUpgradeBadgeNode(cost: Int) -> SKNode {
+        let root = SKNode()
+        root.name = "UpgradeBadge"
+        root.zPosition = 33
+
+        let accent = SKColor(red: 0.30, green: 0.86, blue: 0.98, alpha: 1.0)
+
+        let pill = SKShapeNode(rectOf: CGSize(width: 68, height: 28), cornerRadius: 14)
+        pill.name = "UpgradeBadge"
+        pill.fillColor = SKColor(red: 0.06, green: 0.10, blue: 0.12, alpha: 0.90)
+        pill.strokeColor = accent.withAlphaComponent(0.80)
+        pill.lineWidth = 1.5
+        root.addChild(pill)
+
+        // Up-chevron — "this makes the tower better" — replaces the sell badge's coin
+        // icon, since this badge represents added power, not cash returned to hand.
+        let chevron = SKShapeNode(path: Self.upChevronPath())
+        chevron.name = "UpgradeBadge"
+        chevron.strokeColor = accent
+        chevron.lineWidth = 2.4
+        chevron.lineCap = .round
+        chevron.lineJoin = .round
+        chevron.fillColor = .clear
+        chevron.position = CGPoint(x: -16, y: 0)
+        root.addChild(chevron)
+
+        // Cost label — what tapping this badge will spend.
+        let label = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+        label.name = "UpgradeBadge"
+        label.text = "\(cost)"
+        label.fontSize = 14
+        label.fontColor = SKColor(red: 0.80, green: 0.96, blue: 1.0, alpha: 1.0)
+        label.horizontalAlignmentMode = .left
+        label.verticalAlignmentMode = .center
+        label.position = CGPoint(x: -6, y: 0)
+        root.addChild(label)
+
+        return root
+    }
+
+    /// A simple upward chevron ("^") — three hand-plotted points, no curve math needed at
+    /// this size. Mirrors `PlaceholderTower`'s `radialArcPath`/`polygonPath` philosophy of
+    /// building small custom shapes directly rather than reaching for image assets.
+    private static func upChevronPath() -> CGPath {
+        let path = CGMutablePath()
+        path.move(to: CGPoint(x: -4, y: -2.5))
+        path.addLine(to: CGPoint(x: 0, y: 2.5))
+        path.addLine(to: CGPoint(x: 4, y: -2.5))
+        return path
     }
 
     private func moveRangeIndicator(to position: CGPoint, in scene: SKScene) {

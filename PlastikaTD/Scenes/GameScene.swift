@@ -6,7 +6,10 @@ final class GameScene: SKScene {
     private let configuration: GameConfiguration
     private let systems: GameSystems
     private var didBuildScene = false
-    private var debugPathNode: SKShapeNode?
+    private var debugPathNode: SKNode?
+    /// Scene-coordinate Y of the bottom edge of the notch / Dynamic Island / status bar.
+    /// Computed once from view.safeAreaInsets.top and reused on restart.
+    private var safeAreaTopInScene: CGFloat = 0
 
     init(configuration: GameConfiguration, systems: GameSystems) {
         self.configuration = configuration
@@ -29,11 +32,17 @@ final class GameScene: SKScene {
 
         didBuildScene = true
         view.preferredFramesPerSecond = configuration.preferredFramesPerSecond
+        // Convert the bottom of the notch/island/status bar from UIKit coords (top-left origin,
+        // y increases downward) to scene coords (bottom-left origin, y increases upward).
+        safeAreaTopInScene = convertPoint(fromView: CGPoint(x: 0, y: view.safeAreaInsets.top)).y
         resetPlaceholderSystems()
         buildPlaceholderScene()
         buildGameplaySlice()
         setupCallbacks()
-        systems.uiManager.configureOverlay(in: self)
+        systems.uiManager.configureOverlay(in: self, safeAreaTop: safeAreaTopInScene)
+        // The HUD wave badge is built above, after the wave already started (and fired its
+        // initial onWaveProgressChanged before the callback was wired) — sync it explicitly.
+        systems.uiManager.setWave(number: systems.waveManager.currentWaveNumber)
         systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
     }
 
@@ -59,6 +68,52 @@ final class GameScene: SKScene {
         table.lineWidth = 4
         table.position = CGPoint(x: size.width / 2, y: size.height / 2)
         addChild(table)
+
+        // Static decorative scenery — toy trees, bushes, rocks, grass tufts, and the
+        // spawn-camp / base-objective markers at the path ends. Purely cosmetic, built once,
+        // and rendered below gameplay units. Added here (not in buildGameplaySlice) so it
+        // persists across restarts like the table, since this method only runs once.
+        let path = systems.pathManager.activePath
+        addChild(SceneryFactory.makeScenery(
+            start: path.startPoint ?? .zero,
+            end: path.endPoint ?? .zero
+        ))
+
+        // Warm up AVAudioEngine and preload all audio files into SpriteKit's buffer cache.
+        // SKAction.playSoundFileNamed starts the audio engine synchronously on first call,
+        // causing a 5-10 second freeze. Adding SKAudioNode instances here forces that work
+        // to happen at scene-build time (acceptable loading pause) instead of on first tap.
+        preloadSounds()
+    }
+
+    private func playSound(_ filename: String) {
+        guard systems.gameStateManager.isSoundEnabled else { return }
+        run(SKAction.playSoundFileNamed(filename, waitForCompletion: false))
+    }
+
+    private func preloadSounds() {
+        let files: [String] = [
+            "tower_shoot_red.wav",
+            "tower_shoot_green.wav",
+            "tower_shoot_blue.wav",
+            "enemy_hit.wav",
+            "enemy_death.wav",
+            "enemy_breach.wav",
+            "tower_place.wav",
+            "tower_sell.wav",
+            "tower_beam_pink_start.wav"
+        ]
+
+        let container = SKNode()
+        container.name = "SoundPreloadContainer"
+        addChild(container)
+
+        for filename in files {
+            let node = SKAudioNode(fileNamed: filename)
+            node.autoplayLooped = false  // do NOT play on add — load only
+            node.isPositional = false
+            container.addChild(node)
+        }
     }
 
     private func buildGameplaySlice() {
@@ -68,7 +123,7 @@ final class GameScene: SKScene {
 
         addChild(systems.buildSpotManager.makeBuildSpotLayer())
 
-        systems.waveManager.startPrototypeWave(
+        systems.waveManager.beginWaveProgression(
             in: self,
             path: systems.pathManager.activePath,
             enemyManager: systems.enemyManager
@@ -79,6 +134,21 @@ final class GameScene: SKScene {
         systems.enemyManager.onEnemyReachedEnd = { [weak self] in
             self?.handleEnemyReachedEnd()
         }
+
+        systems.gameStateManager.onResume = { [weak self] in
+            self?.isPaused = false
+        }
+
+        systems.gameStateManager.onSoundEnabledChange = { [weak self] enabled in
+            self?.systems.towerManager.isSoundEnabled = enabled
+        }
+
+        systems.waveManager.onWaveProgressChanged = { [weak self] waveNumber, countdown in
+            self?.systems.uiManager.setWave(number: waveNumber, countdown: countdown)
+        }
+
+        // Apply persisted sound setting immediately
+        systems.towerManager.isSoundEnabled = systems.gameStateManager.isSoundEnabled
     }
 
     private func handleEnemyReachedEnd() {
@@ -86,7 +156,16 @@ final class GameScene: SKScene {
             return
         }
 
+        playSound("enemy_breach.wav")
         let isDestroyed = systems.baseHealthManager.takeDamage()
+
+        // Force a HUD update immediately so the heart loss animation triggers now.
+        // Without this, a health:0 loss never gets an update() call because
+        // markGameOver() stops the update loop before the next frame.
+        systems.uiManager.update(
+            coins: systems.economyManager.coins,
+            health: systems.baseHealthManager.health
+        )
 
         if isDestroyed {
             triggerGameOver()
@@ -94,8 +173,16 @@ final class GameScene: SKScene {
     }
 
     private func triggerGameOver() {
+        // Stop gameplay immediately so no further input or combat runs.
         systems.gameStateManager.markGameOver()
-        systems.uiManager.showGameOverOverlay(in: self)
+        // Delay the overlay so the last heart animation (0.31s) plays before it appears.
+        run(SKAction.sequence([
+            SKAction.wait(forDuration: 0.36),
+            SKAction.run { [weak self] in
+                guard let self else { return }
+                self.systems.uiManager.showGameOverOverlay(in: self)
+            }
+        ]))
     }
 
     private func triggerVictory() {
@@ -107,7 +194,8 @@ final class GameScene: SKScene {
         resetPlaceholderSystems()
         buildGameplaySlice()
         setupCallbacks()
-        systems.uiManager.configureOverlay(in: self)
+        systems.uiManager.configureOverlay(in: self, safeAreaTop: safeAreaTopInScene)
+        systems.uiManager.setWave(number: systems.waveManager.currentWaveNumber)
         systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
     }
 
@@ -123,15 +211,22 @@ final class GameScene: SKScene {
             enemyManager: systems.enemyManager,
             projectileManager: systems.projectileManager,
             economyManager: systems.economyManager,
+            uiManager: systems.uiManager,
+            pathEndPoint: systems.pathManager.activePath.endPoint ?? .zero,
             in: self
         )
         systems.uiManager.update(
-            activeEnemyCount: systems.enemyManager.activeEnemyCount,
             coins: systems.economyManager.coins,
             health: systems.baseHealthManager.health
         )
 
-        if systems.waveManager.isSpawningComplete && systems.enemyManager.activeEnemyCount == 0 {
+        let allWavesCleared = systems.waveManager.updateProgression(
+            activeEnemyCount: systems.enemyManager.activeEnemyCount,
+            in: self,
+            path: systems.pathManager.activePath,
+            enemyManager: systems.enemyManager
+        )
+        if allWavesCleared {
             triggerVictory()
         }
     }
@@ -146,9 +241,56 @@ final class GameScene: SKScene {
         let location = touch.location(in: self)
         let phase = systems.gameStateManager.state.phase
 
+        if phase == .paused { return }
+
         if phase == .gameOver || phase == .victory {
             if nodes(at: location).contains(where: { $0.name == "RestartButton" }) {
                 restartGame()
+            }
+            return
+        }
+
+        if nodes(at: location).contains(where: { $0.name == "PauseButton" }),
+           phase == .sceneLoaded {
+            isPaused = true
+            let stats = PauseStats(
+                activeEnemies: systems.enemyManager.activeEnemyCount,
+                spawnedEnemies: systems.waveManager.spawnedCount,
+                totalEnemies: systems.waveManager.totalEnemyCount,
+                killCount: systems.enemyManager.killCount,
+                towerCounts: systems.towerManager.towerCountsByType,
+                coinsInvested: systems.towerManager.totalCoinsInvested,
+                waveNumber: systems.waveManager.currentWaveNumber,
+                totalWaveCount: systems.waveManager.totalWaveCount
+            )
+            systems.gameStateManager.pause(stats: stats)
+            return
+        }
+
+        if nodes(at: location).contains(where: { $0.name == "SellBadge" }) {
+            if let sold = systems.towerManager.sellSelectedTower(in: self) {
+                systems.economyManager.credit(sold.refund)
+                systems.buildSpotManager.markUnoccupied(buildSpotID: sold.buildSpotID)
+                systems.uiManager.update(
+                    coins: systems.economyManager.coins,
+                    health: systems.baseHealthManager.health
+                )
+                playSound("tower_sell.wav")
+            }
+            return
+        }
+
+        if nodes(at: location).contains(where: { $0.name == "UpgradeBadge" }) {
+            if systems.towerManager.upgradeSelectedTower(economyManager: systems.economyManager, in: self) {
+                systems.uiManager.update(
+                    coins: systems.economyManager.coins,
+                    health: systems.baseHealthManager.health
+                )
+                // Reuses the placement cue — both moments are "coins committed, tower
+                // changed for the better", and adding a dedicated sample for this single
+                // tap isn't worth the asset work yet (mirrors how Pink reuses Blue's
+                // shoot sound for its unused `shootSound` slot).
+                playSound("tower_place.wav")
             }
             return
         }
@@ -167,6 +309,7 @@ final class GameScene: SKScene {
                 systems.economyManager.spend(menuSelection.towerType.cost)
                 systems.buildSpotManager.markOccupied(menuSelection.buildSpot)
                 systems.buildSpotManager.hideBuildMenu()
+                playSound("tower_place.wav")
             }
 
             return
