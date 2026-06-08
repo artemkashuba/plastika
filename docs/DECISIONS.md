@@ -1278,3 +1278,49 @@ are untouched.
   Speed, reward, and visuals were left exactly as they were — the user asked
   for an HP change, and touching anything else would be scope creep on a
   one-line balance request
+
+## 2026-06-08 (Enemy Death Effect)
+
+**Decision**: On a damage kill, an enemy now spawns a self-contained "blown-apart
+toy" burst — a hull-tinted glow, a white-hot core, an expanding shockwave ring,
+and six livery-colored debris shards flying outward — instead of its node
+silently disappearing. Implemented as `PlaceholderEnemy.spawnDeathEffect(in:)`,
+fired from a new `EnemyManager.killAndRecycle(_:)` chokepoint that all three
+damage paths now funnel through.
+
+**Reason**:
+
+- **Highest-value game-feel gap, picked deliberately**: investigating where to
+  push polish, enemy death stood out — it's the single most-repeated event in a
+  run (dozens of kills per game) and had zero visual payoff beyond the coin-fly
+  and death sound; the node was yanked from the scene the same frame it died.
+  The user, asked to choose a polish direction and then a specific slice, picked
+  "Polish & game feel" → "Enemy death effect" out of the candidate list (death /
+  screen shake / hit reaction / spawn-in)
+- **Added to the scene, not the enemy node**: the enemy is recycled (and removed
+  from its parent) the same frame it dies, so an effect parented to `node` would
+  be torn down before it could play. Spawning the burst as scene-level transient
+  nodes that each `removeFromParent()` themselves when their animation ends is
+  the same pattern every other one-shot effect in the project already uses
+  (`ProjectileManager.showImpactFlash`, `UIManager.flyCoinReward`) — no pooling,
+  no cleanup bookkeeping, no per-frame cost
+- **Single chokepoint, not three copies**: the three damage entry points
+  (`applyDamage`, `applyDamage(matchingLifeID:)`, `applyContinuousDamage`) each
+  had an identical `killCount += 1; recycle(enemy)` kill branch. Folding that
+  into one private `killAndRecycle(_:)` and adding the death-effect call there
+  means projectile kills and beam kills both get the burst with no duplication,
+  and there's exactly one place to evolve kill-time behavior later
+- **Kept out of `recycle` itself, on purpose**: `recycle` is also the path an
+  enemy takes when it *breaches the base* (reaches the path end). A breach is a
+  loss, not a kill — celebrating it with an explosion would be the wrong signal —
+  so the effect lives one level up, only on the damage-death path. This is the
+  key correctness subtlety a future contributor might otherwise miss by "just
+  putting it in recycle"
+- **Sized by `type.chassisScale`**: reusing the existing per-type scale for the
+  burst (glow radius, shard spread/size) makes a Tank die bigger and messier
+  than a Scout for free, reinforcing the roster's size identity at the moment it
+  matters most, with no new per-type constants
+- **No new assets**: built entirely from short-lived `SKShapeNode`s tinted from
+  the enemy's own `EnemyType` colors (hull / turret) plus the shared track color,
+  consistent with the placeholder-art philosophy — final art can replace it in
+  the Phase 3 reskin without changing the trigger wiring

@@ -90,8 +90,7 @@ final class EnemyManager {
         }
 
         if enemy.takeDamage(damage) {
-            killCount += 1
-            recycle(enemy)
+            killAndRecycle(enemy)
             return true
         }
 
@@ -105,8 +104,7 @@ final class EnemyManager {
         }
 
         if enemy.takeDamage(damage) {
-            killCount += 1
-            recycle(enemy)
+            killAndRecycle(enemy)
             return true
         }
 
@@ -124,12 +122,24 @@ final class EnemyManager {
         }
 
         if enemy.takeContinuousDamage(amount) {
-            killCount += 1
-            recycle(enemy)
+            killAndRecycle(enemy)
             return true
         }
 
         return false
+    }
+
+    /// Single chokepoint for an enemy dying to damage (not reaching the base): bumps the
+    /// kill count, fires the death burst at the enemy's still-current position while its
+    /// node is still in the scene, then recycles it. Kept separate from `recycle` itself
+    /// because `recycle` is also used for enemies that *breach* the base — those should
+    /// not explode.
+    private func killAndRecycle(_ enemy: PlaceholderEnemy) {
+        killCount += 1
+        if let scene = enemy.node.scene {
+            enemy.spawnDeathEffect(in: scene)
+        }
+        recycle(enemy)
     }
 
     private func isActiveLife(_ enemy: PlaceholderEnemy, lifeID: Int) -> Bool {

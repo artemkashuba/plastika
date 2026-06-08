@@ -85,6 +85,13 @@ HP, speed, and value are what actually make each one play differently —
 mirroring how the tower roster differentiates mostly through livery on shared
 silhouettes.
 
+When an enemy is killed by damage (as opposed to reaching the base), it doesn't
+just vanish — it bursts apart "blown-apart toy" style: a white-hot flash, an
+expanding shockwave ring, and a scatter of its own livery-colored debris (hull
+chunks, the turret, dark track bits) flying outward, spinning, and fading. The
+burst is sized by chassis scale, so a Tank dies bigger and messier than a Scout.
+An enemy that breaches the base shows no such burst — only kills are celebrated.
+
 1. Scout — bright orange livery, smaller chassis (0.82×)
    - Fast (1.35× the baseline path speed)
    - Low HP (5) — dies in roughly one or two hits from almost anything,

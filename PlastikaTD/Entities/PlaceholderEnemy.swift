@@ -281,6 +281,101 @@ final class PlaceholderEnemy: GameEntity {
         core.run(.repeatForever(coreFlicker), withKey: beamBurnActionKey)
     }
 
+    // MARK: - Death effect
+
+    /// Spawns a self-contained "blown-apart toy" burst at this enemy's current position:
+    /// a white-hot flash, an expanding shockwave ring, and a scatter of livery-colored
+    /// debris shards (hull chunks, the turret, dark track bits) flying outward, spinning,
+    /// and fading. Added directly to `scene` — NOT as a child of `node` — so it outlives
+    /// the enemy, which is recycled the same frame it dies; every node self-removes when
+    /// its animation ends, so nothing here needs pooling or cleanup. Sized by
+    /// `type.chassisScale`, so a Tank dies bigger than a Scout. Mirrors the project's
+    /// existing transient-effect language (muzzle flash / impact flash / coin-fly):
+    /// short-lived `SKShapeNode`s, no physics.
+    func spawnDeathEffect(in scene: SKScene) {
+        let origin = node.position
+        let scale = type.chassisScale
+        let hull = type.hullColor
+        // Shared neutral "machine" track color — matches the tracks built in `init`.
+        let trackColor = SKColor(red: 0.14, green: 0.12, blue: 0.11, alpha: 1.0)
+
+        // Central glow — hull-tinted, expands and fades fast.
+        let glow = SKShapeNode(circleOfRadius: 16 * scale)
+        glow.position = origin
+        glow.fillColor = hull.withAlphaComponent(0.85)
+        glow.strokeColor = .clear
+        glow.zPosition = 26
+        scene.addChild(glow)
+        glow.run(.sequence([
+            .group([.scale(to: 1.8, duration: 0.18), .fadeOut(withDuration: 0.18)]),
+            .removeFromParent()
+        ]))
+
+        // White-hot core — brighter, smaller, even quicker than the glow.
+        let core = SKShapeNode(circleOfRadius: 8 * scale)
+        core.position = origin
+        core.fillColor = SKColor(white: 1.0, alpha: 0.95)
+        core.strokeColor = .clear
+        core.zPosition = 27
+        scene.addChild(core)
+        core.run(.sequence([
+            .group([.scale(to: 2.2, duration: 0.14), .fadeOut(withDuration: 0.14)]),
+            .removeFromParent()
+        ]))
+
+        // Shockwave ring — stroke-only, expands outward and thins as it fades.
+        let ring = SKShapeNode(circleOfRadius: 10 * scale)
+        ring.position = origin
+        ring.fillColor = .clear
+        ring.strokeColor = type.hullStrokeColor.withAlphaComponent(0.9)
+        ring.lineWidth = 3
+        ring.zPosition = 26
+        scene.addChild(ring)
+        ring.run(.sequence([
+            .group([.scale(to: 3.0, duration: 0.32), .fadeOut(withDuration: 0.32)]),
+            .removeFromParent()
+        ]))
+
+        // Debris shards — livery-colored chunks flying outward, spinning and shrinking.
+        let shards: [(size: CGSize, color: SKColor)] = [
+            (CGSize(width: 6, height: 5), hull),
+            (CGSize(width: 6, height: 5), hull),
+            (CGSize(width: 5, height: 6), hull),
+            (CGSize(width: 6, height: 6), type.turretColor),
+            (CGSize(width: 3, height: 8), trackColor),
+            (CGSize(width: 3, height: 8), trackColor)
+        ]
+        for (index, shard) in shards.enumerated() {
+            let piece = SKShapeNode(rectOf: shard.size, cornerRadius: 1.5)
+            piece.position = origin
+            piece.fillColor = shard.color
+            piece.strokeColor = .clear
+            piece.zPosition = 26
+            piece.setScale(scale)
+            piece.zRotation = CGFloat.random(in: 0...(2 * .pi))
+            scene.addChild(piece)
+
+            // Spread shards roughly evenly around the circle, with per-shard jitter.
+            let angle = (CGFloat(index) / CGFloat(shards.count)) * (2 * .pi)
+                + CGFloat.random(in: -0.4...0.4)
+            let distance = CGFloat.random(in: 22...46) * scale
+            let duration = TimeInterval(CGFloat.random(in: 0.38...0.52))
+
+            let move = SKAction.moveBy(x: cos(angle) * distance, y: sin(angle) * distance, duration: duration)
+            move.timingMode = .easeOut
+
+            piece.run(.sequence([
+                .group([
+                    move,
+                    .rotate(byAngle: CGFloat.random(in: -4...4), duration: duration),
+                    .scale(to: 0.2, duration: duration),
+                    .fadeOut(withDuration: duration)
+                ]),
+                .removeFromParent()
+            ]))
+        }
+    }
+
     func startMoving(along path: GamePath, completion: @escaping @MainActor () -> Void) {
         reset()
         lifeID += 1

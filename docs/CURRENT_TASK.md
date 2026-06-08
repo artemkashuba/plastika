@@ -2,6 +2,7 @@
 
 ## Current Status
 
+Enemy death effect (livery-colored debris burst on a damage kill) — complete.
 Enemy variety (Scout/Soldier/Tank) — complete.
 
 The repository now has:
@@ -62,6 +63,15 @@ Add haptics (next unchecked Phase 2 item in `TODO.md`).
 ## Immediate Goal
 
 Identify the moments that most deserve tactile feedback (tower placement, firing, enemy kills, base damage, wave start/clear, button taps?) and decide which haptic style (`UIImpactFeedbackGenerator` weight, `UINotificationFeedbackGenerator` for win/loss, etc.) fits each — keeping the same "small vertical slice" approach as every other feel-pass feature so far (recoil, muzzle flash, reload ring).
+
+## Previous Milestone — Enemy Death Effect
+
+Killing an enemy now has a real visual payoff instead of the node silently vanishing — the most-repeated moment in the game finally rewards the player:
+
+- New `PlaceholderEnemy.spawnDeathEffect(in:)` builds a self-contained "blown-apart toy" burst at the enemy's current position: a hull-tinted glow, a brighter white-hot core, an expanding stroke-only shockwave ring, and six livery-colored debris shards (three hull chunks, the turret, two dark track bits) that fly outward on roughly even angles (with per-shard jitter), spinning, shrinking, and fading over ~0.4–0.5s. The whole burst is scaled by `type.chassisScale`, so a Tank dies bigger than a Scout
+- Crucially, the effect is added to the **scene**, not as a child of the enemy `node` — the enemy is recycled the same frame it dies, so a child effect would be torn down instantly. Every effect node self-removes via `SKAction.removeFromParent()`, so there's no pooling or cleanup bookkeeping (mirrors the existing transient-effect language: `ProjectileManager.showImpactFlash`, `PlaceholderEnemy.showBeamBurn`, `UIManager.flyCoinReward`)
+- Wired in at a single chokepoint: `EnemyManager.killAndRecycle(_:)` (new private helper) bumps `killCount`, fires the burst while the enemy node is still in the scene, then recycles — replacing the duplicated `killCount += 1; recycle(...)` in all three damage paths (`applyDamage`, `applyDamage(matchingLifeID:)`, `applyContinuousDamage`), so both projectile and beam kills get it for free. Deliberately kept **out** of `recycle` itself, because `recycle` is also used for enemies that *breach* the base — those should not explode
+- No physics, no new assets, no per-frame cost — a handful of short-lived `SKShapeNode`s per kill, in keeping with the performance rules
 
 ## Previous Milestone — Enemy Variety (Scout/Soldier/Tank)
 
