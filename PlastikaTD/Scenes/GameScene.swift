@@ -69,6 +69,16 @@ final class GameScene: SKScene {
         table.position = CGPoint(x: size.width / 2, y: size.height / 2)
         addChild(table)
 
+        // Static decorative scenery — toy trees, bushes, rocks, grass tufts, and the
+        // spawn-camp / base-objective markers at the path ends. Purely cosmetic, built once,
+        // and rendered below gameplay units. Added here (not in buildGameplaySlice) so it
+        // persists across restarts like the table, since this method only runs once.
+        let path = systems.pathManager.activePath
+        addChild(SceneryFactory.makeScenery(
+            start: path.startPoint ?? .zero,
+            end: path.endPoint ?? .zero
+        ))
+
         // Warm up AVAudioEngine and preload all audio files into SpriteKit's buffer cache.
         // SKAction.playSoundFileNamed starts the audio engine synchronously on first call,
         // causing a 5-10 second freeze. Adding SKAudioNode instances here forces that work

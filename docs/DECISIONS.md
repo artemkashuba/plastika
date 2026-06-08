@@ -1384,3 +1384,41 @@ targeting, fiery-orange blast — all chosen by the user.
   to the true ground position, stays flat). Because the lift term dominates the bounded ground
   delta, the result is a strong, smooth arc: nose-up on the climb, level at the apex, nose-down
   plunging onto the impact — the standard "orient to trajectory tangent" approach.
+
+## 2026-06-08 (Decorative Tabletop Scenery)
+
+**Decision**: Dressed the bare green battlefield with static decorative toy scenery — a mix of
+round and pine trees, bushes, rocks, and grass tufts in the empty pockets — plus two objective
+markers: an enemy "camp" (tent + flag) at the spawn and a player "base" bunker (flag) at the
+path end. Implemented as a new `SceneryFactory` enum, added once in `GameScene`. Scope chosen by
+the user (mix of tree shapes, sparse density, *and* both markers + rocks/tufts).
+
+**Reason**:
+
+- **The map read as empty**: the tabletop was a single green slab with a road — fine
+  functionally, flat visually. Minimalist toy scenery is squarely in the documented art
+  direction ("plastic toy appearance / clean silhouettes / tabletop battlefield presentation")
+  and is the cheapest, lowest-risk way to add life. The user proposed trees; offered options,
+  they picked a mix of shapes, sparse density, and adding the spawn/base markers + ground detail.
+- **Markers earn their place on readability, not just looks**: the board had no visual for
+  *what* you defend or *where* enemies come from. A camp at the start and a base at the end make
+  the route legible at a glance and reinforce the toy-army theme — a genuine UX win folded into
+  the cosmetic pass (the spawn/base use the same `GamePath.start/endPoint` the Mortar already
+  needed).
+- **`SceneryFactory` enum, mirroring `TowerGunFactory`**: scenery is pure node-construction with
+  no state, so a namespaced enum of static builders fits the established pattern exactly and
+  keeps `GameScene` thin (one `makeScenery` call). New `.swift` file registered in the classic
+  pbxproj (no synchronized groups in this project) the same way `EnemyType`/`TowerGunFactory`
+  are.
+- **Fixed positions, not procedural placement**: a single hand-tuned map reads as *designed* and
+  guarantees nothing overlaps the road or the five build spots / their menus. A
+  randomize-and-avoid algorithm would add complexity and risk ugly placements for zero benefit
+  on one fixed map — hardcoded points were verified clear in the simulator.
+- **Added in `buildPlaceholderScene`, at `zPosition` 6**: that method runs once (guarded), like
+  the table, so scenery persists across restarts without re-adding — and z6 sits above the road
+  (5) but below every gameplay unit (enemies 20 / towers / projectiles), so combat never gets
+  occluded (tanks visibly emerge over the spawn camp). No per-frame cost, no pooling — it's
+  inert decoration.
+- **Placeholder, reskin-ready**: built from procedural `SKShapeNode`s tinted to match the
+  roster's toy-plastic look (soft shadow + fill + outline + specular). Per `ART_ASSET_BRIEF.md`,
+  the Phase 3 art pass can replace these with sprites without touching any gameplay wiring.

@@ -2,6 +2,7 @@
 
 ## Current Status
 
+Decorative tabletop scenery (trees/bushes/rocks/tufts + spawn & base markers) — complete.
 Blue "Mortar" redesign (lobbed arc + splash explosion, area/crowd-control niche) — complete.
 Enemy death effect (livery-colored debris burst on a damage kill) — complete.
 Enemy variety (Scout/Soldier/Tank) — complete.
@@ -64,6 +65,31 @@ Add haptics (next unchecked Phase 2 item in `TODO.md`).
 ## Immediate Goal
 
 Identify the moments that most deserve tactile feedback (tower placement, firing, enemy kills, base damage, wave start/clear, button taps?) and decide which haptic style (`UIImpactFeedbackGenerator` weight, `UINotificationFeedbackGenerator` for win/loss, etc.) fits each — keeping the same "small vertical slice" approach as every other feel-pass feature so far (recoil, muzzle flash, reload ring).
+
+## Previous Milestone — Decorative Tabletop Scenery
+
+The battlefield was a bare green slab with a road through it; it's now dressed with static toy
+scenery and objective markers, breaking up the empty green and improving readability without
+touching gameplay.
+
+- New `SceneryFactory` (enum, mirroring `TowerGunFactory`'s shape) builds one container node
+  of all scenery: round "lollipop" trees, triangular pines, bushes, rocks, and grass tufts —
+  a mix of ~8 trees/bushes plus rocks and tufts — each with the roster's toy-plastic language
+  (soft drop shadow, clean fill, dark outline, specular highlight).
+- Two objective markers anchor the route: a khaki enemy **camp** (tent + dark entrance + maroon
+  flag) at the spawn, and a friendly **base** bunker (cyan flag) at the path end the player
+  defends. They take the path's `start`/`end` points (new `GamePath.endPoint` from the Mortar
+  work, reused here) and are nudged slightly inward so they sit on the table, not its edge.
+- All hand-placed at **fixed** scene positions in the empty pockets away from the road and the
+  five build spots (verified in the simulator — nothing overlaps the road or build plates), so
+  the map reads as designed rather than randomized per launch.
+- The whole container sits at `zPosition` 6 — above the road (5), below gameplay units
+  (enemies 20 / towers / projectiles) — so combat always draws clearly on top (e.g. tanks
+  emerge *over* the spawn camp).
+- Added once in `GameScene.buildPlaceholderScene` (alongside the table), which runs a single
+  time, so the scenery persists across restarts like the table — no per-frame cost, no pooling.
+- Purely cosmetic placeholder art in the spirit of `ART_ASSET_BRIEF.md`: the eventual Phase 3
+  reskin can swap these procedural shapes for sprites without touching any gameplay wiring.
 
 ## Previous Milestone — Blue "Mortar" Redesign
 

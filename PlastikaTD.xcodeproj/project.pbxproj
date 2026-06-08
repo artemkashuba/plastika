@@ -33,6 +33,7 @@
 		1A0000372C12400100000001 /* TowerType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000372C12400000000001 /* TowerType.swift */; };
 		1A0000382C12400100000001 /* BaseHealthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000382C12400000000001 /* BaseHealthManager.swift */; };
 		1A0000602C12400100000001 /* TowerGunFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000602C12400000000001 /* TowerGunFactory.swift */; };
+		1A0000AA2C12400100000001 /* SceneryFactory.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000AA2C12400000000001 /* SceneryFactory.swift */; };
 		1A0000612C12400100000001 /* PauseMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000612C12400000000001 /* PauseMenuView.swift */; };
 		1A0000402C12400100000001 /* tower_shoot_red.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000402C12400000000001 /* tower_shoot_red.wav */; };
 		1A0000412C12400100000001 /* tower_shoot_green.wav in Resources */ = {isa = PBXBuildFile; fileRef = 1A0000412C12400000000001 /* tower_shoot_green.wav */; };
@@ -84,6 +85,7 @@
 		1A0000372C12400000000001 /* TowerType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TowerType.swift; sourceTree = "<group>"; };
 		1A0000382C12400000000001 /* BaseHealthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseHealthManager.swift; sourceTree = "<group>"; };
 		1A0000602C12400000000001 /* TowerGunFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TowerGunFactory.swift; sourceTree = "<group>"; };
+		1A0000AA2C12400000000001 /* SceneryFactory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneryFactory.swift; sourceTree = "<group>"; };
 		1A0000612C12400000000001 /* PauseMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PauseMenuView.swift; sourceTree = "<group>"; };
 		1A0000402C12400000000001 /* tower_shoot_red.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tower_shoot_red.wav; sourceTree = "<group>"; };
 		1A0000412C12400000000001 /* tower_shoot_green.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = tower_shoot_green.wav; sourceTree = "<group>"; };
@@ -184,6 +186,7 @@
 				1A0000292C12400000000001 /* PlaceholderTower.swift */,
 				1A0000362C12400000000001 /* PlaceholderProjectile.swift */,
 				1A0000602C12400000000001 /* TowerGunFactory.swift */,
+				1A0000AA2C12400000000001 /* SceneryFactory.swift */,
 			);
 			path = Entities;
 			sourceTree = "<group>";
@@ -368,6 +371,7 @@
 				1A0000292C12400100000001 /* PlaceholderTower.swift in Sources */,
 				1A0000362C12400100000001 /* PlaceholderProjectile.swift in Sources */,
 				1A0000602C12400100000001 /* TowerGunFactory.swift in Sources */,
+				1A0000AA2C12400100000001 /* SceneryFactory.swift in Sources */,
 				1A0000612C12400100000001 /* PauseMenuView.swift in Sources */,
 				1A00000E2C12400100000001 /* GameView.swift in Sources */,
 				1A00000F2C12400100000001 /* GameScene.swift in Sources */,

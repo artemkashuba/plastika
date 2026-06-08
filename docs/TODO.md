@@ -72,6 +72,7 @@
 ## Phase 3 - Polish
 
 - [x] Draft AI-generation art-asset brief and style guide (`docs/ART_ASSET_BRIEF.md`) — prep for the reskin below
+- [x] Add decorative tabletop scenery — toy trees (round + pine), bushes, rocks, and grass tufts in the empty green, plus a spawn "camp" marker and a base/objective marker at the path ends (purely cosmetic, fixed positions, rendered below gameplay units) — `SceneryFactory`
 - [ ] Replace placeholder art
 - [ ] Improve animations
 - [ ] Add skins

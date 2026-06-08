@@ -155,6 +155,17 @@ Base health reaches zero. Player starts with 3 lives. Each enemy that reaches th
 - Easy readability
 - Tabletop battlefield presentation
 
+### Battlefield Scenery
+
+The tabletop is dressed with static, purely-decorative toy scenery to break up the bare green —
+round "lollipop" trees, triangular pines, bushes, rocks, and grass tufts scattered through the
+empty pockets away from the road and build spots, each with a soft shadow and specular highlight
+matching the roster's toy-plastic look. Two markers also anchor the route's readability: a khaki
+enemy "camp" (tent + maroon flag, the enemy livery color) at the spawn point, and a friendly
+"base" bunker (cyan flag) at the path end the player defends. All of it is cosmetic, hand-placed
+at fixed positions (so the map reads as designed, not random), and rendered below gameplay units
+so towers, enemies, and projectiles always draw clearly on top.
+
 ## Tone
 
 - Playful
