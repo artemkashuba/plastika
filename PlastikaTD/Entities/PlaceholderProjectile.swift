@@ -323,6 +323,16 @@ final class PlaceholderProjectile: GameEntity {
             self.shellLiftNode.setScale(1 + 0.5 * arc)
             // Shadow is full-size on the ground (t≈0 or 1) and smallest at the apex.
             self.shellShadowNode.setScale(0.4 + 0.6 * (1 - arc))
+
+            // Rotate the shell to follow its ballistic tangent — nose up on the way out, level
+            // at the apex, nose down toward the landing. The shell's apparent screen-space
+            // velocity is the constant ground travel (dx, dy) plus the lift's rate of change
+            // (d/dt of sin(t·π)·peakHeight = cos(t·π)·π·peakHeight, pointing screen-up). The
+            // flight duration is a common factor in both components, so it cancels inside
+            // atan2 and doesn't need to appear here. Rest orientation points +y, hence −π/2.
+            let velocityX = dx
+            let velocityY = dy + cos(t * .pi) * .pi * peakHeight
+            self.shellLiftNode.zRotation = atan2(velocityY, velocityX) - (.pi / 2)
         }
 
         node.run(

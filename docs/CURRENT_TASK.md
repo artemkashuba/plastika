@@ -81,7 +81,10 @@ landing on the road the whole point.)
 - **Shell**: new `ProjectileVisualStyle.shell` + `PlaceholderProjectile.startLobbedTravel` — a
   dark finned bomb whose true `node.position` tracks the straight ground line to the landing
   point (so impact/splash/shadow are exact) while the body floats above on a sine-curve arc and
-  a ground shadow grows as it descends. Faked height, no real 3rd dimension.
+  a ground shadow grows as it descends. Faked height, no real 3rd dimension. The shell also
+  rotates to follow its ballistic tangent (nose-up climbing → level at apex → nose-down
+  plunging), derived from its apparent screen-space velocity (ground travel + lift rate of
+  change), so it reads as a real arcing round rather than a fixed-upright bomb.
 - **Explosion**: `ProjectileManager.fireMortarShell` + `showExplosion` — a fiery orange
   fireball, white-hot core, expanding shockwave ring, and scattered smoke puffs sized to the
   blast radius (same transient-`SKShapeNode` language as the impact flash / death burst).

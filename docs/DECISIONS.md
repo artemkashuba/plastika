@@ -1375,3 +1375,12 @@ targeting, fiery-orange blast — all chosen by the user.
 - **Corrected stale GAME_DESIGN figures along the way**: the doc still listed Blue as
   "0.90s / 2 dmg"; the real values were 1.40s / 4 dmg. Updated to the accurate (new) numbers
   rather than leave a known-wrong spec.
+- **Ballistic shell rotation (user follow-up)**: the first pass left the shell visually upright
+  for the whole arc, which read as unnatural. The shell now orients to its *apparent screen-space
+  velocity* — the constant ground travel `(dx, dy)` plus the lift's rate of change
+  `cos(t·π)·π·peakHeight` (screen-up). The flight duration is a common factor in both
+  components so it cancels inside `atan2`, leaving a clean per-frame
+  `zRotation = atan2(dy + cos(t·π)·π·peakHeight, dx) − π/2` on the lift node (the shadow, parented
+  to the true ground position, stays flat). Because the lift term dominates the bounded ground
+  delta, the result is a strong, smooth arc: nose-up on the climb, level at the apex, nose-down
+  plunging onto the impact — the standard "orient to trajectory tangent" approach.
