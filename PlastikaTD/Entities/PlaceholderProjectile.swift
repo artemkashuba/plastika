@@ -19,6 +19,15 @@ final class PlaceholderProjectile: GameEntity {
     private let exhaustGlowNode: SKShapeNode
     private let exhaustCoreNode: SKShapeNode
 
+    // Shell variant — a dark finned mortar bomb that lobs in an arc. The body + fins live on
+    // `shellLiftNode`, which is offset upward each frame to fake height in the top-down view,
+    // while `shellShadowNode` stays on the ground (the projectile's true `node.position`) and
+    // grows as the shell descends — selling the arc without a real third dimension.
+    private let shellLiftNode: SKNode
+    private let shellBodyNode: SKShapeNode
+    private let shellFinNode: SKShapeNode
+    private let shellShadowNode: SKShapeNode
+
     private var style: ProjectileVisualStyle = .orb
     private var smokeColor = SKColor(white: 0.60, alpha: 0.50)
 
@@ -78,6 +87,35 @@ final class PlaceholderProjectile: GameEntity {
         nose.isHidden = true
         root.addChild(nose)
 
+        // Shadow — stays on the ground at the shell's true position, grows as it descends.
+        let shellShadow = SKShapeNode(ellipseOf: CGSize(width: 14, height: 7))
+        shellShadow.fillColor = SKColor(white: 0.0, alpha: 0.28)
+        shellShadow.strokeColor = .clear
+        shellShadow.zPosition = -1
+        shellShadow.isHidden = true
+        root.addChild(shellShadow)
+
+        // Lift node — carries the floating shell body/fins; offset upward to fake arc height.
+        let shellLift = SKNode()
+        shellLift.zPosition = 2
+        shellLift.isHidden = true
+        root.addChild(shellLift)
+
+        // Tail fins — flare out at the base, tinted with the tower's signature color.
+        let shellFin = SKShapeNode()
+        shellFin.strokeColor = .clear
+        shellFin.zPosition = 0
+        shellFin.isHidden = true
+        shellLift.addChild(shellFin)
+
+        // Body — a stubby dark bomb hull (rest orientation points +y).
+        let shellBody = SKShapeNode()
+        shellBody.strokeColor = SKColor(white: 1.0, alpha: 0.18)
+        shellBody.lineWidth = 1
+        shellBody.zPosition = 1
+        shellBody.isHidden = true
+        shellLift.addChild(shellBody)
+
         node = root
         glowNode = glow
         coreNode = core
@@ -85,6 +123,10 @@ final class PlaceholderProjectile: GameEntity {
         rocketNoseNode = nose
         exhaustGlowNode = exhaustGlow
         exhaustCoreNode = exhaustCore
+        shellLiftNode = shellLift
+        shellBodyNode = shellBody
+        shellFinNode = shellFin
+        shellShadowNode = shellShadow
     }
 
     /// Resets every bit of visual state for the requested style — color, geometry,
@@ -104,6 +146,7 @@ final class PlaceholderProjectile: GameEntity {
             rocketNoseNode.isHidden = true
             exhaustGlowNode.isHidden = true
             exhaustCoreNode.isHidden = true
+            hideShellNodes()
 
             coreNode.fillColor = color
             glowNode.fillColor = color.withAlphaComponent(0.28)
@@ -117,6 +160,7 @@ final class PlaceholderProjectile: GameEntity {
             rocketNoseNode.isHidden = false
             exhaustGlowNode.isHidden = false
             exhaustCoreNode.isHidden = false
+            hideShellNodes()
 
             let bodyWidth = r * 1.7
             let bodyLength = r * 3.4
@@ -158,7 +202,59 @@ final class PlaceholderProjectile: GameEntity {
             )
 
             smokeColor = SKColor(white: 0.60, alpha: 0.50)
+
+        case .shell:
+            glowNode.isHidden = true
+            coreNode.isHidden = true
+            rocketBodyNode.isHidden = true
+            rocketNoseNode.isHidden = true
+            exhaustGlowNode.isHidden = true
+            exhaustCoreNode.isHidden = true
+
+            shellLiftNode.isHidden = false
+            shellBodyNode.isHidden = false
+            shellFinNode.isHidden = false
+            shellShadowNode.isHidden = false
+            shellLiftNode.position = .zero
+            shellLiftNode.setScale(1)
+            shellLiftNode.zRotation = 0
+            shellShadowNode.setScale(1)
+
+            let bodyWidth = r * 1.2
+            let bodyLength = r * 2.6
+            let halfBody = bodyLength / 2
+
+            shellBodyNode.fillColor = SKColor(white: 0.13, alpha: 1.0)
+            shellBodyNode.strokeColor = color.withAlphaComponent(0.55)
+            shellBodyNode.path = CGPath(
+                roundedRect: CGRect(x: -bodyWidth / 2, y: -halfBody, width: bodyWidth, height: bodyLength),
+                cornerWidth: bodyWidth * 0.45,
+                cornerHeight: bodyWidth * 0.45,
+                transform: nil
+            )
+
+            let finSpan = bodyWidth * 1.7
+            let finPath = CGMutablePath()
+            finPath.move(to: CGPoint(x: -bodyWidth / 2, y: -halfBody + r * 0.5))
+            finPath.addLine(to: CGPoint(x: -finSpan / 2, y: -halfBody - r * 0.4))
+            finPath.addLine(to: CGPoint(x: -bodyWidth / 2, y: -halfBody))
+            finPath.closeSubpath()
+            finPath.move(to: CGPoint(x: bodyWidth / 2, y: -halfBody + r * 0.5))
+            finPath.addLine(to: CGPoint(x: finSpan / 2, y: -halfBody - r * 0.4))
+            finPath.addLine(to: CGPoint(x: bodyWidth / 2, y: -halfBody))
+            finPath.closeSubpath()
+            shellFinNode.fillColor = color
+            shellFinNode.path = finPath
         }
+    }
+
+    /// Hides every shell-variant node — called from the orb/rocket configure branches so a
+    /// pooled instance reused as a different style never leaves a stale shell/shadow on screen.
+    private func hideShellNodes() {
+        shellLiftNode.isHidden = true
+        shellBodyNode.isHidden = true
+        shellFinNode.isHidden = true
+        shellShadowNode.isHidden = true
     }
 
     func reset() {
@@ -166,6 +262,10 @@ final class PlaceholderProjectile: GameEntity {
         node.removeFromParent()
         node.isHidden = true
         node.zRotation = 0
+        shellLiftNode.position = .zero
+        shellLiftNode.setScale(1)
+        shellLiftNode.zRotation = 0
+        shellShadowNode.setScale(1)
     }
 
     func startDirectTravel(
@@ -187,6 +287,48 @@ final class PlaceholderProjectile: GameEntity {
                 SKAction.run {
                     completion(true)
                 }
+            ]),
+            withKey: travelActionKey
+        )
+    }
+
+    /// Lobs the shell in an arc from `startPosition` to `landingPosition` over `duration`.
+    /// The projectile's true `node.position` travels the straight ground line between the two
+    /// (so the impact, shadow, and splash all land exactly where intended), while the shell
+    /// body floats above it on a sine-curve "lift" that peaks at `peakHeight` mid-flight and
+    /// returns to zero on touchdown — and the ground shadow grows as it comes down. Always
+    /// completes with `true`: a mortar shell always lands and explodes, even on empty road.
+    func startLobbedTravel(
+        from startPosition: CGPoint,
+        to landingPosition: CGPoint,
+        duration: TimeInterval,
+        peakHeight: CGFloat,
+        completion: @escaping @MainActor (Bool) -> Void
+    ) {
+        node.removeAction(forKey: travelActionKey)
+        node.position = startPosition
+        node.isHidden = false
+
+        let dx = landingPosition.x - startPosition.x
+        let dy = landingPosition.y - startPosition.y
+        let safeDuration = max(0.1, duration)
+
+        let lob = SKAction.customAction(withDuration: safeDuration) { [weak self] node, elapsed in
+            guard let self else { return }
+            let t = min(1, elapsed / CGFloat(safeDuration))
+            node.position = CGPoint(x: startPosition.x + dx * t, y: startPosition.y + dy * t)
+
+            let arc = sin(t * .pi)
+            self.shellLiftNode.position = CGPoint(x: 0, y: arc * peakHeight)
+            self.shellLiftNode.setScale(1 + 0.5 * arc)
+            // Shadow is full-size on the ground (t≈0 or 1) and smallest at the apex.
+            self.shellShadowNode.setScale(0.4 + 0.6 * (1 - arc))
+        }
+
+        node.run(
+            SKAction.sequence([
+                lob,
+                SKAction.run { completion(true) }
             ]),
             withKey: travelActionKey
         )

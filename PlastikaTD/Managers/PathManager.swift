@@ -8,6 +8,12 @@ struct GamePath {
     var startPoint: CGPoint? {
         waypoints.first
     }
+
+    /// The path's final waypoint — where enemies breach the base. The Mortar aims its shells
+    /// relative to this so it bombards the leading edge of the advance.
+    var endPoint: CGPoint? {
+        waypoints.last
+    }
 }
 
 @MainActor

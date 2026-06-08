@@ -1324,3 +1324,54 @@ damage paths now funnel through.
   the enemy's own `EnemyType` colors (hull / turret) plus the shared track color,
   consistent with the placeholder-art philosophy — final art can replace it in
   the Phase 3 reskin without changing the trigger wiring
+
+## 2026-06-08 (Blue "Mortar" Redesign)
+
+**Decision**: Reworked the Blue tower from a predictive direct-fire "Heavy Cannon" into a
+**Mortar** — a lobbed-shell, splash-damage area tower. It picks the lead enemy, lobs an
+arcing shell onto that enemy's predicted point on the road, and detonates in a fiery orange
+explosion that damages every enemy within a 55pt blast radius. New chunky high-angle tube
+visual (baseplate + bipod + flared tube + 3D angled mouth) and a dark finned shell that arcs
+with a ground shadow, replacing the cyan orb. Reload kept slow (~1.4s), 4 damage, lead-enemy
+targeting, fiery-orange blast — all chosen by the user.
+
+**Reason**:
+
+- **Fixes the actual complaint, and fills a real gap**: the user disliked that Blue's
+  predictive aim fired *ahead* of the enemy onto open road ("hitting into a random place").
+  A mortar makes landing on the road the entire point, and splash means an imperfect landing
+  still hits. It also gives the roster its missing **area/crowd-control** niche — Red/Green/Pink
+  are all single-target (direct / homing / beam), so this is genuine mechanical variety, not a
+  DPS reskin (squarely in line with GAME_DESIGN's "every tower owns a clear best-at-X" rule).
+- **Slow & heavy over faster reload (user reversal, honored)**: the opening message said
+  "increase reload speed," but when offered the trade the user picked "keep it slow & heavy
+  (~1.4s)" so the big splash is the payoff. Single-target DPS is therefore unchanged (≈2.9) —
+  the upgrade is purely the area damage, which keeps it balanced against the soft-counter
+  tuning while making it shine specifically against bunched waves.
+- **New `.mortar` behavior + `.shell` style, not retrofitting `.direct`**: a lobbed AoE shell
+  has a fundamentally different flight (parabolic arc), impact (area, on the ground, always
+  detonates — even on empty road), and targeting (lead enemy, predicted landing) than a
+  straight single-target shot. A dedicated behavior + a dedicated `updateMortarCombat` branch
+  keeps it cleanly separate from the untouched direct/homing/beam paths, mirroring how the
+  beam tower already got its own branch.
+- **Lead-enemy targeting (not nearest)**: a mortar should bombard the *front* of the advance
+  (the enemies about to breach), so `EnemyManager.leadEnemy` picks the one closest to the path
+  end within range. The path end comes from a new `GamePath.endPoint`, threaded into
+  `updateCombat` as `pathEndPoint` rather than coupling `TowerManager` to `PathManager`.
+- **Faked arc, real impact point**: `startLobbedTravel` moves the projectile's true
+  `node.position` along the straight ground line to the landing point — so the explosion,
+  splash, and shadow are all exactly where intended — while only the *visual* body floats up
+  on a `sin(t·π)` lift and the shadow grows as it descends. No real 3D, no physics; the same
+  cheap top-down trick the rest of the game uses, and it keeps damage math trivial.
+- **Explosion reuses the established transient-FX language**: `showExplosion` is the same
+  spawn → scale/fade → self-remove `SKShapeNode` pattern as the impact flash and enemy death
+  burst, just bigger and tuned orange to read as fire. The artillery boom sound was moved from
+  launch to the explosion moment so the satisfying audio lands on the hit, not the lob.
+- **Beefed-up tube visual (user-requested follow-up)**: the first pass was a minimal dark
+  slit that barely read as a mortar. Rebuilt with a baseplate, bipod, an upward-flaring tube
+  with cylinder sheen + reinforcement bands, and a 3D angled elliptical mouth (steel rim, dark
+  bore, specular glint) — verified in the simulator to read clearly as a high-angle mortar from
+  the top-down camera.
+- **Corrected stale GAME_DESIGN figures along the way**: the doc still listed Blue as
+  "0.90s / 2 dmg"; the real values were 1.40s / 4 dmg. Updated to the accurate (new) numbers
+  rather than leave a known-wrong spec.

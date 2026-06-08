@@ -107,46 +107,114 @@ enum TowerGunFactory {
 
             tipOffset = CGPoint(x: 0, y: 23)
 
-        // ── BLUE: heavy siege cannon ─────────────────────────────────────────
+        // ── BLUE: mortar ─────────────────────────────────────────────────────
+        // A chunky, upward-flaring tube with a 3D angled (elliptical) mouth, sitting on a
+        // baseplate + bipod — reads unmistakably as a high-angle mortar from the top-down
+        // camera, not a flat direct-fire cannon. The tube recoils straight down into the
+        // base on launch (barrelNode kicks back along +y), like a real mortar absorbing the
+        // shell. The dark elliptical bore is where the lobbed shell and muzzle flash spawn.
         case .blue:
-            let turret = SKShapeNode(circleOfRadius: 12)
-            turret.fillColor = type.turretColor
-            turret.strokeColor = SKColor(white: 1.0, alpha: 0.40)
-            turret.lineWidth = 2.5
-            turret.zPosition = 1
-            aimNode.addChild(turret)
+            let steel = SKColor(red: 0.40, green: 0.48, blue: 0.58, alpha: 1.0)
 
-            let collar = SKShapeNode(circleOfRadius: 14)
-            collar.fillColor = .clear
-            collar.strokeColor = type.barrelColor
-            collar.lineWidth = 3
-            collar.zPosition = 1
+            // Baseplate — flat dark slab the whole weapon is bedded into.
+            let baseplate = SKShapeNode(rectOf: CGSize(width: 26, height: 16), cornerRadius: 6)
+            baseplate.fillColor = SKColor(white: 0.14, alpha: 1.0)
+            baseplate.strokeColor = SKColor(white: 1.0, alpha: 0.12)
+            baseplate.lineWidth = 1
+            baseplate.position = CGPoint(x: 0, y: -2)
+            baseplate.zPosition = 0
+            aimNode.addChild(baseplate)
+
+            // Bipod legs — a splayed V bracing the tube against the baseplate.
+            let legL = SKShapeNode(rectOf: CGSize(width: 4, height: 20), cornerRadius: 2)
+            legL.fillColor = type.barrelColor
+            legL.strokeColor = SKColor(white: 1.0, alpha: 0.15)
+            legL.lineWidth = 1
+            legL.position = CGPoint(x: -9, y: 7)
+            legL.zRotation = 0.5
+            legL.zPosition = 1
+            aimNode.addChild(legL)
+
+            let legR = SKShapeNode(rectOf: CGSize(width: 4, height: 20), cornerRadius: 2)
+            legR.fillColor = type.barrelColor
+            legR.strokeColor = SKColor(white: 1.0, alpha: 0.15)
+            legR.lineWidth = 1
+            legR.position = CGPoint(x: 9, y: 7)
+            legR.zRotation = -0.5
+            legR.zPosition = 1
+            aimNode.addChild(legR)
+
+            // Pivot collar — the swivel the tube rotates on.
+            let collar = SKShapeNode(circleOfRadius: 9)
+            collar.fillColor = type.turretColor
+            collar.strokeColor = SKColor(white: 1.0, alpha: 0.40)
+            collar.lineWidth = 2
+            collar.zPosition = 2
             aimNode.addChild(collar)
 
-            let jacket = SKShapeNode(rectOf: CGSize(width: 14, height: 18), cornerRadius: 4)
-            jacket.fillColor = type.barrelColor
-            jacket.strokeColor = SKColor(white: 1.0, alpha: 0.18)
-            jacket.lineWidth = 1.5
-            jacket.position = CGPoint(x: 0, y: 15)
-            jacket.zPosition = 2
-            barrelNode.addChild(jacket)
+            // ── Tube (recoils) — flares wider toward the mouth. ──
+            let tubePath = CGMutablePath()
+            tubePath.move(to: CGPoint(x: -6, y: 2))
+            tubePath.addLine(to: CGPoint(x: 6, y: 2))
+            tubePath.addLine(to: CGPoint(x: 9, y: 22))
+            tubePath.addLine(to: CGPoint(x: -9, y: 22))
+            tubePath.closeSubpath()
+            let tube = SKShapeNode(path: tubePath)
+            tube.fillColor = type.barrelColor
+            tube.strokeColor = SKColor(white: 1.0, alpha: 0.22)
+            tube.lineWidth = 1.5
+            tube.zPosition = 3
+            barrelNode.addChild(tube)
 
-            let barrel = SKShapeNode(rectOf: CGSize(width: 8, height: 26), cornerRadius: 3)
-            barrel.fillColor = SKColor(white: 0.12, alpha: 1.0)
-            barrel.strokeColor = .clear
-            barrel.position = CGPoint(x: 0, y: 16)
-            barrel.zPosition = 3
-            barrelNode.addChild(barrel)
+            // Cylinder shading — a soft lighter sliver up the left flank of the tube.
+            let sheen = SKShapeNode(rectOf: CGSize(width: 3, height: 17), cornerRadius: 1.5)
+            sheen.fillColor = SKColor(white: 1.0, alpha: 0.14)
+            sheen.strokeColor = .clear
+            sheen.position = CGPoint(x: -4, y: 11)
+            sheen.zRotation = 0.06
+            sheen.zPosition = 4
+            barrelNode.addChild(sheen)
 
-            let muzzle = SKShapeNode(rectOf: CGSize(width: 14, height: 5), cornerRadius: 2)
-            muzzle.fillColor = type.barrelColor
-            muzzle.strokeColor = SKColor(white: 1.0, alpha: 0.28)
-            muzzle.lineWidth = 1
-            muzzle.position = CGPoint(x: 0, y: 30)
-            muzzle.zPosition = 4
-            barrelNode.addChild(muzzle)
+            // Reinforcement bands wrapping the tube.
+            let bandLow = SKShapeNode(rectOf: CGSize(width: 15, height: 3.5), cornerRadius: 1.5)
+            bandLow.fillColor = SKColor(white: 0.10, alpha: 1.0)
+            bandLow.strokeColor = .clear
+            bandLow.position = CGPoint(x: 0, y: 8)
+            bandLow.zPosition = 5
+            barrelNode.addChild(bandLow)
 
-            tipOffset = CGPoint(x: 0, y: 33)
+            let bandHigh = SKShapeNode(rectOf: CGSize(width: 17, height: 3.5), cornerRadius: 1.5)
+            bandHigh.fillColor = SKColor(white: 0.10, alpha: 1.0)
+            bandHigh.strokeColor = .clear
+            bandHigh.position = CGPoint(x: 0, y: 15)
+            bandHigh.zPosition = 5
+            barrelNode.addChild(bandHigh)
+
+            // ── Mouth — an angled elliptical opening (wider than tall) for a 3D look. ──
+            let mouthRim = SKShapeNode(ellipseOf: CGSize(width: 21, height: 11))
+            mouthRim.fillColor = steel
+            mouthRim.strokeColor = SKColor(white: 1.0, alpha: 0.30)
+            mouthRim.lineWidth = 1.5
+            mouthRim.position = CGPoint(x: 0, y: 22)
+            mouthRim.zPosition = 6
+            barrelNode.addChild(mouthRim)
+
+            let bore = SKShapeNode(ellipseOf: CGSize(width: 14, height: 7))
+            bore.fillColor = SKColor(white: 0.05, alpha: 1.0)
+            bore.strokeColor = .clear
+            bore.position = CGPoint(x: 0, y: 21.5)
+            bore.zPosition = 7
+            barrelNode.addChild(bore)
+
+            // Specular crescent on the near lip of the bore — sells the angled 3D mouth.
+            let glint = SKShapeNode(ellipseOf: CGSize(width: 8, height: 2.5))
+            glint.fillColor = SKColor(white: 1.0, alpha: 0.55)
+            glint.strokeColor = .clear
+            glint.position = CGPoint(x: -2, y: 24)
+            glint.zPosition = 8
+            barrelNode.addChild(glint)
+
+            tipOffset = CGPoint(x: 0, y: 23)
 
         // ── PINK: laser lance ────────────────────────────────────────────────
         case .pink:

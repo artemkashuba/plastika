@@ -202,6 +202,7 @@ final class GameScene: SKScene {
             projectileManager: systems.projectileManager,
             economyManager: systems.economyManager,
             uiManager: systems.uiManager,
+            pathEndPoint: systems.pathManager.activePath.endPoint ?? .zero,
             in: self
         )
         systems.uiManager.update(

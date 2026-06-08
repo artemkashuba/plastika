@@ -18,7 +18,7 @@ Selecting a menu option places one prototype tower on that build spot. Occupied 
 
 Two of the four prototype tower types (Red, Blue) sit on an identical round toy-turret base — a glossy circular plate with a specular highlight, like plastic toys from the same product line. The other two break from that mould, each with its own chassis silhouette: the Laser Lance sits on a flat-topped hexagonal "energy platform" ringed with three small glowing power vents that idle-pulse out of sync with one another — a permanent, always-on "tell" that reads as a fundamentally different kind of machine even at rest, before it ever fires a shot — while the Missile Pod sits on a stout rectangular "armored launch deck" (rounded hull plate, specular highlight, corner rivets) topped by a single solid launcher-hull gun assembly with twin recessed launch holes, reading as a compact rocket truck rather than a turret with thin barrels stuck on top.
 
-Placed prototype towers acquire the nearest enemy within an internal placeholder range, lock onto that enemy while it remains alive, in range, and tracked. Most towers periodically fire simple magenta placeholder projectiles using their tower type behavior — the placeholder turret/barrel rotates toward the locked target so the tower visibly aims before and while shooting. At the instant each shot is fired, the barrel kicks back along its firing axis and a brief muzzle flash flares at the barrel tip, color-matched to that tower's projectile — heavier guns (Heavy Cannon > Missile Pod > Autocannon) recoil and flash more dramatically, giving each tower type a distinct shooting "feel". A small radial ring also appears around the tower's base at that moment, sweeping from empty to full over its reload duration and fading out the instant it's ready to fire again — a quick, glanceable readout of when each tower will shoot next.
+Placed prototype towers acquire the nearest enemy within an internal placeholder range, lock onto that enemy while it remains alive, in range, and tracked. Most towers periodically fire simple magenta placeholder projectiles using their tower type behavior — the placeholder turret/barrel rotates toward the locked target so the tower visibly aims before and while shooting. At the instant each shot is fired, the barrel kicks back along its firing axis and a brief muzzle flash flares at the barrel tip, color-matched to that tower's projectile — heavier guns (Mortar > Missile Pod > Autocannon) recoil and flash more dramatically, giving each tower type a distinct shooting "feel". A small radial ring also appears around the tower's base at that moment, sweeping from empty to full over its reload duration and fading out the instant it's ready to fire again — a quick, glanceable readout of when each tower will shoot next.
 
 One tower type — the Laser Lance — fights differently: instead of discrete shots, it projects a persistent glowing beam at its locked target for as long as the lock holds, dealing continuous damage every frame rather than firing in bursts. It never recoils, flashes, or shows a reload ring, since it has no discrete "shot" to animate around — its tell is the beam itself, always-on while a target is in range.
 
@@ -38,12 +38,13 @@ Current prototype tower types:
    - 1 damage per shot
    - ≈ 3.1 DPS
 
-3. Blue Tower — "Heavy Cannon" (50 coins)
-   - Blue visual identity
-   - Slow attack speed (0.90s cooldown)
-   - 2 damage per shot — compensates for slow fire rate
-   - Slow direct projectile behavior with predictive aiming — fires at the enemy's intercept position
-   - ≈ 2.9 DPS
+3. Blue Tower — "Mortar" (50 coins)
+   - A high-angle artillery piece, visually distinct from the rest of the roster: a chunky upward-flaring tube with a 3D angled steel mouth (bore + specular glint), sitting on a baseplate + bipod, rather than a flat rotating barrel
+   - Slow attack speed (1.40s cooldown) — heavy, deliberate shots
+   - 4 damage per shell, dealt as **splash**: lobs an arcing shell onto the road and explodes on impact, damaging *every* enemy within a 55pt blast radius rather than a single target
+   - Targets the *lead* enemy (the one closest to the base) and aims at its predicted road position, so the blast comes down on the advancing front
+   - The roster's area/crowd-control specialist — the other three are all single-target (direct, homing, beam)
+   - ≈ 2.9 DPS single-target, but far higher *effective* DPS against bunched groups
 
 4. Pink Tower — "Laser Lance" (75 coins)
    - Stands apart from the rest of the roster at a glance: instead of the round toy-turret base every other tower shares, it sits on an angular hexagonal "energy platform" ringed with three small power vents that idly pulse a living neon-red glow — always breathing, even before it ever locks a target — while its slim emitter housing and glowing lens keep the pink/magenta chassis identity, and its signature beam glows a vivid neon red rather than matching its housing, reading as a hot, electric "laser red"
@@ -54,9 +55,9 @@ Enemy HP now varies by type (see Enemies below — Soldier's 8 HP is the baselin
 
 Players can tap a placed prototype tower to select it. The selected tower scales slightly, shows a thin white selection ring, and displays a subtle white circular range indicator centered on the tower's actual attack range. Tapping another placed tower transfers selection; tapping empty battlefield space clears selection and hides any open build menu.
 
-All projectiles are color-coded by tower type (Red = orange, Green = lime, Blue = cyan) and produce a small expanding flash on impact. Most fly as a simple glow-behind-bright-core orb, but the Missile Pod's lime-green warheads instead take a distinct "guided missile" form — a tapered body with a glowing nose cone, a warm-orange tail exhaust, and a drifting smoke trail — and visibly rotate to face their heading as they home in. The Laser Lance's signature neon-red tint instead colors its continuous beam — and the flickering plasma-burn mark it leaves where that beam makes contact.
+All projectiles are color-coded by tower type (Red = orange, Green = lime, Blue = cyan) and produce a small expanding flash on impact. Most fly as a simple glow-behind-bright-core orb, but the Missile Pod's lime-green warheads instead take a distinct "guided missile" form — a tapered body with a glowing nose cone, a warm-orange tail exhaust, and a drifting smoke trail — and visibly rotate to face their heading as they home in. The Mortar's munition is different again: a dark finned shell (cyan-accented) that lobs in a visible arc with a growing ground shadow beneath it, lands on the road, and detonates in a fiery orange explosion — a white-hot core, an expanding shockwave ring, and a scatter of smoke puffs — rather than a colored orb with a small flash. The Laser Lance's signature neon-red tint instead colors its continuous beam — and the flickering plasma-burn mark it leaves where that beam makes contact.
 
-Placed prototype towers support selling, the economy loop, and now upgrades (see below); they still lack splash damage, status effects, and final art.
+Placed prototype towers support selling, the economy loop, and now upgrades (see below); the Mortar adds the roster's first splash/area damage. They still lack status effects and final art.
 
 Future themed tower concepts:
 
@@ -71,7 +72,7 @@ Future themed tower concepts:
 3. Glue Tower
    - Slows enemies
 
-Design guidance for growing this roster: keep it tight, and make sure every entry earns its place. The current four already model four genuinely different ways to deal damage — direct-fire, homing, predictive-aim, and continuous-beam — rather than DPS-variant reskins of one mechanic; new types (Rifle/Cannon/Glue and beyond) should clear the same bar by owning a clear "best at X" niche (burst vs. sustained, single-target vs. crowd, damage vs. utility/control). A wider roster only adds strategic depth if each tower remains worth building in some real situation — padding the list with towers that are strictly outclassed by others does the opposite.
+Design guidance for growing this roster: keep it tight, and make sure every entry earns its place. The current four already model four genuinely different ways to deal damage — direct-fire, homing, lobbed area-of-effect (mortar), and continuous-beam — rather than DPS-variant reskins of one mechanic; new types (Rifle/Cannon/Glue and beyond) should clear the same bar by owning a clear "best at X" niche (burst vs. sustained, single-target vs. crowd, damage vs. utility/control). A wider roster only adds strategic depth if each tower remains worth building in some real situation — padding the list with towers that are strictly outclassed by others does the opposite.
 
 ### Enemies
 

@@ -4,6 +4,10 @@ import SpriteKit
 enum TowerProjectileBehavior {
     case direct
     case homing
+    /// Lobbed artillery shell — arcs from the tower onto a predicted point on the road and
+    /// explodes there, dealing splash damage to every enemy within `TowerType.splashRadius`
+    /// of the impact (rather than a single locked target). Used by the Mortar (`.blue`).
+    case mortar
 }
 
 /// Visual treatment for a tower's projectile in flight. `.orb` is the shared glow-behind-
@@ -14,6 +18,9 @@ enum TowerProjectileBehavior {
 enum ProjectileVisualStyle {
     case orb
     case rocket
+    /// Mortar shell — a dark finned bomb that lobs in an arc with a growing ground shadow
+    /// beneath it, then drops onto the road. Paired with `TowerProjectileBehavior.mortar`.
+    case shell
 }
 
 /// Distinguishes towers that fire discrete traveling projectiles (the "shot → travel →
@@ -34,7 +41,7 @@ enum TowerType: CaseIterable {
         switch self {
         case .red:   "Autocannon"
         case .green: "Missile Pod"
-        case .blue:  "Heavy Cannon"
+        case .blue:  "Mortar"
         case .pink:  "Laser Lance"
         }
     }
@@ -43,7 +50,7 @@ enum TowerType: CaseIterable {
         switch self {
         case .red:   "Twin barrels, relentless rate of fire. Shreds light enemies."
         case .green: "Homing warheads chase targets. Reliable balanced damage."
-        case .blue:  "Slow, devastating rounds with predictive aim. Built for heavies."
+        case .blue:  "Lobs explosive shells onto the road. Splash damage clears bunched groups."
         case .pink:  "Locks onto one foe and burns it down with a relentless beam."
         }
     }
@@ -292,12 +299,31 @@ enum TowerType: CaseIterable {
         }
     }
 
-    var usesPredictiveAiming: Bool {
+    /// Blast radius (scene points) for area-of-effect towers — every enemy within this
+    /// distance of a mortar shell's landing point takes full damage. 0 for single-target
+    /// towers, which damage only their one locked target.
+    var splashRadius: CGFloat {
         switch self {
-        case .blue: true
-        default: false
+        case .blue: 55
+        default:    0
         }
     }
+
+    /// Flight time of a lobbed mortar shell, launch → impact. Doubles as the lead time used
+    /// to predict where the target enemy will be standing on the road when the shell lands,
+    /// so the explosion comes down on the advancing wave rather than where it used to be.
+    /// 0 for non-mortar towers.
+    var mortarFlightDuration: TimeInterval {
+        switch self {
+        case .blue: 0.7
+        default:    0
+        }
+    }
+
+    /// Legacy direct-fire intercept aiming. No tower uses it now — the Mortar (`.blue`),
+    /// which once did, lobs shells via `TowerProjectileBehavior.mortar` and does its own
+    /// landing-point prediction. Kept as a hook for any future predictive direct-fire tower.
+    var usesPredictiveAiming: Bool { false }
 
     /// Beam towers never spawn projectiles; `.pink` reports `.direct` as an unused
     /// placeholder (never read — `TowerManager.updateCombat` routes beam-style towers to a
@@ -309,7 +335,7 @@ enum TowerType: CaseIterable {
         case .green:
             .homing
         case .blue:
-            .direct
+            .mortar
         case .pink:
             .direct
         }
@@ -324,6 +350,7 @@ enum TowerType: CaseIterable {
     var projectileVisualStyle: ProjectileVisualStyle {
         switch self {
         case .green: .rocket
+        case .blue:  .shell
         default:     .orb
         }
     }

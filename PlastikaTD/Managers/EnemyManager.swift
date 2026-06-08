@@ -142,6 +142,40 @@ final class EnemyManager {
         recycle(enemy)
     }
 
+    /// The enemy nearest to `endPoint` (i.e. furthest along the path, closest to breaching
+    /// the base) among those alive and within `range` of `fromPoint`. Used by the Mortar to
+    /// bombard the *leading edge* of the advance rather than whatever happens to be nearest
+    /// the tower. Returns nil if no enemy is in range.
+    func leadEnemy(within range: CGFloat, from fromPoint: CGPoint, towardEnd endPoint: CGPoint) -> PlaceholderEnemy? {
+        activeEnemies
+            .filter(\.isAlive)
+            .filter { $0.node.position.distance(to: fromPoint) <= range }
+            .min { $0.node.position.distance(to: endPoint) < $1.node.position.distance(to: endPoint) }
+    }
+
+    /// Applies `damage` to every enemy within `radius` of `center` (a mortar shell's blast).
+    /// Returns one `(reward, position)` per enemy *killed*, so the caller can credit coins and
+    /// fly a reward from each death spot. Snapshots the victims before applying damage, since
+    /// `killAndRecycle` mutates `activeEnemies` mid-loop. Each kill also fires its own death
+    /// burst (via `killAndRecycle`), independent of the explosion effect drawn by the caller.
+    @discardableResult
+    func applyAreaDamage(_ damage: Int, at center: CGPoint, radius: CGFloat) -> [(reward: Int, position: CGPoint)] {
+        let victims = activeEnemies.filter { enemy in
+            enemy.isAlive && enemy.node.position.distance(to: center) <= radius
+        }
+
+        var kills: [(reward: Int, position: CGPoint)] = []
+        for enemy in victims {
+            let reward = enemy.killReward
+            let position = enemy.node.position
+            if enemy.takeDamage(damage) {
+                killAndRecycle(enemy)
+                kills.append((reward, position))
+            }
+        }
+        return kills
+    }
+
     private func isActiveLife(_ enemy: PlaceholderEnemy, lifeID: Int) -> Bool {
         activeEnemies.contains { $0 === enemy }
             && enemy.lifeID == lifeID

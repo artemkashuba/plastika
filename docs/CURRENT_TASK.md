@@ -2,6 +2,7 @@
 
 ## Current Status
 
+Blue "Mortar" redesign (lobbed arc + splash explosion, area/crowd-control niche) — complete.
 Enemy death effect (livery-colored debris burst on a damage kill) — complete.
 Enemy variety (Scout/Soldier/Tank) — complete.
 
@@ -63,6 +64,36 @@ Add haptics (next unchecked Phase 2 item in `TODO.md`).
 ## Immediate Goal
 
 Identify the moments that most deserve tactile feedback (tower placement, firing, enemy kills, base damage, wave start/clear, button taps?) and decide which haptic style (`UIImpactFeedbackGenerator` weight, `UINotificationFeedbackGenerator` for win/loss, etc.) fits each — keeping the same "small vertical slice" approach as every other feel-pass feature so far (recoil, muzzle flash, reload ring).
+
+## Previous Milestone — Blue "Mortar" Redesign
+
+The Blue tower was reworked from a confusing predictive direct-fire "Heavy Cannon" into a
+proper **Mortar** — the roster's first area/crowd-control tower. (The old predictive aim fired
+*ahead* of the enemy onto empty road, reading as "hitting a random place"; the mortar makes
+landing on the road the whole point.)
+
+- **Behavior**: new `TowerProjectileBehavior.mortar`. `TowerManager.updateMortarCombat` picks
+  the *lead* enemy (nearest the path end, via new `EnemyManager.leadEnemy`), predicts where it
+  will be after the shell's flight time (`position + velocity × mortarFlightDuration`), and lobs
+  an exploding shell onto that road point. On impact, `EnemyManager.applyAreaDamage` damages
+  every enemy within `TowerType.splashRadius` (55pt), crediting + coin-flying each kill and
+  firing each one's death burst. Bypasses the single-target lock/beam path entirely.
+- **Shell**: new `ProjectileVisualStyle.shell` + `PlaceholderProjectile.startLobbedTravel` — a
+  dark finned bomb whose true `node.position` tracks the straight ground line to the landing
+  point (so impact/splash/shadow are exact) while the body floats above on a sine-curve arc and
+  a ground shadow grows as it descends. Faked height, no real 3rd dimension.
+- **Explosion**: `ProjectileManager.fireMortarShell` + `showExplosion` — a fiery orange
+  fireball, white-hot core, expanding shockwave ring, and scattered smoke puffs sized to the
+  blast radius (same transient-`SKShapeNode` language as the impact flash / death burst).
+- **Visual**: `TowerGunFactory` Blue rebuilt as a chunky high-angle mortar — baseplate, bipod
+  legs, an upward-flaring tube with cylinder sheen + reinforcement bands, and a 3D angled
+  elliptical mouth (steel rim, dark bore, specular glint). The tube swivels to the landing
+  bearing and recoils down on launch.
+- **Sound**: the existing blue artillery boom moved from the launch to the **explosion** moment.
+- **Balance** (per user's calls): kept slow & heavy (~1.4s reload), 4 damage, 55pt blast,
+  lead-enemy targeting, fiery-orange look. Single-target DPS unchanged (≈2.9); the upgrade is
+  the area damage. Pause ARSENAL now shows a SPLASH chip for it. The other three towers are
+  untouched.
 
 ## Previous Milestone — Enemy Death Effect
 

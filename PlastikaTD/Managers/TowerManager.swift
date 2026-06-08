@@ -128,12 +128,31 @@ final class TowerManager {
         projectileManager: ProjectileManager,
         economyManager: EconomyManager,
         uiManager: UIManager,
+        pathEndPoint: CGPoint,
         in scene: SKScene
     ) {
         let deltaTime = lastCombatUpdateTime.map { max(0, currentTime - $0) } ?? 0
         lastCombatUpdateTime = currentTime
 
         towersByBuildSpotID.forEach { buildSpotID, tower in
+            // Mortar towers don't lock a single target or fire straight shots — they pick the
+            // leading enemy each volley and lob an exploding shell onto its predicted road
+            // position. Handled entirely in its own branch, bypassing the lock/beam logic below.
+            if tower.type.projectileBehavior == .mortar {
+                updateMortarCombat(
+                    buildSpotID: buildSpotID,
+                    tower: tower,
+                    currentTime: currentTime,
+                    enemyManager: enemyManager,
+                    projectileManager: projectileManager,
+                    economyManager: economyManager,
+                    uiManager: uiManager,
+                    pathEndPoint: pathEndPoint,
+                    in: scene
+                )
+                return
+            }
+
             let isBeamTower = tower.type.attackStyle == .beam
             // Captured *before* refreshing the lock below — `targetLock(forBuildSpotID:...)`
             // silently swaps in a fresh target the instant the old one becomes invalid (dies,
@@ -256,6 +275,78 @@ final class TowerManager {
                 } else if self?.isSoundEnabled == true {
                     tower?.node.run(SKAction.playSoundFileNamed("enemy_hit.wav", waitForCompletion: false))
                 }
+            }
+        }
+    }
+
+    /// Drives one frame of mortar combat: tracks the leading enemy with the tube, and on each
+    /// reload lobs an exploding shell onto where that enemy will be standing when the shell
+    /// lands (current position + velocity × flight time). On impact, splash damage hits every
+    /// enemy within the blast radius, each kill is credited + coin-flown, and the artillery
+    /// boom plays *with the explosion* (not the launch) so the satisfying sound lands on the hit.
+    private func updateMortarCombat(
+        buildSpotID: Int,
+        tower: PlaceholderTower,
+        currentTime: TimeInterval,
+        enemyManager: EnemyManager,
+        projectileManager: ProjectileManager,
+        economyManager: EconomyManager,
+        uiManager: UIManager,
+        pathEndPoint: CGPoint,
+        in scene: SKScene
+    ) {
+        // Bombard the front of the advance, not whatever's nearest the tower.
+        guard let target = enemyManager.leadEnemy(
+            within: tower.type.range,
+            from: tower.node.position,
+            towardEnd: pathEndPoint
+        ) else {
+            return
+        }
+
+        // Predicted landing point: where the lead enemy will be when the shell touches down.
+        let flightDuration = tower.type.mortarFlightDuration
+        let landingPoint = CGPoint(
+            x: target.node.position.x + target.velocity.x * CGFloat(flightDuration),
+            y: target.node.position.y + target.velocity.y * CGFloat(flightDuration)
+        )
+
+        // Keep the tube tracking the landing bearing even while reloading.
+        tower.aim(at: landingPoint)
+
+        let nextAttackTime = nextAttackTimesByBuildSpotID[buildSpotID] ?? 0
+        guard currentTime >= nextAttackTime else {
+            return
+        }
+
+        nextAttackTimesByBuildSpotID[buildSpotID] = currentTime + tower.type.attackCooldown
+        tower.playFireEffects()
+
+        let splashDamage = tower.currentDamage
+        let splashRadius = tower.type.splashRadius
+
+        projectileManager.fireMortarShell(
+            from: tower.barrelTipPosition,
+            to: landingPoint,
+            color: tower.type.projectileColor,
+            radius: tower.type.projectileRadius,
+            flightDuration: flightDuration,
+            peakHeight: 70,
+            explosionRadius: splashRadius,
+            in: scene
+        ) { [weak self, weak enemyManager, weak economyManager, weak uiManager, weak scene] in
+            guard let enemyManager else { return }
+
+            let kills = enemyManager.applyAreaDamage(splashDamage, at: landingPoint, radius: splashRadius)
+            for kill in kills {
+                economyManager?.credit(kill.reward)
+                if let uiManager, let scene {
+                    uiManager.flyCoinReward(from: kill.position, in: scene)
+                }
+            }
+
+            if self?.isSoundEnabled == true, let scene {
+                scene.run(SKAction.playSoundFileNamed("tower_shoot_blue.wav", waitForCompletion: false))
             }
         }
     }

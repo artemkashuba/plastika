@@ -198,7 +198,12 @@ struct PauseMenuView: View {
                     } else {
                         specChip(label: "DMG",    value: "\(type.damage)")
                         specChip(label: "RELOAD", value: String(format: "%gs", type.attackCooldown))
-                        specChip(label: "RANGE",  value: "\(Int(type.range))")
+                        if type.splashRadius > 0 {
+                            // Area-of-effect towers (the Mortar): blast radius is the headline stat.
+                            specChip(label: "SPLASH", value: "\(Int(type.splashRadius))")
+                        } else {
+                            specChip(label: "RANGE",  value: "\(Int(type.range))")
+                        }
                         specChip(label: "DPS",    value: String(format: "%.1f", type.dps))
                     }
                 }
