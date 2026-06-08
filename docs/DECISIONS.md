@@ -1070,3 +1070,211 @@ Reason:
   `shootSound` for an unused slot. Keeps with AGENTS.md's avoid-unnecessary-work
   simplicity principle; a dedicated "upgrade chime" can be revisited if
   playtesting shows the reuse reads as flat or confusing
+
+## 2026-06-08 (Green "Missile Pod" Visual Redesign)
+
+Decision:
+Give the Green tower its own chassis and gun silhouette (mirroring how Pink
+already stands apart from the shared round-plate look), and give its projectile
+a distinct "guided missile" visual treatment — tapered rocket body, nose cone,
+tail exhaust glow, and a drifting smoke trail — replacing the small re-tinted
+glow-ball every type otherwise fires. Driven directly by user feedback: the
+round chassis read as "empty in the center" with only "thin guns in front," and
+the homing warhead looked like "a small green circle," not a missile.
+
+Reason / key choices:
+
+- **Full chassis redesign over "gun assembly only"**: presented the user with
+  two scopes — touch up just the turret/barrel geometry, or replace the whole
+  base-plate-plus-gun silhouette the way Pink's hexagonal "energy platform"
+  already does. The user picked the full redesign ("Full chassis redesign"),
+  so the round base plate is now also replaced for Green, not just its gun —
+  consistent with the user's stated complaint that the *tower's center*, not
+  just its barrels, felt empty
+- **Rectangular "armored launch deck" instead of a hexagon**: Pink's angular
+  hexagonal platform already owns the "geometric/energy" silhouette language;
+  giving Green a rectangular vehicle-hull plate instead (rounded rect +
+  specular highlight + four corner rivets) reads as "rocket truck" and keeps
+  the two non-round chassis types visually distinct from each other, not just
+  from the shared round plate. Sized at 28×20 (cornerRadius 5) — its
+  corner-to-center reach (~17pt) deliberately matches the existing round
+  plate's footprint radius, so it sits inside the selection ring (radius 22)
+  and reload-indicator ring (radius 20) at the same visual scale as every other
+  tower, rather than looking under- or over-sized relative to the roster
+- **One solid launcher hull instead of a floating pod + separate tubes**: the
+  old assembly (small circular turret + a separate rectangular "pod" floating
+  above it + two thin tube rectangles perched on top) was exactly what read as
+  "thin guns stuck onto an empty circle." Replaced with a single rectangular
+  "launcher hull" mass (24×18) that fills the tower's center, plus a small
+  rectangular "swivel mount" plate (replacing the bare circular turret pivot)
+  so even the rotation pivot itself reads as hardware — and twin launch holes
+  recessed directly into the hull's face (dark sockets with a faint rim) rather
+  than tubes sitting on top of it, so the armament reads as *built into* the
+  hull, not bolted on as an afterthought
+- **`ProjectileVisualStyle` enum + `TowerType.projectileVisualStyle`, mirroring
+  the `projectileBehavior`/`projectileColor`/`projectileRadius` pattern**:
+  rather than special-case Green inside `PlaceholderProjectile`, gave every
+  tower type a declared visual-style identity (`.orb` for the shared
+  glow-behind-core ball every type defaults to, `.rocket` only for Green) —
+  the same "static per-type stat drives shared entity behavior" shape the
+  codebase already uses everywhere else, so a future 5th tower can declare its
+  own projectile look with a one-line addition instead of a special case
+- **Both visual variants built once in `PlaceholderProjectile.init`, toggled
+  per-use in `configure`**: `PlaceholderProjectile` is pooled — any instance
+  can be reused across tower types/styles between fires — so rebuilding node
+  trees on every shot would mean constant churn, while building both the orb
+  parts (glow + core) and the rocket parts (body, nose cone, exhaust glow,
+  exhaust core) once and flipping `isHidden` per `configure(color:radius:style:)`
+  call is cheap, avoids node churn entirely, and trivially handles an instance
+  switching styles between reuses — `configure` now resets every bit of visual
+  state (geometry, color, rotation, visibility) so no stale state survives a
+  pooling handoff
+- **Rocket heading derived "for free" from the existing homing step, reusing
+  `aim(at:)`'s exact rotation formula**: `startHomingTravel`'s per-frame
+  `dx`/`dy` (direction toward the target) already *is* the rocket's direction
+  of travel each frame — no separate velocity tracking needed. Applying
+  `atan2(dy, dx) - (.pi / 2)` to `node.zRotation` — the identical formula
+  `PlaceholderTower.aim(at:)` already uses to rotate turrets toward targets
+  (and `PlaceholderEnemy` uses to face its movement direction) — guarantees the
+  rocket's nose visually points the same way every other rotating entity in the
+  game points when heading somewhere, with zero new state and zero risk of a
+  formula mismatch reading as "off" by comparison
+- **Smoke puffs spawned as scene siblings, not projectile children**: a puff
+  needs to stay fixed in world space while the rocket continues on, so each one
+  is added via `node.parent?.addChild(_:)` — `parent` is the scene, set once and
+  persisting across pooling reuse — rather than as a child of the moving
+  projectile node (which would drag every prior puff along with it). Spawned
+  on a fixed real-time cadence (`smokeAccumulator` against a `0.06s` interval,
+  not a per-frame spawn) so the trail's density stays consistent regardless of
+  frame rate, and each puff reuses the exact spawn → animate
+  (scale + fade-out group) → `removeFromParent` sequence already established by
+  `ProjectileManager.showImpactFlash` — one more application of an existing
+  pattern rather than a new one
+
+## 2026-06-08 (Enemy Variety — Scout/Soldier/Tank)
+
+Decision: Built the documented Scout/Soldier/Tank roster exactly as named in
+`GAME_DESIGN.md`'s Enemies section and `TODO.md`'s Phase 2 entry — no additional
+types beyond that trio (the user's own Swarm/Armored brainstorm ideas from this
+same conversation were explicitly deferred; see Reason). Added `EnemyType:
+CaseIterable` (mirroring `TowerType`'s static-per-type-stats shape) with
+`maxHitPoints`, `speedMultiplier`, `killReward`, and chassis livery/scale.
+Soldier keeps the original baseline exactly (5 HP, 1.0× speed, 10-coin reward,
+original maroon paint, 1.0× scale); Scout trades HP for speed (3 HP, 1.35×
+speed, 6-coin reward, smaller bright-orange chassis); Tank inverts that trade
+(12 HP, 0.65× speed, 18-coin reward, larger dull-armored chassis). `WaveManager`
+now picks a random `EnemyType` per spawn from a per-wave roster: wave 1 mixes
+Soldier/Scout only, wave 2+ folds in Tank.
+
+Reason:
+
+- **Scoped to exactly the documented trio, not the user's own broader
+  brainstorm**: when asked "which enemies would you add," I floated Scout/
+  Soldier/Tank (the documented roster) plus two original ideas of my own —
+  "Swarm/Pack" (many low-HP clustered enemies, would create real pressure
+  toward adding splash damage, which doesn't exist) and "Armored/Shielded"
+  (flat per-hit damage reduction, would need a brand-new mitigation mechanic).
+  The user said "let's implement" in direct reply to that whole message, so
+  scope was genuinely ambiguous. I chose the documented trio: it's *exactly*
+  what `TODO.md` Phase 2 already calls for, requires zero new combat
+  mechanics (fits cleanly into the existing single-target discrete/continuous
+  damage model), and keeps this a small vertical slice per `AGENTS.md`. Swarm/
+  Armored remain good *future* ideas but belong in their own slices once
+  splash damage / damage mitigation exist as systems worth building around —
+  bundling them in now would have ballooned this into a multi-mechanic feature
+- **Solved the speed-architecture blocker with a multiplier, not a
+  restructure**: `GamePath.movementSpeed` is a fixed, path-level constant
+  consumed directly inside `PlaceholderEnemy.startMoving`'s travel-duration
+  math — there was no per-enemy speed lever at all. Rather than restructure
+  how `GamePath` reports/stores speed (a bigger, riskier change touching
+  shared path math), `EnemyType.speedMultiplier` is layered on top:
+  `let speed = path.movementSpeed * type.speedMultiplier`. Soldier's 1.0×
+  reproduces the original fixed-speed behavior exactly — zero risk of
+  regressing the existing baseline — while Scout (1.35×) and Tank (0.65×)
+  get meaningfully different paces with a one-line change at the point of
+  consumption. `GamePath` itself stays untouched, simplest-solution-wins
+- **HP/speed/reward chosen to keep every counter "soft," per the documented
+  guidance**: Soldier (5 HP) sits at ≈1.1–1.7s time-to-kill against the
+  existing tower roster's sustained DPS (≈2.9–4.5); Scout (3 HP) dies in
+  under a second to anything, rewarding towers that can land a hit before it
+  crosses the screen; Tank (12 HP) takes ≈2.7–4.1s, rewarding sustained
+  heavy-hitters (Blue/Pink) without making fast-but-light options
+  (Red/Green) *unable* to finish the job — just less efficient. No enemy
+  type is hard-countered or hard-favored by exactly one tower; every type
+  stays killable, if inefficiently, by the whole roster — directly honoring
+  the "no lock-and-key" guidance flagged back in the 2026-06-06 roster
+  entry (lines ~901–903) as the reason this trio's stats needed care
+- **Visual differentiation via recolor + rescale of the shared chassis, not
+  new geometry per type**: `GAME_DESIGN.md` calls for "meaningfully different
+  *stats* (not palette swaps)" — a contrast about *stats*, not a ban on
+  recoloring. Recoloring a shared silhouette is exactly how two of the four
+  towers (Red/Blue) already differentiate, and matches `AGENTS.md`'s
+  "use placeholder assets until gameplay is proven fun." So each `EnemyType`
+  recolors `PlaceholderEnemy`'s existing hull/turret (tracks, barrel, and
+  highlight stay a shared neutral "machine" palette — only the "paint job"
+  changes) and applies a uniform `chassisScale` to `bodyNode` (Scout 0.82×,
+  Soldier 1.0×, Tank 1.28×) — small, cheap, and reinforces each type's stat
+  identity at a glance without inventing three new chassis silhouettes
+- **`configure(type:)` mirrors `PlaceholderProjectile.configure`'s "fully
+  reset on reuse" contract**: `PlaceholderEnemy` is pooled — any instance can
+  be reconfigured as a different `EnemyType` between lives — so `configure`
+  reapplies every stat (`maxHitPoints`, `killReward`) and visual (hull/turret
+  colors, chassis scale) explicitly, with nothing left to carry over
+  implicitly from a prior life. Called from `EnemyManager.spawnPlaceholderEnemy`
+  before `startMoving` (which immediately calls `reset()`, deriving
+  `hitPoints`/`fractionalHealth` from the just-set `maxHitPoints`) — same
+  "configure, then reset/start" sequencing the projectile pool already uses
+- **Per-wave type mix via uniform-random selection from a per-wave roster,
+  mirroring `waveDefinition`'s existing formula-based shape**: rather than
+  hand-scripting individual spawns, `WaveDefinition` gained an
+  `availableEnemyTypes: [EnemyType]` alongside `enemyCount`/`spawnInterval`,
+  and each spawn calls `randomEnemyType(from:)` to pick uniformly from that
+  wave's set. Wave 1 = `[.soldier, .scout]` (eases the player in — no Tanks
+  until they've had a chance to place towers and bank coins), wave 2+ adds
+  `.tank`. Simplest possible "real variety, ramping with difficulty" shape;
+  exact per-wave proportions can be tuned later from actual playtesting
+  without touching the selection mechanism itself
+- **Corrected a stale fact while in the area**: `GAME_DESIGN.md` claimed
+  enemies have "basic 1 HP combat health," but the actual (and now Soldier's
+  baseline) value has been 5 HP since the fractional-health work landed.
+  Fixed it to describe the real roster and stats while updating this section
+  anyway, rather than leave a known-wrong fact for the next person to trip on
+
+## 2026-06-08 (Enemy HP Rebalance — +50% across the roster)
+
+**Decision**: Bumped `EnemyType.maxHitPoints` +50% for all three types — Scout
+3 → 5, Soldier 5 → 8, Tank 12 → 18 (each the original value × 1.5, rounded to
+the nearest whole point: 4.5 → 5, 7.5 → 8, 18 stays 18). Nothing else about
+the roster changed — speed multipliers, kill rewards, and chassis livery/scale
+are untouched.
+
+**Reason**:
+
+- **A direct, requested balance tweak, not a redesign**: the user asked
+  specifically to "increase each enemy HP by 50%." The cleanest way to honor
+  that exactly is a uniform per-type multiplier on the existing baseline
+  values rather than picking new round numbers from scratch — it's
+  predictable, reversible, and easy to re-tune again from the same anchor
+- **Rounding choice**: `× 1.5` lands on a whole number only for Tank (12 → 18);
+  Scout (4.5) and Soldier (7.5) both sit on a round-half boundary. Rounded
+  both up (5 and 8) rather than down — "increase HP" should unambiguously mean
+  more HP for every type, and rounding either of those two down would leave
+  one type effectively un-bumped (Scout 4.5 → 4 is only +33%, not +50%)
+- **Relative ratios — and therefore the soft-counter balance — are preserved**:
+  the three values were already chosen as a deliberate ratio (low/baseline/high
+  HP trading against speed and reward), and multiplying each by the same 1.5×
+  factor keeps Scout:Soldier:Tank proportionally where they were (roughly
+  5:8:18 ≈ the old 3:5:12, i.e. Scout ≈ 0.6× Soldier ≈ 0.3× Tank in both sets).
+  The "every type stays killable, if inefficiently, by every tower" guarantee
+  from the original balance pass (checked against the roster's ≈2.9–4.5
+  sustained DPS) still holds — every matchup just now takes proportionally
+  longer, which is exactly what a flat HP-up pass should do
+- **New approximate time-to-kill ranges** (vs. the same ≈2.9–4.5 DPS spread):
+  Scout (5 HP) ≈ 1.1–1.7s (was ≈0.7–1s), Soldier (8 HP) ≈ 1.8–2.8s (was
+  ≈1.1–1.7s), Tank (18 HP) ≈ 4–6.2s (was ≈2.7–4.1s). All three remain
+  comfortably inside "fights that matter but don't drag," and no matchup
+  crosses into "unkillable in practice" territory for any tower
+- **Scope stayed minimal on purpose**: only `EnemyType.maxHitPoints` changed.
+  Speed, reward, and visuals were left exactly as they were — the user asked
+  for an HP change, and touching anything else would be scope creep on a
+  one-line balance request

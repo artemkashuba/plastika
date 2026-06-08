@@ -16,7 +16,7 @@ Early prototype build spots are toy bases around the enemy path. Players can tap
 
 Selecting a menu option places one prototype tower on that build spot. Occupied build spots cannot place a second tower.
 
-Three of the four prototype tower types (Red, Green, Blue) sit on an identical round toy-turret base — a glossy circular plate with a specular highlight, like plastic toys from the same product line. The Laser Lance breaks from that mould: its base is a flat-topped hexagonal "energy platform" ringed with three small glowing power vents that idle-pulse out of sync with one another — a permanent, always-on "tell" that reads as a fundamentally different kind of machine even at rest, before it ever fires a shot.
+Two of the four prototype tower types (Red, Blue) sit on an identical round toy-turret base — a glossy circular plate with a specular highlight, like plastic toys from the same product line. The other two break from that mould, each with its own chassis silhouette: the Laser Lance sits on a flat-topped hexagonal "energy platform" ringed with three small glowing power vents that idle-pulse out of sync with one another — a permanent, always-on "tell" that reads as a fundamentally different kind of machine even at rest, before it ever fires a shot — while the Missile Pod sits on a stout rectangular "armored launch deck" (rounded hull plate, specular highlight, corner rivets) topped by a single solid launcher-hull gun assembly with twin recessed launch holes, reading as a compact rocket truck rather than a turret with thin barrels stuck on top.
 
 Placed prototype towers acquire the nearest enemy within an internal placeholder range, lock onto that enemy while it remains alive, in range, and tracked. Most towers periodically fire simple magenta placeholder projectiles using their tower type behavior — the placeholder turret/barrel rotates toward the locked target so the tower visibly aims before and while shooting. At the instant each shot is fired, the barrel kicks back along its firing axis and a brief muzzle flash flares at the barrel tip, color-matched to that tower's projectile — heavier guns (Heavy Cannon > Missile Pod > Autocannon) recoil and flash more dramatically, giving each tower type a distinct shooting "feel". A small radial ring also appears around the tower's base at that moment, sweeping from empty to full over its reload duration and fading out the instant it's ready to fire again — a quick, glanceable readout of when each tower will shoot next.
 
@@ -32,8 +32,8 @@ Current prototype tower types:
    - ≈ 3.6 DPS
 
 2. Green Tower — "Missile Pod" (50 coins)
-   - Green visual identity
-   - Homing projectile behavior
+   - Stands apart from the rest of the roster visually: a rectangular "armored launch deck" chassis and solid launcher-hull gun assembly (rather than the round toy-turret base + thin barrels), firing a tapered rocket — nose cone, tail exhaust glow, drifting smoke trail — that visibly rotates to face its direction of travel in flight, instead of a plain re-tinted glow-ball
+   - Homing projectile behavior — its rockets chase their target until impact regardless of the tower's attack range
    - Slightly slower attack speed (0.58s cooldown)
    - 1 damage per shot
    - ≈ 3.1 DPS
@@ -50,13 +50,13 @@ Current prototype tower types:
    - Locks onto a single target and projects a continuous beam at it for as long as the lock holds, draining its HP smoothly every frame and leaving a small flickering plasma-burn mark where the beam makes contact (no discrete shots, no cooldown, no recoil/flash/reload ring)
    - ≈ 4.5 DPS — the highest single-target DPS in the roster, reflecting its higher cost and guaranteed-hit reliability
 
-Prototype enemies have 5 HP. A health bar appears above each enemy after the first hit, color-coded green → yellow → red as health decreases, and now drains in genuinely smooth fractional steps under sustained laser fire (rather than snapping between whole-HP increments) while remaining visually identical to the old behavior under ordinary discrete hits.
+Enemy HP now varies by type (see Enemies below — Soldier's 8 HP is the baseline every other type is defined relative to). A health bar appears above each enemy after the first hit, color-coded green → yellow → red as health decreases, and drains in genuinely smooth fractional steps under sustained laser fire (rather than snapping between whole-HP increments) while remaining visually identical to the old behavior under ordinary discrete hits.
 
 Players can tap a placed prototype tower to select it. The selected tower scales slightly, shows a thin white selection ring, and displays a subtle white circular range indicator centered on the tower's actual attack range. Tapping another placed tower transfers selection; tapping empty battlefield space clears selection and hides any open build menu.
 
-All projectiles are color-coded by tower type (Red = orange, Green = lime, Blue = cyan) and produce a small expanding flash on impact. The Laser Lance's signature neon-red tint instead colors its continuous beam — and the flickering plasma-burn mark it leaves where that beam makes contact.
+All projectiles are color-coded by tower type (Red = orange, Green = lime, Blue = cyan) and produce a small expanding flash on impact. Most fly as a simple glow-behind-bright-core orb, but the Missile Pod's lime-green warheads instead take a distinct "guided missile" form — a tapered body with a glowing nose cone, a warm-orange tail exhaust, and a drifting smoke trail — and visibly rotate to face their heading as they home in. The Laser Lance's signature neon-red tint instead colors its continuous beam — and the flickering plasma-burn mark it leaves where that beam makes contact.
 
-Placed prototype towers support selling, the economy loop, and now upgrades (see below); they still lack splash damage, status effects, final art, and multiple enemy types.
+Placed prototype towers support selling, the economy loop, and now upgrades (see below); they still lack splash damage, status effects, and final art.
 
 Future themed tower concepts:
 
@@ -75,18 +75,39 @@ Design guidance for growing this roster: keep it tight, and make sure every entr
 
 ### Enemies
 
-Early prototype enemies move along the hardcoded path and use basic 1 HP combat health.
+Enemies move along the fixed path and share one toy-tank chassis silhouette —
+shadow, twin tracks, hull, turret, barrel, and a health bar that appears above
+them after the first hit (color-coded green → yellow → red as health drains,
+in genuinely smooth fractional steps under continuous fire). What sets each
+type apart is stats, not just looks: a recolored "paint job" and a uniform
+rescale of that shared chassis read as a different machine at a glance, while
+HP, speed, and value are what actually make each one play differently —
+mirroring how the tower roster differentiates mostly through livery on shared
+silhouettes.
 
-1. Scout
-   - Fast
-   - Low HP
+1. Scout — bright orange livery, smaller chassis (0.82×)
+   - Fast (1.35× the baseline path speed)
+   - Low HP (5) — dies in roughly one or two hits from almost anything,
+     rewarding towers that can land that hit before it crosses the screen
+   - Worth fewer coins on a kill (6) — reflecting how little effort it costs
+     to bring down
 
-2. Soldier
-   - Balanced
+2. Soldier — original maroon livery, baseline chassis size (1.0×)
+   - The balanced default: 8 HP, the original fixed path speed (1.0×),
+     10-coin kill reward — every other type is defined relative to it
 
-3. Tank
-   - Slow
-   - High HP
+3. Tank — dull armored livery, larger chassis (1.28×)
+   - Slow (0.65× the baseline path speed)
+   - High HP (18) — needs sustained fire to bring down, rewarding
+     heavy-hitting or continuous-damage towers
+   - Worth more coins on a kill (18) — compensating for the time and fire
+     it costs to take one down
+
+Each spawn during a wave randomly picks from that wave's available roster —
+wave 1 mixes Soldier and Scout only (easing the player in before the toughest
+type appears), wave 2 onward folds the Tank into the mix. Every type remains
+killable, if inefficiently, by every tower in the roster — by design (see the
+guidance below): nothing here is a hard counter or a guaranteed bad matchup.
 
 Design guidance for this roster: give each type meaningfully different stats (and, later, resistances/status interactions) so they create real tactical variety — but keep every counter "soft". No enemy type should be effectively unkillable by anything except one specific tower (a "lock-and-key" pattern that turns combat into a memorization/savings check rather than a tactical decision); a player should always have at least one sub-optimal-but-viable way to deal with anything on the board. Flying or path-ignoring enemy types should be avoided entirely — they tend to break the core "defend the path" loop rather than enrich it.
 

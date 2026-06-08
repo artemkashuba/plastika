@@ -3,6 +3,13 @@ import SpriteKit
 struct WaveDefinition {
     let enemyCount: Int
     let spawnInterval: TimeInterval
+    /// Which `EnemyType`s this wave can spawn — each spawn picks uniformly at random
+    /// from this set (see `WaveManager.randomEnemyType(from:)`). Composition ramps with
+    /// wave index, mirroring how `enemyCount`/`spawnInterval` already scale: wave 1 eases
+    /// the player in with the original Soldier baseline plus the light, fast Scout; wave 2
+    /// onward folds in the slower, much tougher Tank once the player has had a chance to
+    /// build up some defenses.
+    let availableEnemyTypes: [EnemyType]
 }
 
 @MainActor
@@ -57,7 +64,22 @@ final class WaveManager {
             minimumSpawnInterval,
             baseSpawnInterval - spawnIntervalStepPerWave * Double(index)
         )
-        return WaveDefinition(enemyCount: enemyCount, spawnInterval: spawnInterval)
+        // Wave 1 sticks to the gentler Soldier/Scout pairing; wave 2 onward adds the
+        // Tank into the mix — a simple, formula-friendly ramp that introduces the
+        // toughest type only once the player has a wave's worth of coins and
+        // placements behind them.
+        let availableEnemyTypes: [EnemyType] = index == 0
+            ? [.soldier, .scout]
+            : [.soldier, .scout, .tank]
+        return WaveDefinition(enemyCount: enemyCount, spawnInterval: spawnInterval, availableEnemyTypes: availableEnemyTypes)
+    }
+
+    /// Picks which `EnemyType` the next spawn in `definition`'s wave should use —
+    /// uniform random selection across that wave's available roster. `?? .soldier` is
+    /// an unreachable-in-practice fallback (every `WaveDefinition` always lists at
+    /// least the baseline Soldier) that just keeps this total rather than throwing.
+    private func randomEnemyType(from definition: WaveDefinition) -> EnemyType {
+        definition.availableEnemyTypes.randomElement() ?? .soldier
     }
 
     func resetForNewScene() {
@@ -121,15 +143,15 @@ final class WaveManager {
 
         enemyManager.preparePool(capacity: definition.enemyCount)
         spawnedCount += 1
-        enemyManager.spawnPlaceholderEnemy(in: scene, path: path)
+        enemyManager.spawnPlaceholderEnemy(in: scene, path: path, type: randomEnemyType(from: definition))
 
         let spawnEnemy = SKAction.run { [weak scene, weak enemyManager, weak self] in
-            guard let scene, let enemyManager else {
+            guard let scene, let enemyManager, let self else {
                 return
             }
 
-            self?.spawnedCount += 1
-            enemyManager.spawnPlaceholderEnemy(in: scene, path: path)
+            self.spawnedCount += 1
+            enemyManager.spawnPlaceholderEnemy(in: scene, path: path, type: self.randomEnemyType(from: definition))
         }
 
         let spawnSequence = SKAction.sequence([

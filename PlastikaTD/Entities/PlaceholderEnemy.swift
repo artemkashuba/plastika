@@ -5,15 +5,21 @@ import SpriteKit
 final class PlaceholderEnemy: GameEntity {
     let node: SKNode
 
-    let killReward = 10
-    private let maxHitPoints = 5
-    private(set) var hitPoints = 5
+    /// Which roster entry this instance currently represents — set via `configure(type:)`
+    /// before each life (pooled instances are reused across types, so this and every
+    /// stat/visual derived from it must be fully reapplied on every spawn, never assumed
+    /// to carry over from a previous life). Defaults to `.soldier`, the original baseline,
+    /// so a freshly-`init`ed-but-not-yet-`configure`d instance behaves exactly as before.
+    private(set) var type: EnemyType = .soldier
+    private(set) var killReward = EnemyType.soldier.killReward
+    private var maxHitPoints = EnemyType.soldier.maxHitPoints
+    private(set) var hitPoints = EnemyType.soldier.maxHitPoints
     /// Canonical health value — `hitPoints` is a ceiling-rounded mirror kept in sync for
     /// Int-based consumers (kill detection, `isAlive`). Tracking health as a `Double` lets
     /// continuous sources (e.g. a laser beam) drain it in tiny fractional steps every frame,
     /// and lets `updateHealthBar` render that exact value so the bar empties smoothly rather
     /// than snapping between whole-HP increments.
-    private var fractionalHealth: Double = 5.0
+    private var fractionalHealth = Double(EnemyType.soldier.maxHitPoints)
     private(set) var lifeID = 0
     /// Current velocity in points per second, updated at each path segment. Zero before first move.
     private(set) var velocity: CGPoint = .zero
@@ -28,7 +34,15 @@ final class PlaceholderEnemy: GameEntity {
     private let healthBarNode: SKNode
     private let healthBarForeground: SKShapeNode
     /// Rotates to face the direction of travel. Shadow and health bar stay at root level.
+    /// Also the node `configure(type:)` rescales — the chassis grows or shrinks to match
+    /// each type's `chassisScale` while the shadow and health bar keep their normal size.
     private let bodyNode: SKNode
+    /// Hull and turret shells — the two parts `configure(type:)` recolors per roster
+    /// entry (the same "shared silhouette, distinct livery" technique two of the four
+    /// towers already use). Tracks, barrel, and highlight stay a shared neutral "machine"
+    /// palette across every type, so only the "paint job" changes.
+    private let hullNode: SKShapeNode
+    private let turretNode: SKShapeNode
     /// Small flickering "plasma burn" cluster shown at the point where a laser beam makes
     /// contact (mirrors the tower's muzzle-flash language: tinted glow + white-hot core).
     /// Lives at root level — NOT a child of `bodyNode` — so it sits at a fixed spot on the
@@ -123,8 +137,29 @@ final class PlaceholderEnemy: GameEntity {
 
         self.node = root
         self.bodyNode = bodyNode
+        self.hullNode = hull
+        self.turretNode = turret
         self.healthBarNode = barContainer
         self.healthBarForeground = foreground
+    }
+
+    /// Reapplies every per-type stat and chassis "livery" detail — HP, kill reward,
+    /// hull/turret colors, and uniform chassis scale — for the requested roster entry.
+    /// Pooled instances may have last lived as a completely different `EnemyType`, so
+    /// (mirroring `PlaceholderProjectile.configure`'s "fully reset on reuse" contract)
+    /// nothing here is allowed to carry over implicitly. Call once, before `startMoving`,
+    /// at the start of every life — `startMoving` calls `reset()` immediately afterward,
+    /// which derives `hitPoints`/`fractionalHealth` from the `maxHitPoints` set here.
+    func configure(type: EnemyType) {
+        self.type = type
+        maxHitPoints = type.maxHitPoints
+        killReward = type.killReward
+
+        hullNode.fillColor = type.hullColor
+        hullNode.strokeColor = type.hullStrokeColor
+        turretNode.fillColor = type.turretColor
+        turretNode.strokeColor = type.turretStrokeColor
+        bodyNode.setScale(type.chassisScale)
     }
 
     func reset() {
@@ -258,12 +293,19 @@ final class PlaceholderEnemy: GameEntity {
         node.position = firstPoint
         node.isHidden = false
 
+        // `GamePath.movementSpeed` stays a fixed, path-level constant; layering
+        // `type.speedMultiplier` on top of it is what gives the Scout/Soldier/Tank
+        // roster meaningfully different travel speeds (Soldier's 1.0× exactly
+        // reproduces the original fixed-speed behavior) without restructuring how
+        // the path itself reports or consumes speed.
+        let speed = path.movementSpeed * type.speedMultiplier
+
         var movementActions: [SKAction] = []
         for (start, end) in zip(path.waypoints, path.waypoints.dropFirst()) {
             let dist = max(1, start.distance(to: end))
-            let duration = TimeInterval(dist / path.movementSpeed)
-            let vx = ((end.x - start.x) / dist) * path.movementSpeed
-            let vy = ((end.y - start.y) / dist) * path.movementSpeed
+            let duration = TimeInterval(dist / speed)
+            let vx = ((end.x - start.x) / dist) * speed
+            let vy = ((end.y - start.y) / dist) * speed
             movementActions.append(SKAction.run { [weak self] in
                 self?.velocity = CGPoint(x: vx, y: vy)
                 // Rotate body to face the direction of travel (+y = forward in local space)

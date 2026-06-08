@@ -59,10 +59,11 @@
 - [x] Give the Laser Lance a unique chassis — angular hexagonal "energy platform" with idle-pulsing power vents (always-on from placement, independent of combat)
 - [x] Give the Laser Lance a one-shot "ignition" sound — a real recorded laser-gun sample (trimmed to its first second, converted to the project's standard format) that fires exactly once at the instant the beam locks onto a target ("the laser starts heating"), fitting the existing fire-and-forget one-shot sound model with no new looping machinery
 - [x] Add tower upgrades — tap a selected tower's cyan "▲ cost" badge (mirrors the gold sell badge, positioned above instead of below) to spend coins and bump it through 2 tiers (3 stages total), each adding +50% damage/DPS over base; cost ramps per tier (≈60% of placement price, then 100%); a small glowing tier-pip cluster appears under the base plate; sell refund now accounts for upgrade spend too
+- [x] Redesign Green "Missile Pod" visuals — unique rectangular "armored launch deck" chassis + solid launcher-hull gun assembly (replacing its old round chassis + thin twin tubes), and a new `ProjectileVisualStyle.rocket` projectile look (tapered body, nose cone, tail exhaust glow, drifting smoke trail, rotates to face its direction of travel) replacing the plain glow-ball every type otherwise shares
 - [ ] Add haptics
 - [ ] Add main menu
 - [ ] Add level select
-- [ ] Add enemy variety — Scout/Soldier/Tank with meaningfully different stats (not palette swaps) and "soft" counters: every type should stay killable, if inefficiently, by more than one tower (avoid lock-and-key design, and avoid flying/path-ignoring enemy types entirely)
+- [x] Add enemy variety — Scout/Soldier/Tank with meaningfully different stats (not palette swaps) and "soft" counters: every type should stay killable, if inefficiently, by more than one tower (avoid lock-and-key design, and avoid flying/path-ignoring enemy types entirely)
 - [ ] Add "total time control" UX — let the player issue build/sell actions while paused, plus a 2x/4x speed-up toggle for skipping through easy or already-won waves
 - [ ] Add "total information" readouts — tap-to-inspect full stats on enemies (mirrors the existing tower ARSENAL panel: HP, speed, resistances/status effects) and a wave preview showing upcoming enemy types/counts before they spawn
 

@@ -6,6 +6,16 @@ enum TowerProjectileBehavior {
     case homing
 }
 
+/// Visual treatment for a tower's projectile in flight. `.orb` is the shared glow-behind-
+/// bright-core ball every type defaults to; `.rocket` swaps in an elongated body that
+/// rotates to face its travel direction, glows with a tail-mounted exhaust, and leaves a
+/// drifting smoke trail behind it — for warheads that should read as guided munitions
+/// rather than re-tinted copies of the same energy ball.
+enum ProjectileVisualStyle {
+    case orb
+    case rocket
+}
+
 /// Distinguishes towers that fire discrete traveling projectiles (the "shot → travel →
 /// impact → cooldown" cycle every prototype tower has used so far) from towers that
 /// maintain a persistent damage-over-time beam on a single locked target instead.
@@ -302,6 +312,19 @@ enum TowerType: CaseIterable {
             .direct
         case .pink:
             .direct
+        }
+    }
+
+    /// Visual treatment for this tower's projectile in flight. Only `.green` gets the
+    /// `.rocket` treatment — its homing warheads earn a distinct tapered-body-plus-
+    /// exhaust-and-smoke-trail look that reads as "guided missile," matching its
+    /// "Missile Pod" identity instead of just being a re-tinted copy of the other
+    /// towers' glow-ball projectiles. Beam towers never spawn projectiles; `.pink`
+    /// reports `.orb` as an unused placeholder.
+    var projectileVisualStyle: ProjectileVisualStyle {
+        switch self {
+        case .green: .rocket
+        default:     .orb
         }
     }
 }

@@ -64,50 +64,48 @@ enum TowerGunFactory {
 
         // ── GREEN: missile pod launcher ──────────────────────────────────────
         case .green:
-            let turret = SKShapeNode(circleOfRadius: 10)
-            turret.fillColor = type.turretColor
-            turret.strokeColor = SKColor(white: 1.0, alpha: 0.40)
-            turret.lineWidth = 2
-            turret.zPosition = 1
-            aimNode.addChild(turret)
+            // Swivel mount — small fixed plate the launcher hull pivots and recoils
+            // against; replaces the old bare circular turret so even the rotation pivot
+            // itself reads as hardware, not an empty disc peeking out from under the gun.
+            let mount = SKShapeNode(rectOf: CGSize(width: 14, height: 10), cornerRadius: 3)
+            mount.fillColor = type.turretColor
+            mount.strokeColor = SKColor(white: 1.0, alpha: 0.40)
+            mount.lineWidth = 2
+            mount.position = CGPoint(x: 0, y: 3)
+            mount.zPosition = 1
+            aimNode.addChild(mount)
 
-            let pod = SKShapeNode(rectOf: CGSize(width: 18, height: 12), cornerRadius: 3)
-            pod.fillColor = type.barrelColor
-            pod.strokeColor = SKColor(red: 0.28, green: 0.60, blue: 0.32, alpha: 0.55)
-            pod.lineWidth = 1.5
-            pod.position = CGPoint(x: 0, y: 13)
-            pod.zPosition = 2
-            barrelNode.addChild(pod)
+            // Launcher hull — one solid rectangular mass that fills the tower's centre and
+            // reads as "rocket truck," not "circle with straws stuck on top." Replaces the
+            // old floating pod + separate tube pair; recoils backward on every shot like
+            // the rest of the roster's forward weapon geometry.
+            let hull = SKShapeNode(rectOf: CGSize(width: 24, height: 18), cornerRadius: 4)
+            hull.fillColor = type.barrelColor
+            hull.strokeColor = SKColor(red: 0.28, green: 0.60, blue: 0.32, alpha: 0.55)
+            hull.lineWidth = 1.5
+            hull.position = CGPoint(x: 0, y: 13)
+            hull.zPosition = 2
+            barrelNode.addChild(hull)
 
-            let tubeL = SKShapeNode(rectOf: CGSize(width: 5, height: 9), cornerRadius: 2)
-            tubeL.fillColor = type.barrelColor
-            tubeL.strokeColor = .clear
-            tubeL.position = CGPoint(x: -5, y: 21)
-            tubeL.zPosition = 3
-            barrelNode.addChild(tubeL)
-
-            let tubeR = SKShapeNode(rectOf: CGSize(width: 5, height: 9), cornerRadius: 2)
-            tubeR.fillColor = type.barrelColor
-            tubeR.strokeColor = .clear
-            tubeR.position = CGPoint(x: 5, y: 21)
-            tubeR.zPosition = 3
-            barrelNode.addChild(tubeR)
-
-            let holeL = SKShapeNode(circleOfRadius: 2)
+            // Twin launch holes recessed directly into the hull's face — dark sockets
+            // rather than tubes perched on top, so the armament reads as built-in.
+            let holeL = SKShapeNode(circleOfRadius: 3)
             holeL.fillColor = SKColor(white: 0.08, alpha: 1.0)
-            holeL.strokeColor = .clear
-            holeL.position = CGPoint(x: -5, y: 25)
-            holeL.zPosition = 4
+            holeL.strokeColor = SKColor(white: 1.0, alpha: 0.20)
+            holeL.lineWidth = 1
+            holeL.position = CGPoint(x: -5.5, y: 17)
+            holeL.zPosition = 3
             barrelNode.addChild(holeL)
 
-            let holeR = SKShapeNode(circleOfRadius: 2)
+            let holeR = SKShapeNode(circleOfRadius: 3)
             holeR.fillColor = SKColor(white: 0.08, alpha: 1.0)
-            holeR.strokeColor = .clear
-            holeR.position = CGPoint(x: 5, y: 25)
-            holeR.zPosition = 4
+            holeR.strokeColor = SKColor(white: 1.0, alpha: 0.20)
+            holeR.lineWidth = 1
+            holeR.position = CGPoint(x: 5.5, y: 17)
+            holeR.zPosition = 3
             barrelNode.addChild(holeR)
 
-            tipOffset = CGPoint(x: 0, y: 26)
+            tipOffset = CGPoint(x: 0, y: 23)
 
         // ── BLUE: heavy siege cannon ─────────────────────────────────────────
         case .blue:

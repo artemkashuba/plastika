@@ -111,17 +111,24 @@ final class PlaceholderTower: GameEntity {
         root.addChild(shadow)
 
         // Base plate — every tower shares the same round toy-turret plate + glossy specular
-        // highlight here, *except* Pink: the Laser Lance gets a unique angular "energy
-        // platform" silhouette (flat-topped hexagon ringed with idle-pulsing power vents)
-        // in their place, so it reads as a fundamentally different *kind* of machine at a
-        // glance — not just a different paint job on the same chassis.
+        // highlight here, *except* Pink and Green, which get their own unique chassis
+        // silhouettes instead: the Laser Lance stands on an angular "energy platform"
+        // (flat-topped hexagon ringed with idle-pulsing power vents), and the Missile Pod
+        // now stands on a rectangular "armored launch deck" (see `makeArmoredDeck`) — both
+        // exist so those towers read as fundamentally different *kinds* of machines at a
+        // glance, not just different paint jobs on the same round chassis.
         var energyVentGlows: [SKShapeNode] = []
 
-        if type == .pink {
+        switch type {
+        case .pink:
             let (platform, ventGlows) = Self.makeEnergyPlatform(type: type)
             root.addChild(platform)
             energyVentGlows = ventGlows
-        } else {
+
+        case .green:
+            root.addChild(Self.makeArmoredDeck(type: type))
+
+        case .red, .blue:
             let base = SKShapeNode(circleOfRadius: 17)
             base.fillColor = type.baseColor
             base.strokeColor = SKColor(red: 0.76, green: 0.92, blue: 1.0, alpha: 1.0)
@@ -352,6 +359,55 @@ final class PlaceholderTower: GameEntity {
         }
 
         return (platform, ventGlows)
+    }
+
+    // MARK: - Armored deck (Green chassis)
+
+    /// Builds Green's unique "armored launch deck" base — a stout rectangular hull plate
+    /// (standing in for the round plate + specular highlight every other tower shares,
+    /// the same way Pink's hexagonal energy platform does) sized so its corner-to-center
+    /// reach (~17pt) matches the round plate's footprint radius, keeping it within the
+    /// selection ring and reload indicator at the same visual scale as the rest of the
+    /// roster. Reads as a vehicle hull rather than a disc — the Missile Pod now looks like
+    /// a "rocket truck" body even before its launcher hull is considered, instead of an
+    /// empty-feeling circle peeking out from behind thin gun barrels. Plain and static (no
+    /// idle-pulse glows like Pink's vents) — Green's "tell" is its rocket and smoke trail
+    /// in flight, not its chassis at rest.
+    private static func makeArmoredDeck(type: TowerType) -> SKNode {
+        let deck = SKNode()
+
+        let plate = SKShapeNode(rectOf: CGSize(width: 28, height: 20), cornerRadius: 5)
+        plate.fillColor = type.baseColor
+        plate.strokeColor = SKColor(red: 0.76, green: 0.92, blue: 1.0, alpha: 1.0)
+        plate.lineWidth = 3
+        deck.addChild(plate)
+
+        // Specular highlight — same glossy "toy plastic" treatment as the shared round
+        // plate's, just repositioned to sit comfortably within the rectangular footprint.
+        let highlight = SKShapeNode(circleOfRadius: 5)
+        highlight.fillColor = SKColor(white: 1.0, alpha: 0.52)
+        highlight.strokeColor = .clear
+        highlight.position = CGPoint(x: -10, y: 7)
+        highlight.zPosition = 1
+        deck.addChild(highlight)
+
+        // Corner rivets — small dark studs that sell the "armored vehicle hull" read,
+        // the rectangular-deck equivalent of the energy platform's recessed vent sockets.
+        let rivetPositions: [CGPoint] = [
+            CGPoint(x: -11, y: 7), CGPoint(x: 11, y: 7),
+            CGPoint(x: -11, y: -7), CGPoint(x: 11, y: -7)
+        ]
+
+        for position in rivetPositions {
+            let rivet = SKShapeNode(circleOfRadius: 1.4)
+            rivet.fillColor = SKColor(white: 0.12, alpha: 0.55)
+            rivet.strokeColor = .clear
+            rivet.position = position
+            rivet.zPosition = 1
+            deck.addChild(rivet)
+        }
+
+        return deck
     }
 
     /// Kicks off a slow, gently out-of-phase idle "breathing" pulse on the energy platform's

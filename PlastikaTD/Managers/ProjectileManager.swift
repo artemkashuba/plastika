@@ -21,6 +21,7 @@ final class ProjectileManager {
         behavior: TowerProjectileBehavior,
         color: SKColor,
         radius: CGFloat,
+        style: ProjectileVisualStyle,
         speed: CGFloat,
         targetPositionProvider: @escaping @MainActor () -> CGPoint?,
         in scene: SKScene,
@@ -33,7 +34,7 @@ final class ProjectileManager {
         }
 
         activeProjectiles.append(projectile)
-        projectile.configure(color: color, radius: radius)
+        projectile.configure(color: color, radius: radius, style: style)
 
         let completion: @MainActor (Bool) -> Void = { [weak self, weak projectile, weak scene] didImpact in
             guard let self, let projectile else {

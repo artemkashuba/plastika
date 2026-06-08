@@ -37,8 +37,13 @@ final class EnemyManager {
         }
     }
 
-    func spawnPlaceholderEnemy(in scene: SKScene, path: GamePath) {
+    func spawnPlaceholderEnemy(in scene: SKScene, path: GamePath, type: EnemyType) {
         let enemy = pooledEnemies.popLast() ?? PlaceholderEnemy()
+        // Reapply every per-type stat and chassis detail before this life starts —
+        // pooled instances may have last lived as a completely different `EnemyType`,
+        // and `startMoving` (called below) immediately derives `hitPoints`/
+        // `fractionalHealth`/travel speed from whatever `configure` just set.
+        enemy.configure(type: type)
 
         if enemy.node.parent == nil {
             scene.addChild(enemy.node)

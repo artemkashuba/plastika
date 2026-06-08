@@ -220,6 +220,7 @@ final class TowerManager {
                 behavior: tower.type.projectileBehavior,
                 color: tower.type.projectileColor,
                 radius: tower.type.projectileRadius,
+                style: tower.type.projectileVisualStyle,
                 speed: tower.type.projectileSpeed,
                 targetPositionProvider: { [weak enemyManager, weak target] in
                     // Range is NOT checked here — in-flight homing missiles chase their

@@ -2,7 +2,7 @@
 
 ## Current Status
 
-Tower upgrades — complete.
+Enemy variety (Scout/Soldier/Tank) — complete.
 
 The repository now has:
 
@@ -14,7 +14,7 @@ The repository now has:
 - Placeholder managers for the documented systems
 - A `PathManager` with a hardcoded waypoint path
 - A `WaveManager` that scripts a two-wave sequence with an inter-wave countdown
-- Multiple pooled placeholder enemies moving along the path and disappearing at the end
+- Three pooled enemy types — Scout/Soldier/Tank, each with its own HP, path-speed multiplier, kill-reward value, and recolored/rescaled chassis livery on a shared toy-tank silhouette — moving along the path and disappearing at the end
 - Five circular build spots around the path
 - Tap-to-open tower build menu interaction for empty build spots
 - A compact three-option circular build menu below the active build spot
@@ -30,9 +30,10 @@ The repository now has:
 - Blue towers with slow attack speed and slow direct projectile behavior
 - Blue tower predictive aiming — fires at the enemy's quadratic intercept position based on velocity and projectile speed
 - Homing (Green) missiles that chase their target until impact, regardless of the tower's attack range
+- Green's "Missile Pod" stands apart visually: a unique rectangular "armored launch deck" chassis + solid launcher-hull gun assembly, and a tapered rocket projectile (nose cone, tail exhaust glow, drifting smoke trail) that rotates to face its direction of travel — replacing its old round chassis + thin twin tubes + plain glow-ball look (see `ProjectileVisualStyle`)
 - Per-tower projectile colors: Red = orange, Green = lime, Blue = cyan
 - Impact flash effect at the hit position, color-matched to the projectile
-- Basic 1 HP placeholder enemies that are removed and recycled when hit
+- Pooled, type-configurable placeholder enemies (Scout 5 HP / Soldier 8 HP / Tank 18 HP — bumped +50% from launch values in a balance pass) that are removed and recycled when killed
 - A UI test that verifies projectiles appear and enemies disappear after tower placement
 - Tap-to-select interaction for placed placeholder towers
 - A subtle selected tower highlight using slight scale and a thin white ring
@@ -52,7 +53,7 @@ The repository now has:
 - A Restart button on both overlays that fully resets and restarts wave progression from wave 1
 - Combat and input gated on `.sceneLoaded` phase; overlays block all gameplay input
 - No center branding text inside the battlefield
-- Tower upgrades are in (2 tiers, damage/DPS-only scaling — see milestone below); still no per-wave selling, splash damage, status effects, multiple enemy types, or final art
+- Tower upgrades are in (2 tiers, damage/DPS-only scaling) and the enemy roster now has real variety (see milestones below); still no per-wave selling, splash damage, status effects, or final art
 
 ## Next Task
 
@@ -61,6 +62,29 @@ Add haptics (next unchecked Phase 2 item in `TODO.md`).
 ## Immediate Goal
 
 Identify the moments that most deserve tactile feedback (tower placement, firing, enemy kills, base damage, wave start/clear, button taps?) and decide which haptic style (`UIImpactFeedbackGenerator` weight, `UINotificationFeedbackGenerator` for win/loss, etc.) fits each — keeping the same "small vertical slice" approach as every other feel-pass feature so far (recoil, muzzle flash, reload ring).
+
+## Previous Milestone — Enemy Variety (Scout/Soldier/Tank)
+
+The enemy roster now has real, documented variety — Scout/Soldier/Tank, exactly as named in `GAME_DESIGN.md`'s Enemies section and `TODO.md`'s Phase 2 entry:
+
+- New `EnemyType: CaseIterable` (mirroring `TowerType`'s static-per-type-stats shape) declares `maxHitPoints`, `speedMultiplier`, `killReward`, chassis livery colors, and `chassisScale` for each of the three types. Soldier is the untouched original baseline (5 HP, 1.0× speed, 10-coin reward, original maroon livery, 1.0× scale); Scout trades HP for speed (3 HP, 1.35× speed, 6-coin reward, smaller bright-orange chassis at 0.82×); Tank inverts that trade (12 HP, 0.65× speed, 18-coin reward, larger dull-armored chassis at 1.28×)
+- `PlaceholderEnemy` gained a `configure(type:)` method (mirroring `PlaceholderProjectile.configure`'s "fully reset on reuse" pooling contract) that reapplies every per-type stat and chassis detail — HP, kill reward, hull/turret recolor, uniform rescale of `bodyNode` — since pooled instances may have last lived as a completely different type. `EnemyManager.spawnPlaceholderEnemy(in:path:type:)` now takes an `EnemyType` and calls `configure` before `startMoving` (which immediately calls `reset()`, deriving `hitPoints`/`fractionalHealth` from the just-set `maxHitPoints`)
+- Solved the "enemies all move at one fixed speed" architectural constraint without restructuring `GamePath` (whose `movementSpeed` stays a fixed, path-level constant): `startMoving` now computes `let speed = path.movementSpeed * type.speedMultiplier` and uses that for its travel-duration/velocity math — Soldier's 1.0× exactly reproduces the original behavior, while Scout/Tank get meaningfully different paces with a one-line change at the point of consumption
+- Visual identity comes from recoloring the shared toy-tank hull/turret and uniformly rescaling the chassis — the same "shared silhouette, distinct livery" technique two of the four towers (Red/Blue) already use, and squarely in `AGENTS.md`'s "use placeholder assets" spirit. Tracks, barrel, and highlight stay a shared neutral "machine" palette across all three types — only the "paint job" and size change
+- `WaveManager.WaveDefinition` gained `availableEnemyTypes: [EnemyType]`; each spawn now calls a new `randomEnemyType(from:)` to pick uniformly at random from that wave's set — wave 1 mixes Soldier/Scout only (easing the player in), wave 2 onward folds in the Tank. A simple, formula-friendly ramp that mirrors how `enemyCount`/`spawnInterval` already scale with wave index
+- Stats were chosen to keep every counter "soft," per the documented guidance: every type remains killable — if inefficiently — by the whole tower roster (no hard counters, no enemy favored or punished by exactly one tower type)
+- Corrected a stale `GAME_DESIGN.md` claim ("basic 1 HP combat health") to describe the real roster and stats — the actual baseline has been 5 HP (now Soldier's value, since rebalanced — see below) since the fractional-health work landed
+- **Follow-up balance pass (same day)**: bumped `maxHitPoints` +50% across the board per the user's direct request — Scout 3→5, Soldier 5→8, Tank 12→18 (× 1.5, rounded to the nearest whole point, rounding the two half-point cases up so "increase HP" reliably means more HP for every type). Relative ratios — and therefore the soft-counter balance already checked against tower DPS — are preserved; every fight just takes proportionally longer now (see `DECISIONS.md`)
+
+## Previous Milestone — Green "Missile Pod" Visual Redesign
+
+The Green tower and its projectile have a distinct new look — no longer a re-tinted copy of the round chassis + glow-ball every other type uses:
+
+- New `makeArmoredDeck(type:)` gives Green its own rectangular "armored launch deck" chassis (rounded rect + specular highlight + four corner rivets), sized so its footprint matches the shared round plate's radius — replacing the round base plate the same way Pink's hexagonal "energy platform" already stands apart from it. `PlaceholderTower.init`'s chassis branch is now a three-way `switch` over `type` (Pink / Green / Red+Blue) instead of an `if`/`else` framed around Pink alone
+- `TowerGunFactory`'s Green case was rebuilt from "circular turret + floating pod + paired tubes" into "rectangular swivel mount + one solid launcher hull + twin recessed launch holes" — a single rectangular mass fills the tower's center (no more empty-feeling circle peeking out from behind thin barrels), and even the rotation pivot itself now reads as a piece of hardware
+- New `ProjectileVisualStyle { case orb; case rocket }` enum (+ `TowerType.projectileVisualStyle`, `.rocket` only for Green) lets `PlaceholderProjectile` carry two complete look-and-feel variants — the shared glow-behind-core "orb" every type still defaults to, and a new "rocket": an elongated tapered body + nose cone (tinted in the tower's signature color) + tail-mounted glow-behind-core exhaust (warm orange "rocket flame," recolored from the same visual grammar as the orb). Both variants are built once in `init` and toggled per-use in `configure(color:radius:style:)`, so pooled projectiles can switch styles cleanly between reuses
+- The rocket rotates to face its direction of travel in flight — `startHomingTravel` reuses `aim(at:)`'s exact `atan2(dy, dx) - (.pi / 2)` formula on the per-frame `dx`/`dy` it already tracks (the direction toward a homing target IS its heading, so no new state is needed), and periodically drops a small drifting smoke puff (`spawnSmokePuff`, the same spawn → scale+fade-out → remove pattern as `showImpactFlash`) as a sibling node in the scene — building a trail that stays put in world space while the rocket streaks onward
+- `ProjectileManager.firePlaceholderProjectile`/`TowerManager`'s call site now thread a `style: ProjectileVisualStyle` parameter through to `configure`, alongside the existing `color`/`radius`
 
 ## Previous Milestone — Tower Upgrades
 
