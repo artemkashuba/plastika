@@ -2,6 +2,7 @@
 
 ## Current Status
 
+Main menu (`.mainMenu` phase + SwiftUI overlay; PLAY starts waves; Menu button on end overlays) — complete.
 Red "Autocannon" twin-turret redesign (housing + barrels cycling into it) — complete.
 Orphaned missiles land & detonate (homing missile commits to road on target loss) — complete.
 Haptics (`HapticsManager` — tactile feedback on key moments, persisted pause-menu toggle) — complete.
@@ -70,6 +71,26 @@ The repository now has:
 
 Add main menu, or add level select (next unchecked Phase 2 items in `TODO.md`). The remaining
 "total time control" / "total information" UX items are also open.
+
+## Previous Milestone — Main Menu
+
+The game now boots into a proper main menu instead of dropping straight into wave 1 (see
+`DECISIONS.md` 2026-06-12):
+
+- New `.mainMenu` `GamePhase`: `didMove` builds the full battlefield but stops short of
+  starting waves (`startWaves()` split out of `buildGameplaySlice`) and calls `markMainMenu()`.
+  The idle field shows dimly behind the menu; existing `.sceneLoaded` gates keep it inert (an
+  explicit `.mainMenu` early-return was added to `touchesEnded` for safety)
+- `MainMenuView` (SwiftUI, private in `GameView.swift` like `LoadingView`): title block in the
+  loading screen's identity, a pulsing PLAY button, "10 WAVES · 3 LIVES · NO MERCY" tagline,
+  and the pause menu's sound/haptics toggle rows. PLAY → `GameStateManager.startGame()` →
+  `onStartGame` → `GameScene.beginGameplay()` (starts waves, `markSceneLoaded`)
+- Victory/defeat overlays now show **Restart + Menu** side by side; Menu runs
+  `exitToMainMenu()` (mirrors `restartGame()` minus starting waves) — closing the loop:
+  menu → play → end → menu. `restartGame()` itself now calls `startWaves()` explicitly
+- UI tests gained a `startGame(_:)` helper (waits for `app.buttons["PLAY"]`, taps it) called
+  at the top of all six tests — waves starting on PLAY rather than at app launch makes the
+  early-wave timing slightly more deterministic for them. Full suite green
 
 ## Previous Milestone — Red "Autocannon" Twin-Turret Redesign
 

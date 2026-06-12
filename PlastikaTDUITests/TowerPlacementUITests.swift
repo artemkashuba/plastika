@@ -23,6 +23,7 @@ final class TowerPlacementUITests: XCTestCase {
     func testTapBuildSpotPlacesOnePlaceholderTowerOnlyOnce() {
         let app = XCUIApplication()
         app.launch()
+        startGame(app)
 
         let topRightBuildSpot = CGVector(dx: 0.628, dy: 0.275)   // spot id 7 (245, 612)
         let emptyBattlefield = CGVector(dx: 0.50, dy: 0.88)
@@ -66,6 +67,7 @@ final class TowerPlacementUITests: XCTestCase {
     func testBuildSpotMenuShowsMovesHidesAndPlacesTypedTowers() {
         let app = XCUIApplication()
         app.launch()
+        startGame(app)
 
         let topRightBuildSpot = CGVector(dx: 0.628, dy: 0.275)     // spot id 7 (245, 612)
         let middleRightBuildSpot = CGVector(dx: 0.628, dy: 0.429)  // spot id 5 (245, 482)
@@ -116,6 +118,7 @@ final class TowerPlacementUITests: XCTestCase {
     func testPlacedTowerFiresProjectilesAndDestroysEnemies() {
         let app = XCUIApplication()
         app.launch()
+        startGame(app)
 
         let earlyBuildSpot = CGVector(dx: 0.308, dy: 0.725)   // spot id 0 (120, 232)
         placeTower(app, at: earlyBuildSpot, option: .green)
@@ -176,6 +179,7 @@ final class TowerPlacementUITests: XCTestCase {
     func testPlacedTowerAimsBarrelTowardLockedTarget() {
         let app = XCUIApplication()
         app.launch()
+        startGame(app)
 
         // Spot id 0 (120, 232): for the first ~7s of wave 1, the furthest-along enemy in
         // range is always to this spot's RIGHT — on the first lane's right stretch, the
@@ -210,6 +214,7 @@ final class TowerPlacementUITests: XCTestCase {
     func testTowerSelectionShowsRangeSwitchesAndClears() {
         let app = XCUIApplication()
         app.launch()
+        startGame(app)
 
         let firstTower = CGVector(dx: 0.628, dy: 0.275)         // spot id 7 (245, 612)
         let secondTower = CGVector(dx: 0.628, dy: 0.725)        // spot id 1 (245, 232)
@@ -267,6 +272,7 @@ final class TowerPlacementUITests: XCTestCase {
         // Starting coins: 150. Each tower costs 50. After 3 placements the player is broke.
         let app = XCUIApplication()
         app.launch()
+        startGame(app)
 
         let topRightBuildSpot    = CGVector(dx: 0.628, dy: 0.275)  // spot id 7 (245, 612)
         let middleRightBuildSpot = CGVector(dx: 0.628, dy: 0.429)  // spot id 5 (245, 482)
@@ -295,6 +301,16 @@ final class TowerPlacementUITests: XCTestCase {
 
         // No new red tower should have appeared at this build spot.
         XCTAssertLessThanOrEqual(abs(afterPixels - beforePixels), 200)
+    }
+
+    /// Dismisses the main menu: waits for the PLAY button (the scene builds behind the
+    /// loading screen first) and taps it, starting wave progression. Every test calls this
+    /// right after launch — gameplay input is blocked while the menu is up.
+    private func startGame(_ app: XCUIApplication) {
+        let playButton = app.buttons["PLAY"]
+        XCTAssertTrue(playButton.waitForExistence(timeout: 10), "Main menu PLAY button never appeared")
+        playButton.tap()
+        Thread.sleep(forTimeInterval: 0.5)
     }
 
     private func placeTower(_ app: XCUIApplication, at buildSpot: CGVector, option: TestTowerOption) {

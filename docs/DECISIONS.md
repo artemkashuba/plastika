@@ -1641,3 +1641,33 @@ no stats changed.
   for the longer barrels so the muzzle flash/spawn point stays at the tips.
 - Also reads better than the thin barrels in the small build-menu preview (same assembly,
   scaled 0.44×). Verified in-sim (idle + rotated) with a throwaway debug placement, then removed.
+
+## 2026-06-12 (Main Menu)
+
+**Decision**: Added the main menu as a new `.mainMenu` `GamePhase` + a SwiftUI `MainMenuView`
+overlay (in `GameView.swift`, alongside the existing private `LoadingView`). The app now boots
+into the menu with the fully built, *idle* battlefield dimly visible behind it; waves start —
+and the phase moves to `.sceneLoaded` — only when the player taps PLAY. The menu carries the
+loading screen's title identity, a pulsing PLAY button, a "10 WAVES · 3 LIVES · NO MERCY"
+tagline, and the same sound/haptics toggles the pause menu offers. The victory/defeat overlays
+gained a second "Menu" button (beside Restart) that returns to a freshly rebuilt idle menu
+backdrop, closing the loop: menu → play → end → menu.
+
+**Reason**:
+
+- **Next unchecked Phase 2 item** ("Add main menu"), chosen by the user.
+- **Reuses the established overlay architecture**: `GameView` already swaps SwiftUI overlays on
+  `GamePhase` (loading/pause), so the menu is just one more phase + view — no new navigation
+  machinery, no separate scene. `MainMenuView` lives in `GameView.swift` like `LoadingView`
+  does, avoiding pbxproj surgery and following the file's own precedent.
+- **Battlefield as backdrop**: `didMove` builds everything as before but stops short of
+  starting waves (`startWaves` split out of `buildGameplaySlice`), then `markMainMenu()`. The
+  existing phase gates already keep the idle scene inert (combat update and touch handling are
+  `.sceneLoaded`-gated; an explicit `.mainMenu` early-return was added to `touchesEnded` for
+  safety). PLAY fires `GameStateManager.startGame()` → `onStartGame` → `beginGameplay()`
+  (mirrors the `onResume` callback shape).
+- **"Menu" on end overlays** uses the same name-matched dark-pill button pattern as
+  RestartButton; `exitToMainMenu()` mirrors `restartGame()` minus starting waves.
+- **UI tests**: every test now taps the menu's PLAY first (`startGame(_:)` helper waiting on
+  `app.buttons["PLAY"]`) — and waves now start *after* the tap rather than during app launch,
+  which actually makes the tests' early-wave timing more deterministic.

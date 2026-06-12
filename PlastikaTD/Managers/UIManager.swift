@@ -398,12 +398,14 @@ final class UIManager {
         subtitleLabel.position = CGPoint(x: 0, y: 18)
         root.addChild(subtitleLabel)
 
-        let restartButton = SKShapeNode(rectOf: CGSize(width: 140, height: 44), cornerRadius: 10)
+        // Two side-by-side actions: Restart jumps straight into a fresh run; Menu returns
+        // to the main menu (same dark-pill + name-matched tap pattern as RestartButton).
+        let restartButton = SKShapeNode(rectOf: CGSize(width: 118, height: 44), cornerRadius: 10)
         restartButton.name = "RestartButton"
         restartButton.fillColor = SKColor(white: 1.0, alpha: 0.18)
         restartButton.strokeColor = SKColor(white: 1.0, alpha: 0.52)
         restartButton.lineWidth = 2
-        restartButton.position = CGPoint(x: 0, y: -52)
+        restartButton.position = CGPoint(x: -66, y: -52)
         root.addChild(restartButton)
 
         let restartLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
@@ -413,6 +415,22 @@ final class UIManager {
         restartLabel.fontColor = .white
         restartLabel.verticalAlignmentMode = .center
         restartButton.addChild(restartLabel)
+
+        let menuButton = SKShapeNode(rectOf: CGSize(width: 118, height: 44), cornerRadius: 10)
+        menuButton.name = "MenuButton"
+        menuButton.fillColor = SKColor(white: 1.0, alpha: 0.10)
+        menuButton.strokeColor = SKColor(white: 1.0, alpha: 0.40)
+        menuButton.lineWidth = 2
+        menuButton.position = CGPoint(x: 66, y: -52)
+        root.addChild(menuButton)
+
+        let menuLabel = SKLabelNode(fontNamed: "AvenirNext-DemiBold")
+        menuLabel.name = "MenuButton"
+        menuLabel.text = "Menu"
+        menuLabel.fontSize = 16
+        menuLabel.fontColor = SKColor(white: 1.0, alpha: 0.85)
+        menuLabel.verticalAlignmentMode = .center
+        menuButton.addChild(menuLabel)
 
         scene.addChild(root)
         endOverlayNode = root

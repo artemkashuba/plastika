@@ -47,10 +47,10 @@ final class GameScene: SKScene {
         buildGameplaySlice()
         setupCallbacks()
         systems.uiManager.configureOverlay(in: self, safeAreaTop: safeAreaTopInScene)
-        // The HUD wave badge is built above, after the wave already started (and fired its
-        // initial onWaveProgressChanged before the callback was wired) — sync it explicitly.
         systems.uiManager.setWave(number: systems.waveManager.currentWaveNumber)
-        systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
+        // Land in the main menu with the built, idle battlefield as the backdrop — waves
+        // (and the .sceneLoaded gameplay phase) start when the player taps PLAY.
+        systems.gameStateManager.markMainMenu()
     }
 
     private func resetPlaceholderSystems() {
@@ -181,12 +181,37 @@ final class GameScene: SKScene {
         debugPathNode = pathNode
 
         addChild(systems.buildSpotManager.makeBuildSpotLayer())
+    }
 
+    /// Kicks off wave progression from wave 1. Split out of `buildGameplaySlice` so the
+    /// built battlefield can idle as the main menu's backdrop — waves only start when the
+    /// player taps PLAY (or Restart on an end overlay).
+    private func startWaves() {
         systems.waveManager.beginWaveProgression(
             in: self,
             path: systems.pathManager.activePath,
             enemyManager: systems.enemyManager
         )
+    }
+
+    /// PLAY tapped on the main menu: the field is already built and idle (fresh from
+    /// `didMove` or `exitToMainMenu`), so just start the waves and enter gameplay.
+    private func beginGameplay() {
+        guard systems.gameStateManager.state.phase == .mainMenu else { return }
+        startWaves()
+        systems.uiManager.setWave(number: systems.waveManager.currentWaveNumber)
+        systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
+    }
+
+    /// Menu tapped on a victory/defeat overlay: rebuild a clean, idle battlefield as the
+    /// backdrop and return to the main menu (mirrors `restartGame`, minus starting waves).
+    private func exitToMainMenu() {
+        resetPlaceholderSystems()
+        buildGameplaySlice()
+        setupCallbacks()
+        systems.uiManager.configureOverlay(in: self, safeAreaTop: safeAreaTopInScene)
+        systems.uiManager.setWave(number: systems.waveManager.currentWaveNumber)
+        systems.gameStateManager.markMainMenu()
     }
 
     private func setupCallbacks() {
@@ -196,6 +221,10 @@ final class GameScene: SKScene {
 
         systems.gameStateManager.onResume = { [weak self] in
             self?.isPaused = false
+        }
+
+        systems.gameStateManager.onStartGame = { [weak self] in
+            self?.beginGameplay()
         }
 
         systems.gameStateManager.onSoundEnabledChange = { [weak self] enabled in
@@ -272,6 +301,7 @@ final class GameScene: SKScene {
         buildGameplaySlice()
         setupCallbacks()
         systems.uiManager.configureOverlay(in: self, safeAreaTop: safeAreaTopInScene)
+        startWaves()
         systems.uiManager.setWave(number: systems.waveManager.currentWaveNumber)
         systems.gameStateManager.markSceneLoaded(named: Self.sceneName)
     }
@@ -318,12 +348,15 @@ final class GameScene: SKScene {
         let location = touch.location(in: self)
         let phase = systems.gameStateManager.state.phase
 
-        if phase == .paused { return }
+        if phase == .paused || phase == .mainMenu { return }
 
         if phase == .gameOver || phase == .victory {
             if nodes(at: location).contains(where: { $0.name == "RestartButton" }) {
                 systems.hapticsManager.buttonTapped()
                 restartGame()
+            } else if nodes(at: location).contains(where: { $0.name == "MenuButton" }) {
+                systems.hapticsManager.buttonTapped()
+                exitToMainMenu()
             }
             return
         }

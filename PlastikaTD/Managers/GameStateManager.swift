@@ -52,12 +52,27 @@ final class GameStateManager: ObservableObject {
         }
     }
 
+    /// Fired when the player taps PLAY on the main menu — GameScene wires this to begin
+    /// wave progression (mirrors `onResume`'s shape).
+    var onStartGame: (() -> Void)?
+
     // MARK: - Phase transitions
 
     func markSceneLoaded(named sceneName: String) {
         state.activeSceneName = sceneName
         state.phase = .sceneLoaded
         pauseStats = nil
+    }
+
+    /// Scene is built and idling as a backdrop; the SwiftUI main menu is on top.
+    func markMainMenu() {
+        state.phase = .mainMenu
+        pauseStats = nil
+    }
+
+    /// Called by the main menu's PLAY button.
+    func startGame() {
+        onStartGame?()
     }
 
     func pause(stats: PauseStats) {
