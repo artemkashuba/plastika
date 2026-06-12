@@ -66,6 +66,7 @@
 - [ ] Add main menu
 - [ ] Add level select
 - [x] Add enemy variety — Scout/Soldier/Tank with meaningfully different stats (not palette swaps) and "soft" counters: every type should stay killable, if inefficiently, by more than one tower (avoid lock-and-key design, and avoid flying/path-ignoring enemy types entirely)
+- [x] Redesign the map into a 5-lane serpentine with an underground tunnel segment — enemies dive in at one mouth (hidden, untargetable, immune) and re-emerge at the other; 8 build spots in two columns between the lanes; UI tests realigned to the new layout
 - [ ] Add "total time control" UX — let the player issue build/sell actions while paused, plus a 2x/4x speed-up toggle for skipping through easy or already-won waves
 - [ ] Add "total information" readouts — tap-to-inspect full stats on enemies (mirrors the existing tower ARSENAL panel: HP, speed, resistances/status effects) and a wave preview showing upcoming enemy types/counts before they spawn
 
@@ -73,6 +74,10 @@
 
 - [x] Draft AI-generation art-asset brief and style guide (`docs/ART_ASSET_BRIEF.md`) — prep for the reskin below
 - [x] Add decorative tabletop scenery — toy trees (round + pine), bushes, rocks, and grass tufts in the empty green, plus a spawn "camp" marker and a base/objective marker at the path ends (purely cosmetic, fixed positions, rendered below gameplay units) — `SceneryFactory`
+- [x] Make the tunnel read like a real underground passage — no colored outline along its length: the road simply stops (grass continues over the buried stretch) and a grassy hillside portal (mound + stone facade + dark opening, aligned with the connecting road) marks each mouth; enemies dive in (shrink + fade + dust) and pop out (overshoot scale-up + dust) instead of blinking
+- [x] Visual feel pass — enemy hull "engine rumble" bob, dust trails behind driving enemies, spawn pop, white hit-flash on discrete hits, screen shake on mortar detonations and base breaches (`SKCameraNode` + `shakeScreen`)
+- [x] Environment depth pass — wooden tabletop frame with grain lines, soft vignette over the grass mat, drifting ambient cloud shadow, gentle sway on trees/bushes/grass tufts, fluttering marker flags
+- [x] Add per-type turret traverse speed (rate-limited rotation, cosmetic only) — Mortar slowest (≈2s for 180°) for a heavy, sluggish feel; Mortar also commits to its locked target instead of re-picking the lead each frame, and its tempo deepened (1.85s reload / 5-damage shell, DPS ≈ unchanged)
 - [ ] Replace placeholder art
 - [ ] Improve animations
 - [ ] Add skins

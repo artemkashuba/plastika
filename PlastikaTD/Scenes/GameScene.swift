@@ -32,6 +32,13 @@ final class GameScene: SKScene {
 
         didBuildScene = true
         view.preferredFramesPerSecond = configuration.preferredFramesPerSecond
+        // Camera at the scene's exact center, scale 1 — renders identically to having no
+        // camera at all, but gives `shakeScreen` something to jolt for impact moments
+        // (mortar detonations, base breaches).
+        let cameraNode = SKCameraNode()
+        cameraNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        addChild(cameraNode)
+        camera = cameraNode
         // Convert the bottom of the notch/island/status bar from UIKit coords (top-left origin,
         // y increases downward) to scene coords (bottom-left origin, y increases upward).
         safeAreaTopInScene = convertPoint(fromView: CGPoint(x: 0, y: view.safeAreaInsets.top)).y
@@ -62,12 +69,64 @@ final class GameScene: SKScene {
     }
 
     private func buildPlaceholderScene() {
+        let center = CGPoint(x: size.width / 2, y: size.height / 2)
+
+        // Wooden tabletop under the grass mat — a visible wood margin all around frames the
+        // battlefield as toys set up on a real table, per the game's tabletop presentation.
+        let woodFrame = SKShapeNode(rectOf: CGSize(width: size.width * 0.94, height: size.height * 0.80), cornerRadius: 30)
+        woodFrame.fillColor = SKColor(red: 0.43, green: 0.30, blue: 0.18, alpha: 1.0)
+        woodFrame.strokeColor = SKColor(red: 0.27, green: 0.18, blue: 0.10, alpha: 1.0)
+        woodFrame.lineWidth = 3
+        woodFrame.position = center
+        woodFrame.zPosition = -2
+        addChild(woodFrame)
+
+        // Faint horizontal grain lines across the wood (the middle is covered by the grass
+        // mat, so these only show in the margins — a subtle plank texture, not a pattern).
+        for fraction in [-0.36, -0.19, -0.02, 0.16, 0.34] as [CGFloat] {
+            let grain = SKShapeNode(rectOf: CGSize(width: size.width * 0.90, height: 1.5), cornerRadius: 0.75)
+            grain.fillColor = SKColor(white: 0.0, alpha: 0.16)
+            grain.strokeColor = .clear
+            grain.position = CGPoint(x: center.x, y: center.y + size.height * 0.80 * fraction)
+            grain.zPosition = -1.5
+            addChild(grain)
+        }
+
         let table = SKShapeNode(rectOf: CGSize(width: size.width * 0.82, height: size.height * 0.72), cornerRadius: 24)
         table.fillColor = SKColor(red: 0.23, green: 0.48, blue: 0.38, alpha: 1.0)
         table.strokeColor = SKColor(red: 0.86, green: 0.95, blue: 0.78, alpha: 1.0)
         table.lineWidth = 4
-        table.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        table.position = center
         addChild(table)
+
+        // Soft vignette over the grass — nested low-alpha dark strokes hugging the mat's
+        // edge so the field reads as gently lit from above rather than a flat green fill.
+        for (inset, alpha) in [(CGFloat(10), 0.09), (CGFloat(26), 0.05)] {
+            let ring = SKShapeNode(
+                rectOf: CGSize(width: size.width * 0.82 - inset * 2, height: size.height * 0.72 - inset * 2),
+                cornerRadius: max(6, 24 - inset)
+            )
+            ring.fillColor = .clear
+            ring.strokeColor = SKColor(white: 0.0, alpha: alpha)
+            ring.lineWidth = inset * 1.6
+            ring.position = center
+            ring.zPosition = 0.5
+            addChild(ring)
+        }
+
+        // Ambient cloud shadow — a soft dark blob drifting diagonally across the table on a
+        // long loop. Barely-there (alpha 0.05), purely for a feeling of life and light.
+        let cloud = SKShapeNode(ellipseOf: CGSize(width: 240, height: 140))
+        cloud.fillColor = SKColor(white: 0.0, alpha: 0.05)
+        cloud.strokeColor = .clear
+        cloud.position = CGPoint(x: -160, y: size.height * 0.25)
+        cloud.zPosition = 7  // above road (5) and scenery (6), below gameplay units (20)
+        addChild(cloud)
+        cloud.run(.repeatForever(.sequence([
+            .move(to: CGPoint(x: size.width + 160, y: size.height * 0.75), duration: 32),
+            .move(to: CGPoint(x: -160, y: size.height * 0.25), duration: 0),
+            .wait(forDuration: 9)
+        ])))
 
         // Static decorative scenery — toy trees, bushes, rocks, grass tufts, and the
         // spawn-camp / base-objective markers at the path ends. Purely cosmetic, built once,
@@ -157,6 +216,7 @@ final class GameScene: SKScene {
         }
 
         playSound("enemy_breach.wav")
+        shakeScreen(intensity: 5, duration: 0.3)
         let isDestroyed = systems.baseHealthManager.takeDamage()
 
         // Force a HUD update immediately so the heart loss animation triggers now.
@@ -328,5 +388,35 @@ final class GameScene: SKScene {
 
         systems.towerManager.clearSelection()
         systems.buildSpotManager.hideBuildMenu()
+    }
+}
+
+extension SKScene {
+    /// A brief screen shake for impact moments — jolts the camera through a few random
+    /// offsets with linear falloff and lands it exactly back at the scene center (the
+    /// camera's fixed resting position in this game). Re-triggering mid-shake replaces the
+    /// running shake, so overlapping impacts can never leave the camera displaced. No-op
+    /// when the scene has no camera.
+    func shakeScreen(intensity: CGFloat, duration: TimeInterval) {
+        guard let camera else { return }
+
+        let resting = CGPoint(x: size.width / 2, y: size.height / 2)
+        let stepDuration = 0.04
+        let stepCount = max(2, Int(duration / stepDuration))
+
+        camera.removeAction(forKey: "screenShake")
+
+        var steps: [SKAction] = []
+        for index in 0..<stepCount {
+            let falloff = 1 - CGFloat(index) / CGFloat(stepCount)
+            let jolt = CGPoint(
+                x: resting.x + CGFloat.random(in: -intensity...intensity) * falloff,
+                y: resting.y + CGFloat.random(in: -intensity...intensity) * falloff
+            )
+            steps.append(.move(to: jolt, duration: stepDuration))
+        }
+        steps.append(.move(to: resting, duration: stepDuration))
+
+        camera.run(.sequence(steps), withKey: "screenShake")
     }
 }

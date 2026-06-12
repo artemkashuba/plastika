@@ -13,12 +13,18 @@ struct TowerBuildMenuSelection {
 
 @MainActor
 final class BuildSpotManager {
+    // Eight spots in two columns, tucked into the gaps between the serpentine's lanes
+    // (off the road, clear of the tunnel). The right-column pair flanking the tunnel exit
+    // (ids 4 & 5) is the prime "kill zone" — enemies surface there untouched.
     private let buildSpots = [
-        BuildSpot(id: 0, position: CGPoint(x: 300, y: 185)),
-        BuildSpot(id: 1, position: CGPoint(x: 66, y: 280)),
-        BuildSpot(id: 2, position: CGPoint(x: 292, y: 352)),
-        BuildSpot(id: 3, position: CGPoint(x: 82, y: 530)),
-        BuildSpot(id: 4, position: CGPoint(x: 292, y: 620))
+        BuildSpot(id: 0, position: CGPoint(x: 120, y: 232)),   // band A (bottom) — left
+        BuildSpot(id: 1, position: CGPoint(x: 245, y: 232)),   // band A (bottom) — right
+        BuildSpot(id: 2, position: CGPoint(x: 120, y: 360)),   // band B (below tunnel) — left
+        BuildSpot(id: 3, position: CGPoint(x: 245, y: 360)),   // band B (below tunnel) — right
+        BuildSpot(id: 4, position: CGPoint(x: 120, y: 482)),   // band C (above tunnel) — left
+        BuildSpot(id: 5, position: CGPoint(x: 245, y: 482)),   // band C (above tunnel) — right ← tunnel-exit kill zone
+        BuildSpot(id: 6, position: CGPoint(x: 120, y: 612)),   // band D (top) — left
+        BuildSpot(id: 7, position: CGPoint(x: 245, y: 612))    // band D (top) — right
     ]
 
     private let tapRadius: CGFloat = 30

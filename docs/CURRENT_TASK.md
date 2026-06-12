@@ -2,6 +2,10 @@
 
 ## Current Status
 
+Sluggish Mortar + per-type turret traverse (rate-limited aiming, target commitment) — complete.
+Serpentine map + underground tunnel (gameplay + real-life portal visuals) — complete.
+Visual feel pass (hit flash, screen shake, dust, rumble, spawn pop) — complete.
+Environment depth pass (wood frame, vignette, cloud shadow, ambient sway) — complete.
 Decorative tabletop scenery (trees/bushes/rocks/tufts + spawn & base markers) — complete.
 Blue "Mortar" redesign (lobbed arc + splash explosion, area/crowd-control niche) — complete.
 Enemy death effect (livery-colored debris burst on a damage kill) — complete.
@@ -65,6 +69,58 @@ Add haptics (next unchecked Phase 2 item in `TODO.md`).
 ## Immediate Goal
 
 Identify the moments that most deserve tactile feedback (tower placement, firing, enemy kills, base damage, wave start/clear, button taps?) and decide which haptic style (`UIImpactFeedbackGenerator` weight, `UINotificationFeedbackGenerator` for win/loss, etc.) fits each — keeping the same "small vertical slice" approach as every other feel-pass feature so far (recoil, muzzle flash, reload ring).
+
+## Previous Milestone — Sluggish Mortar + Per-Type Turret Traverse
+
+User feedback: the Blue tower targeted too fast ("circle speed" too high) and needed
+sluggishness. Implemented per the discussed decisions (see `DECISIONS.md` 2026-06-12):
+
+- `PlaceholderTower.aim(at:deltaTime:)` is now rate-limited — shortest-arc rotation capped at
+  `TowerType.traverseSpeed × deltaTime` per frame (Red 10 / Pink 12 / Green 6 / Blue 1.8 rad/s).
+  Cosmetic only: firing never waits for alignment, so combat output is unchanged
+- `updateMortarCombat` commits to its target via the shared `TargetLock` dictionary (valid
+  while targetable + in range — tunnel dives break it) instead of re-picking the lead enemy
+  every frame, which was the real source of the tube whipping around
+- Mortar tempo deepened: 1.85s cooldown (reload ring sweeps slower automatically) with a
+  heavier 5-damage shell — DPS ≈2.70 vs the old ≈2.86, near-parity by design
+- Aim UI test moved to spot id 0 with a 1.3s post-placement wait (covers the slow traverse);
+  fires-test projectile check now asserts lime-pixel *variance* over 16 samples instead of
+  racing a single baseline screenshot against the fire cycle. Full suite green
+
+## Previous Milestone — Tunnel Visuals + Visual Polish Pass
+
+The serpentine relayout's tunnel got its proper "real life" presentation, and the whole board
+got a feel/depth pass:
+
+- **Tunnel reads as underground**: `PathManager.makeAbovegroundRoadPath` strokes the road only
+  over above-ground segments (a `move(to:)` restarts it past each tunnel), so grass simply
+  continues over the buried stretch — no colored band or outline of any kind (user direction:
+  "like in real life, indicated at the enter/exit"). `tunnelPortal(at:rotation:)` builds a
+  grassy hillside mound + stone facade + dark arched opening at each mouth, rotated so the
+  opening lines up with the *above-ground* road it connects to (entrance faces the arriving
+  road, exit faces the resuming road) — the asphalt runs straight into the dark mouth.
+- **Dive/emerge animations**: `PlaceholderEnemy.setInTunnel` now no-ops on non-transitions and
+  animates real transitions — sink (scale 0.35 + fade, 0.16s) into the entrance, pop-out
+  (overshoot to 1.1 then settle) at the exit, both kicking up portal dust (`spawnTunnelDust`).
+  Gameplay state still flips instantly; `reset()` clears the transition action and restores
+  node scale/alpha for pooling safety.
+- **Enemy motion life**: an idle "engine rumble" (seamless sine bob + micro-roll on a new
+  `hullGroupNode` holding hull/turret/barrel/highlight, tracks staying planted), a periodic
+  dust trail behind driving enemies (`spawnTrailDust`, throttled by type speed, skipped
+  underground), and a spawn pop (scale-up with overshoot + fade-in) when placed on the table.
+- **Hit feedback**: a pre-built white `hitFlashNode` overlay flashes on every discrete hit
+  (beam damage deliberately excluded — it has the plasma burn). Mortar detonations and base
+  breaches now shake the screen via a center-anchored `SKCameraNode` (render-identical to no
+  camera) and a `shakeScreen` SKScene extension that always lands back exactly at center.
+- **Environment depth**: a wooden tabletop frame (+ faint grain lines) under the grass mat, a
+  soft two-ring vignette over the grass, a barely-there cloud shadow drifting across the table
+  on a long loop, gentle out-of-phase sway on trees/bushes/grass tufts (deterministic
+  per-position phase), and fluttering camp/base pennants (xScale flap around the pole).
+- **UI tests realigned**: all six tests updated for the 8-spot serpentine layout; fixed the
+  stale 3-option menu-offset assumption (4 options since Pink: `(index − 1.5) × 52`) and the
+  stale magenta projectile predicate (now Green's lime); fires-test reinforces the defense,
+  polls for a clear battlefield, and excludes the HUD (red hearts match the deep-red enemy
+  predicate). Full suite green.
 
 ## Previous Milestone — Decorative Tabletop Scenery
 

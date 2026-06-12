@@ -240,19 +240,35 @@ enum TowerType: CaseIterable {
         switch self {
         case .red:   1
         case .green: 2
-        case .blue:  4
+        case .blue:  5
         case .pink:  0
         }
     }
 
     /// Time between shots for projectile towers. Beam towers have no fire-then-cooldown
     /// cycle — the beam stays on continuously while locked — so `.pink` reports 0.
+    /// Blue's 1.85s (with 5 damage, ≈2.7 DPS) keeps the Mortar's output close to its old
+    /// 4 dmg / 1.40s while making each volley — and the reload ring that sweeps it —
+    /// visibly heavier and more deliberate.
     var attackCooldown: TimeInterval {
         switch self {
         case .red:   0.28
         case .green: 0.65
-        case .blue:  1.40
+        case .blue:  1.85
         case .pink:  0
+        }
+    }
+
+    /// Maximum turret/tube rotation speed in radians per second — how fast the gun can
+    /// traverse toward its aim point. Purely cosmetic (firing never waits for alignment),
+    /// but it gives each gun a distinct weight: the Autocannon whips around almost
+    /// instantly, the Mortar's heavy tube takes nearly two seconds to come about 180°.
+    var traverseSpeed: CGFloat {
+        switch self {
+        case .red:   10.0
+        case .green: 6.0
+        case .blue:  1.8
+        case .pink:  12.0
         }
     }
 

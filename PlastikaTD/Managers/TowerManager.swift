@@ -143,6 +143,7 @@ final class TowerManager {
                     buildSpotID: buildSpotID,
                     tower: tower,
                     currentTime: currentTime,
+                    deltaTime: deltaTime,
                     enemyManager: enemyManager,
                     projectileManager: projectileManager,
                     economyManager: economyManager,
@@ -176,7 +177,7 @@ final class TowerManager {
             }
 
             let targetPosition = target.node.position
-            tower.aim(at: targetPosition)
+            tower.aim(at: targetPosition, deltaTime: deltaTime)
 
             if isBeamTower {
                 // The lock can only have moved on to a *different* enemy in the same tick the
@@ -279,15 +280,16 @@ final class TowerManager {
         }
     }
 
-    /// Drives one frame of mortar combat: tracks the leading enemy with the tube, and on each
-    /// reload lobs an exploding shell onto where that enemy will be standing when the shell
-    /// lands (current position + velocity × flight time). On impact, splash damage hits every
-    /// enemy within the blast radius, each kill is credited + coin-flown, and the artillery
-    /// boom plays *with the explosion* (not the launch) so the satisfying sound lands on the hit.
+    /// Drives one frame of mortar combat: tracks its committed target with the tube, and on
+    /// each reload lobs an exploding shell onto where that enemy will be standing when the
+    /// shell lands (current position + velocity × flight time). On impact, splash damage hits
+    /// every enemy within the blast radius, each kill is credited + coin-flown, and the
+    /// artillery boom plays *with the explosion* (not the launch) so the sound lands on the hit.
     private func updateMortarCombat(
         buildSpotID: Int,
         tower: PlaceholderTower,
         currentTime: TimeInterval,
+        deltaTime: TimeInterval,
         enemyManager: EnemyManager,
         projectileManager: ProjectileManager,
         economyManager: EconomyManager,
@@ -295,24 +297,39 @@ final class TowerManager {
         pathEndPoint: CGPoint,
         in scene: SKScene
     ) {
-        // Bombard the front of the advance, not whatever's nearest the tower.
-        guard let target = enemyManager.leadEnemy(
+        // Commit to one target: keep shelling the locked enemy while it remains targetable
+        // and in range; only when it dies, breaches, dives into the tunnel, or leaves range
+        // does the mortar re-evaluate the front of the advance. (Re-picking the lead enemy
+        // every frame made the heavy tube whip around whenever the lead changed — committing
+        // gives it the deliberate, sluggish character a mortar should have.)
+        let target: PlaceholderEnemy
+        if let lock = targetLocksByBuildSpotID[buildSpotID],
+           let lockedEnemy = lock.enemy,
+           enemyManager.isValidTarget(lockedEnemy, lifeID: lock.lifeID, from: tower.node.position, within: tower.type.range) {
+            target = lockedEnemy
+        } else if let lead = enemyManager.leadEnemy(
             within: tower.type.range,
             from: tower.node.position,
             towardEnd: pathEndPoint
-        ) else {
+        ) {
+            // Bombard the front of the advance, not whatever's nearest the tower.
+            target = lead
+            targetLocksByBuildSpotID[buildSpotID] = TargetLock(enemy: lead, lifeID: lead.lifeID)
+        } else {
+            targetLocksByBuildSpotID[buildSpotID] = nil
             return
         }
 
-        // Predicted landing point: where the lead enemy will be when the shell touches down.
+        // Predicted landing point: where the locked enemy will be when the shell touches down.
         let flightDuration = tower.type.mortarFlightDuration
         let landingPoint = CGPoint(
             x: target.node.position.x + target.velocity.x * CGFloat(flightDuration),
             y: target.node.position.y + target.velocity.y * CGFloat(flightDuration)
         )
 
-        // Keep the tube tracking the landing bearing even while reloading.
-        tower.aim(at: landingPoint)
+        // Keep the tube traversing toward the landing bearing even while reloading — at the
+        // Mortar's heavy `traverseSpeed`, so it visibly labors to come about.
+        tower.aim(at: landingPoint, deltaTime: deltaTime)
 
         let nextAttackTime = nextAttackTimesByBuildSpotID[buildSpotID] ?? 0
         guard currentTime >= nextAttackTime else {

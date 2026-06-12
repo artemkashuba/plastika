@@ -37,27 +37,26 @@ enum SceneryFactory {
         root.name = "Scenery"
         root.zPosition = 6  // above the road (5), below gameplay units (enemies at 20)
 
-        // Trees & bushes — tucked into the empty pockets between the road and build spots.
-        root.addChild(roundTree(at: CGPoint(x: 196, y: 172), scale: 1.00))
-        root.addChild(pineTree(at:  CGPoint(x: 338, y: 250), scale: 0.95))
-        root.addChild(roundTree(at: CGPoint(x: 50,  y: 410), scale: 0.85))
-        root.addChild(pineTree(at:  CGPoint(x: 312, y: 470), scale: 1.05))
-        root.addChild(roundTree(at: CGPoint(x: 140, y: 500), scale: 0.95))
-        root.addChild(pineTree(at:  CGPoint(x: 160, y: 685), scale: 0.90))
-        root.addChild(bush(at:      CGPoint(x: 64,  y: 648), scale: 1.00))
-        root.addChild(bush(at:      CGPoint(x: 246, y: 206), scale: 0.90))
+        // Trees & bushes — placed in the serpentine's only generous gaps: the centre column
+        // (x≈183, between the two build-spot columns) and the right margin (x≈333, outside the
+        // right lane). Clear of every road lane, tunnel, and build spot.
+        root.addChild(roundTree(at: CGPoint(x: 183, y: 233), scale: 1.00))
+        root.addChild(pineTree(at:  CGPoint(x: 333, y: 250), scale: 0.95))
+        root.addChild(bush(at:      CGPoint(x: 183, y: 360), scale: 0.95))
+        root.addChild(roundTree(at: CGPoint(x: 333, y: 470), scale: 0.95))
+        root.addChild(pineTree(at:  CGPoint(x: 183, y: 612), scale: 0.95))
+        root.addChild(roundTree(at: CGPoint(x: 333, y: 615), scale: 0.90))
 
-        // Rocks.
-        for point in [CGPoint(x: 232, y: 300), CGPoint(x: 120, y: 252),
-                      CGPoint(x: 300, y: 560), CGPoint(x: 95, y: 590),
-                      CGPoint(x: 60, y: 478)] {
+        // Rocks — small, hugging the narrow left margin (outside the left lane).
+        for point in [CGPoint(x: 50, y: 260), CGPoint(x: 50, y: 400),
+                      CGPoint(x: 50, y: 520), CGPoint(x: 50, y: 650)] {
             root.addChild(rock(at: point))
         }
 
-        // Grass tufts.
-        for point in [CGPoint(x: 250, y: 262), CGPoint(x: 118, y: 420),
-                      CGPoint(x: 330, y: 402), CGPoint(x: 208, y: 648),
-                      CGPoint(x: 88, y: 352), CGPoint(x: 284, y: 300)] {
+        // Grass tufts — scattered through the remaining margin nooks.
+        for point in [CGPoint(x: 333, y: 180), CGPoint(x: 50, y: 200),
+                      CGPoint(x: 183, y: 470), CGPoint(x: 333, y: 545),
+                      CGPoint(x: 50, y: 600)] {
             root.addChild(grassTuft(at: point))
         }
 
@@ -78,6 +77,23 @@ enum SceneryFactory {
         node.position = point
         node.zPosition = 0
         return node
+    }
+
+    /// Gentle forever-looping sway — a seamless sine rotation around the node's own origin
+    /// (the trunk base for trees, the root for tufts). `phase` is derived from the node's
+    /// fixed position by the callers, so each plant breathes out of step with its neighbors
+    /// while remaining deterministic across launches.
+    private static func addSway(to node: SKNode, amplitude: CGFloat, period: TimeInterval, phase: CGFloat) {
+        let sway = SKAction.customAction(withDuration: period) { node, elapsed in
+            let progress = (elapsed / CGFloat(period)) * (2 * .pi)
+            node.zRotation = sin(progress + phase) * amplitude
+        }
+        node.run(.repeatForever(sway))
+    }
+
+    /// A per-position phase offset so identical plants at different spots never sway in sync.
+    private static func swayPhase(for point: CGPoint) -> CGFloat {
+        (point.x + point.y * 1.7) * 0.05
     }
 
     private static func circle(radius: CGFloat, fill: SKColor, stroke: SKColor,
@@ -111,6 +127,7 @@ enum SceneryFactory {
         node.addChild(circle(radius: 9, fill: leafLight, stroke: .clear, at: CGPoint(x: -5, y: 9), z: 3))
         node.addChild(circle(radius: 3.5, fill: highlight, stroke: .clear, at: CGPoint(x: -7, y: 12), z: 4))
 
+        addSway(to: node, amplitude: 0.022, period: 3.2, phase: swayPhase(for: point))
         return node
     }
 
@@ -132,6 +149,7 @@ enum SceneryFactory {
         node.addChild(pineTier(baseY: 2,  halfWidth: 10, height: 13, z: 3))
         node.addChild(pineTier(baseY: 9,  halfWidth: 7,  height: 12, z: 4))
 
+        addSway(to: node, amplitude: 0.018, period: 3.6, phase: swayPhase(for: point))
         return node
     }
 
@@ -160,6 +178,7 @@ enum SceneryFactory {
         node.addChild(circle(radius: 11, fill: bushGreen, stroke: leafDark, at: CGPoint(x: 3, y: 1), z: 1))
         node.addChild(circle(radius: 7, fill: leafLight, stroke: .clear, at: CGPoint(x: -2, y: 5), z: 2))
 
+        addSway(to: node, amplitude: 0.014, period: 2.6, phase: swayPhase(for: point))
         return node
     }
 
@@ -204,6 +223,7 @@ enum SceneryFactory {
             node.addChild(blade)
         }
 
+        addSway(to: node, amplitude: 0.06, period: 1.9, phase: swayPhase(for: point))
         return node
     }
 
@@ -311,17 +331,27 @@ enum SceneryFactory {
         pole.zPosition = 3
         node.addChild(pole)
 
+        // Pennant geometry is local to its pole attachment point, so the flutter's xScale
+        // oscillation flaps the tip while the hoist edge stays pinned to the pole.
         let direction: CGFloat = pointsRight ? 1 : -1
         let flagPath = CGMutablePath()
-        flagPath.move(to: CGPoint(x: poleX + direction, y: poleTopY))
-        flagPath.addLine(to: CGPoint(x: poleX + direction * 13, y: poleTopY - 3))
-        flagPath.addLine(to: CGPoint(x: poleX + direction, y: poleTopY - 6))
+        flagPath.move(to: CGPoint(x: 0, y: 0))
+        flagPath.addLine(to: CGPoint(x: direction * 12, y: -3))
+        flagPath.addLine(to: CGPoint(x: 0, y: -6))
         flagPath.closeSubpath()
         let pennant = SKShapeNode(path: flagPath)
         pennant.fillColor = flagColor
         pennant.strokeColor = .clear
+        pennant.position = CGPoint(x: poleX + direction, y: poleTopY)
         pennant.zPosition = 3
         node.addChild(pennant)
+
+        let flap = SKAction.sequence([
+            SKAction.scaleX(to: 0.78, duration: 0.32),
+            SKAction.scaleX(to: 1.0, duration: 0.32)
+        ])
+        flap.timingMode = .easeInEaseOut
+        pennant.run(.repeatForever(flap))
 
         return node
     }

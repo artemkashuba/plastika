@@ -117,6 +117,9 @@ final class ProjectileManager {
     private func showExplosion(at position: CGPoint, radius: CGFloat, in scene: SKScene) {
         let fireOrange = SKColor(red: 1.0, green: 0.55, blue: 0.14, alpha: 1.0)
 
+        // Heavy ordnance should physically register — a short, small jolt of the whole screen.
+        scene.shakeScreen(intensity: 4, duration: 0.2)
+
         let fireball = SKShapeNode(circleOfRadius: radius * 0.55)
         fireball.position = position
         fireball.fillColor = fireOrange.withAlphaComponent(0.9)

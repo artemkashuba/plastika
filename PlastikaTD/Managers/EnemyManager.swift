@@ -63,7 +63,7 @@ final class EnemyManager {
 
     func nearestEnemy(to point: CGPoint, within range: CGFloat) -> PlaceholderEnemy? {
         activeEnemies
-            .filter(\.isAlive)
+            .filter(\.isTargetable)
             .filter { enemy in
                 enemy.node.position.distance(to: point) <= range
             }
@@ -148,7 +148,7 @@ final class EnemyManager {
     /// the tower. Returns nil if no enemy is in range.
     func leadEnemy(within range: CGFloat, from fromPoint: CGPoint, towardEnd endPoint: CGPoint) -> PlaceholderEnemy? {
         activeEnemies
-            .filter(\.isAlive)
+            .filter(\.isTargetable)
             .filter { $0.node.position.distance(to: fromPoint) <= range }
             .min { $0.node.position.distance(to: endPoint) < $1.node.position.distance(to: endPoint) }
     }
@@ -161,7 +161,7 @@ final class EnemyManager {
     @discardableResult
     func applyAreaDamage(_ damage: Int, at center: CGPoint, radius: CGFloat) -> [(reward: Int, position: CGPoint)] {
         let victims = activeEnemies.filter { enemy in
-            enemy.isAlive && enemy.node.position.distance(to: center) <= radius
+            enemy.isTargetable && enemy.node.position.distance(to: center) <= radius
         }
 
         var kills: [(reward: Int, position: CGPoint)] = []
@@ -179,7 +179,7 @@ final class EnemyManager {
     private func isActiveLife(_ enemy: PlaceholderEnemy, lifeID: Int) -> Bool {
         activeEnemies.contains { $0 === enemy }
             && enemy.lifeID == lifeID
-            && enemy.isAlive
+            && enemy.isTargetable
     }
 
     private func recycle(_ enemy: PlaceholderEnemy) {

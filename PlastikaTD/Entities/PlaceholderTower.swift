@@ -199,7 +199,12 @@ final class PlaceholderTower: GameEntity {
         node.run(SKAction.sequence([scaleAction, finish]), withKey: selectionActionKey)
     }
 
-    func aim(at targetPosition: CGPoint) {
+    /// Rotates the turret toward `targetPosition`, traversing at most
+    /// `type.traverseSpeed × deltaTime` radians along the shortest arc per call — so heavy
+    /// guns (the Mortar especially) visibly labor to come about while light ones snap almost
+    /// instantly. Purely cosmetic: firing schedules never wait for alignment, so a tower's
+    /// combat output is identical to the old instant snap-aim.
+    func aim(at targetPosition: CGPoint, deltaTime: TimeInterval) {
         let dx = targetPosition.x - node.position.x
         let dy = targetPosition.y - node.position.y
 
@@ -207,7 +212,13 @@ final class PlaceholderTower: GameEntity {
             return
         }
 
-        aimNode.zRotation = atan2(dy, dx) - (.pi / 2)
+        let desiredAngle = atan2(dy, dx) - (.pi / 2)
+        var difference = (desiredAngle - aimNode.zRotation).truncatingRemainder(dividingBy: 2 * .pi)
+        if difference > .pi { difference -= 2 * .pi }
+        if difference < -.pi { difference += 2 * .pi }
+
+        let maxStep = type.traverseSpeed * CGFloat(deltaTime)
+        aimNode.zRotation += max(-maxStep, min(maxStep, difference))
     }
 
     // MARK: - Beam (continuous laser)

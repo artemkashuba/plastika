@@ -1422,3 +1422,95 @@ the user (mix of tree shapes, sparse density, *and* both markers + rocks/tufts).
 - **Placeholder, reskin-ready**: built from procedural `SKShapeNode`s tinted to match the
   roster's toy-plastic look (soft shadow + fill + outline + specular). Per `ART_ASSET_BRIEF.md`,
   the Phase 3 art pass can replace these with sprites without touching any gameplay wiring.
+
+## 2026-06-11 (Tunnel Visuals + Visual Polish Pass)
+
+**Decision**: The underground tunnel segment is indicated **only at its two mouths** — the road
+is simply not drawn along the buried stretch (grass continues over it), and a grassy hillside
+portal (mound + stone facade + dark arched opening) marks each end, oriented so its opening
+lines up with the above-ground road it connects to. No colored band, outline, or marker runs
+along the tunnel's length. Enemies *dive* into the entrance (shrink + fade + dust) and *pop out*
+of the exit (scale-up with overshoot + dust) instead of blinking out/in via `isHidden`.
+
+**Reason**:
+
+- **User direction, with a real-world rationale**: "like in real life, it should be indicated
+  at the enter/exit of it." A tunnel seen from above is invisible except at its portals; the
+  earlier bright-orange trench band read as a surface feature, not an underground one. The
+  gameplay tell (enemies are safe underground) is carried by the portals, the visible dive/
+  emerge moments, and the road gap itself.
+- **Road gap via subpaths**: `makeAbovegroundRoadPath` restarts the road stroke (`move(to:)`)
+  after each tunnel segment — one CGPath, no extra nodes, works for any number of tunnels.
+- **Animated transitions prevent "bug" reads**: an instantly vanishing enemy looks like a
+  defect; a 0.16s sink into a dark mouth (with dust kicked up at the portal) looks like a
+  mechanic. Gameplay state still flips instantly at the segment boundary — `isTargetable`
+  is unchanged — only the presentation is eased.
+
+**Decision**: Added a broad visual-feel pass on top of the tunnel work: enemy hull "engine
+rumble" idle bob, dust trails behind driving enemies, a spawn pop (scale-up + fade-in), a white
+hit-flash on every discrete hit, screen shake on mortar detonations and base breaches (via a
+center-anchored `SKCameraNode` + `shakeScreen` SKScene extension), a wooden tabletop frame with
+grain lines under the grass mat, a soft vignette over the grass, a drifting ambient cloud
+shadow, gentle sway loops on trees/bushes/grass tufts, and fluttering marker flags.
+
+**Reason**:
+
+- **Motion reads as life**: the board was static outside of combat; tiny forever-looping
+  oscillations (sine-based, seamless, deterministic per-position phase offsets) make the
+  tabletop feel alive for near-zero per-frame cost — no new nodes, no allocations during play.
+- **Hits needed feedback**: kills had a death burst but ordinary hits showed nothing except a
+  health-bar tick. The flash overlay is pre-built in `init` (pooling-safe) and restarted per
+  hit; beam damage deliberately does not flash (it has the plasma burn, and per-frame flashing
+  would strobe).
+- **Camera at scene center is render-identical to no camera**, so adding `SKCameraNode` for
+  shake required no coordinate/UI changes; `shakeScreen` always lands the camera exactly back
+  at center and replaces any in-flight shake, so overlapping impacts can't displace the view.
+- **Tabletop framing**: the wood border + vignette sell the documented "toys on a table"
+  presentation that the flat green slab never did.
+
+**Decision**: Realigned the UI test suite to the serpentine layout (8 build spots) and fixed
+two stale assumptions: the build menu has had **4** options since Pink landed (offsets are
+`(index − 1.5) × 52`, not `−52/0/+52` — the old taps landed between options and selected
+nothing), and the projectile-pixel predicate still looked for the long-gone magenta placeholder
+(now matches Green's lime). The fires-test now baselines lime pixels after placement, reinforces
+with two more towers so wave 1 dies on the battlefield, polls for a clear field instead of a
+fixed sleep (the serpentine takes ~19s to traverse), and scans only the battlefield region —
+the HUD's red hearts match the deep-red "enemy pixel" predicate and sat in the old full-screen
+scan.
+
+**Reason**: the suite was failing for layout/staleness reasons unrelated to what it verifies;
+each fix preserves the original intent of its test while making it deterministic on the new map.
+
+## 2026-06-12 (Sluggish Mortar + Per-Type Turret Traverse)
+
+**Decision**: Turrets no longer snap-aim instantly. `PlaceholderTower.aim(at:deltaTime:)` rotates
+toward the target along the shortest arc at a per-type maximum `TowerType.traverseSpeed`
+(rad/s): Red 10, Pink 12, Green 6, **Blue 1.8** (≈2s to come about 180°). The traverse is
+purely cosmetic — firing schedules never wait for alignment. The Mortar additionally
+**commits to its target** (reusing the existing `TargetLock` machinery instead of re-picking
+the lead enemy every frame), and its tempo got heavier: 1.40s → **1.85s** cooldown with damage
+4 → **5** per shell (DPS ≈2.86 → ≈2.70, near-parity).
+
+**Reason**:
+
+- **User feedback**: "blue tower is very fast targeting and circle speed is high as well —
+  add sluggishness." Discussed options; the user chose: slow both the tube traverse *and* the
+  reload tempo, keep the lag cosmetic (no fire-alignment gate, zero balance surprise), have
+  the Mortar lock its target, and roll traverse out to the whole roster scaled by gun weight
+  (mirroring how `recoilDistance` already scales Red < Green < Blue).
+- **Lead-targeting was the real spin source**: "lead enemy in range" changes constantly as
+  enemies stream past, so the tube whipped to a new bearing every few frames. Committing to
+  one target until it dies/breaches/tunnels/leaves range removes the whipping at the source;
+  the rate-limited traverse smooths what remains.
+- **Damage 4 → 5 alongside 1.40s → 1.85s** keeps the Mortar's single-target DPS within ~6% of
+  its old value while making each volley feel heavier — the goal was character, not a nerf.
+  The reload ring sweeps the new 1.85s automatically (it derives from `attackCooldown`), which
+  also answers the "circle speed is high" half of the feedback honestly.
+- **Pink stays near-instant (12 rad/s)** because its beam is drawn along the barrel axis — a
+  slow sweep would visibly detach the beam from the burn mark on its target. At 12 rad/s the
+  catch-up reads as the beam sweeping onto the target for a fraction of a second.
+- **Aim UI test** moved to a left-column spot and waits 1.3s (covering the slow traverse) —
+  the locked target there stays to the tower's right for the test's whole window. The
+  projectile check also switched from a racy single-baseline comparison to sampling lime-pixel
+  variance over ~4s, since missiles/flashes make the count fluctuate while a silent field
+  holds it constant.

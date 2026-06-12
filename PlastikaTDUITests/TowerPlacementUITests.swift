@@ -14,11 +14,17 @@ final class TowerPlacementUITests: XCTestCase {
     private let menuYOffset: CGFloat = 54
     private let menuOptionSpacing: CGFloat = 52
 
+    // Normalized coordinates for the serpentine layout's build spots (scene 390×844,
+    // normalized dx = x/390, dy = (844 - y)/844). Spots chosen so each test's pixel-count
+    // windows stay over grass — away from road lanes (where enemy hulls can pollute color
+    // counts) and from scenery. The "middle" spot (id 5, above the tunnel lane) is special:
+    // its build menu opens over the buried stretch, where enemies are invisible.
+
     func testTapBuildSpotPlacesOnePlaceholderTowerOnlyOnce() {
         let app = XCUIApplication()
         app.launch()
 
-        let topRightBuildSpot = CGVector(dx: 0.74, dy: 0.26)
+        let topRightBuildSpot = CGVector(dx: 0.628, dy: 0.275)   // spot id 7 (245, 612)
         let emptyBattlefield = CGVector(dx: 0.50, dy: 0.88)
         let tapTarget = app.coordinate(withNormalizedOffset: topRightBuildSpot)
 
@@ -61,9 +67,9 @@ final class TowerPlacementUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let topRightBuildSpot = CGVector(dx: 0.74, dy: 0.26)
-        let middleRightBuildSpot = CGVector(dx: 0.74, dy: 0.57)
-        let lowerRightBuildSpot = CGVector(dx: 0.74, dy: 0.77)
+        let topRightBuildSpot = CGVector(dx: 0.628, dy: 0.275)     // spot id 7 (245, 612)
+        let middleRightBuildSpot = CGVector(dx: 0.628, dy: 0.429)  // spot id 5 (245, 482)
+        let lowerRightBuildSpot = CGVector(dx: 0.628, dy: 0.725)   // spot id 1 (245, 232)
         let emptyBattlefield = CGVector(dx: 0.50, dy: 0.88)
 
         app.coordinate(withNormalizedOffset: topRightBuildSpot).tap()
@@ -111,72 +117,105 @@ final class TowerPlacementUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let earlyBuildSpot = CGVector(dx: 0.21, dy: 0.66)
+        let earlyBuildSpot = CGVector(dx: 0.308, dy: 0.725)   // spot id 0 (120, 232)
         placeTower(app, at: earlyBuildSpot, option: .green)
 
-        var sawProjectile = false
+        // Missiles in flight and their impact flashes make the screen's lime pixel count
+        // fluctuate sharply from frame to frame, while a silent battlefield holds it nearly
+        // constant (the tower's own static lime pixels cancel out). Sampling over ~4s and
+        // asserting real variance avoids racing the tower's fire cycle — a single "baseline"
+        // screenshot can accidentally catch a missile or flash already mid-flight.
+        var projectileSamples: [Int] = []
 
         for _ in 0..<16 {
             Thread.sleep(forTimeInterval: 0.25)
 
-            let projectilePixels = countPixels(in: XCUIScreen.main.screenshot()) { red, green, blue in
+            projectileSamples.append(countPixels(in: XCUIScreen.main.screenshot()) { red, green, blue in
                 isProjectilePixel(red: red, green: green, blue: blue)
+            })
+        }
+
+        let sawProjectile = (projectileSamples.max() ?? 0) - (projectileSamples.min() ?? 0) > 16
+        XCTAssertTrue(sawProjectile)
+
+        // Reinforce with the remaining 100 coins (another Missile Pod and a Mortar — never
+        // Red, whose deep-red livery itself matches isEnemyPixel) so wave 1 reliably dies
+        // on the battlefield instead of draining lives toward a DEFEAT overlay.
+        placeTower(app, at: CGVector(dx: 0.628, dy: 0.725), option: .green)  // spot id 1
+        placeTower(app, at: CGVector(dx: 0.628, dy: 0.573), option: .blue)   // spot id 3
+
+        // The serpentine path takes ~19s to traverse, so enemies (and the low-health bars
+        // this predicate actually detects) can legitimately be on screen for a long while.
+        // Poll for a clean battlefield frame instead of sleeping a fixed interval. The scan
+        // window covers the table but excludes the top HUD bar, whose red hearts also match
+        // this deep-red predicate.
+        var sawClearField = false
+
+        for _ in 0..<40 {
+            Thread.sleep(forTimeInterval: 0.5)
+
+            let remainingEnemyPixels = countPixels(
+                in: XCUIScreen.main.screenshot(),
+                around: CGVector(dx: 0.5, dy: 0.55),
+                xOffsetRange: -0.5...0.5,
+                yOffsetRange: -0.42...0.44
+            ) { red, green, blue in
+                isEnemyPixel(red: red, green: green, blue: blue)
             }
 
-            if projectilePixels > 16 {
-                sawProjectile = true
+            if remainingEnemyPixels < 500 {
+                sawClearField = true
                 break
             }
         }
 
-        XCTAssertTrue(sawProjectile)
-
-        Thread.sleep(forTimeInterval: 4.5)
-
-        let remainingEnemyPixels = countPixels(in: XCUIScreen.main.screenshot()) { red, green, blue in
-            isEnemyPixel(red: red, green: green, blue: blue)
-        }
-
-        XCTAssertLessThan(remainingEnemyPixels, 500)
+        XCTAssertTrue(sawClearField)
     }
 
     func testPlacedTowerAimsBarrelTowardLockedTarget() {
         let app = XCUIApplication()
         app.launch()
 
-        let earlyBuildSpot = CGVector(dx: 0.21, dy: 0.66)
+        // Spot id 0 (120, 232): for the first ~7s of wave 1, the furthest-along enemy in
+        // range is always to this spot's RIGHT — on the first lane's right stretch, the
+        // right-side climb, or the second lane's right half — so the mortar tube should
+        // traverse rightward, never left. The sleep covers the Mortar's deliberately slow
+        // traverse (1.8 rad/s — about a second to come about from its initial upward facing).
+        let earlyBuildSpot = CGVector(dx: 0.308, dy: 0.725)
         placeTower(app, at: earlyBuildSpot, option: .blue)
-        Thread.sleep(forTimeInterval: 0.25)
+        Thread.sleep(forTimeInterval: 1.3)
 
         let aimedTower = XCUIScreen.main.screenshot()
-        let lowerBarrelPixels = countPixels(
+        let rightBarrelPixels = countPixels(
             in: aimedTower,
             around: earlyBuildSpot,
-            xOffsetRange: -0.04...0.04,
-            yOffsetRange: 0.02...0.08
+            xOffsetRange: 0.02...0.08,
+            yOffsetRange: -0.04...0.04
         ) { red, green, blue in
             isBarrelPixel(red: red, green: green, blue: blue)
         }
-        let upperBarrelPixels = countPixels(
+        let leftBarrelPixels = countPixels(
             in: aimedTower,
             around: earlyBuildSpot,
-            xOffsetRange: -0.04...0.04,
-            yOffsetRange: -0.08 ... -0.02
+            xOffsetRange: -0.08 ... -0.02,
+            yOffsetRange: -0.04...0.04
         ) { red, green, blue in
             isBarrelPixel(red: red, green: green, blue: blue)
         }
 
-        XCTAssertGreaterThan(lowerBarrelPixels, upperBarrelPixels + 30)
+        XCTAssertGreaterThan(rightBarrelPixels, leftBarrelPixels + 30)
     }
 
     func testTowerSelectionShowsRangeSwitchesAndClears() {
         let app = XCUIApplication()
         app.launch()
 
-        let firstTower = CGVector(dx: 0.74, dy: 0.26)
-        let secondTower = CGVector(dx: 0.74, dy: 0.77)
-        let firstRangeSample = CGVector(dx: 0.30, dy: 0.26)
-        let secondRangeSample = CGVector(dx: 0.30, dy: 0.77)
+        let firstTower = CGVector(dx: 0.628, dy: 0.275)         // spot id 7 (245, 612)
+        let secondTower = CGVector(dx: 0.628, dy: 0.725)        // spot id 1 (245, 232)
+        // Each sample sits on its tower's 175pt range circle, over grass in the tunnel's
+        // quiet middle band (enemies there are underground and invisible, roads are unmarked).
+        let firstRangeSample = CGVector(dx: 0.628, dy: 0.482)   // (245, 437) = id 7 - 175
+        let secondRangeSample = CGVector(dx: 0.628, dy: 0.518)  // (245, 407) = id 1 + 175
         let emptyBattlefield = CGVector(dx: 0.50, dy: 0.88)
 
         placeTower(app, at: firstTower, option: .blue)
@@ -228,10 +267,10 @@ final class TowerPlacementUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        let topRightBuildSpot    = CGVector(dx: 0.74, dy: 0.26)
-        let middleRightBuildSpot = CGVector(dx: 0.74, dy: 0.57)
-        let lowerRightBuildSpot  = CGVector(dx: 0.74, dy: 0.77)
-        let topLeftBuildSpot     = CGVector(dx: 0.21, dy: 0.34)
+        let topRightBuildSpot    = CGVector(dx: 0.628, dy: 0.275)  // spot id 7 (245, 612)
+        let middleRightBuildSpot = CGVector(dx: 0.628, dy: 0.429)  // spot id 5 (245, 482)
+        let lowerRightBuildSpot  = CGVector(dx: 0.628, dy: 0.725)  // spot id 1 (245, 232)
+        let topLeftBuildSpot     = CGVector(dx: 0.308, dy: 0.275)  // spot id 6 (120, 612)
         let emptyBattlefield     = CGVector(dx: 0.50, dy: 0.88)
 
         // Spend all 150 coins.
@@ -265,16 +304,22 @@ final class TowerPlacementUITests: XCTestCase {
     }
 
     private func menuOption(for buildSpot: CGVector, option: TestTowerOption) -> CGVector {
-        let xOffset: CGFloat
+        // Mirrors BuildSpotManager.menuOffset: all 4 tower types (Red/Green/Blue/Pink) are
+        // spaced evenly and centered on the build spot, so with 4 options the offsets are
+        // (index - 1.5) × spacing — Red -78, Green -26, Blue +26 (Pink +78, unused here).
+        let towerTypeCount: CGFloat = 4
+        let optionIndex: CGFloat
 
         switch option {
         case .red:
-            xOffset = -menuOptionSpacing
+            optionIndex = 0
         case .green:
-            xOffset = 0
+            optionIndex = 1
         case .blue:
-            xOffset = menuOptionSpacing
+            optionIndex = 2
         }
+
+        let xOffset = (optionIndex - (towerTypeCount - 1) / 2) * menuOptionSpacing
 
         return CGVector(
             dx: buildSpot.dx + (xOffset / sceneWidth),
@@ -522,10 +567,12 @@ final class TowerPlacementUITests: XCTestCase {
             && blue > green
     }
 
+    // The Green tower's lime missiles/impact flashes (projectileColor ≈ (71, 255, 46)).
+    // Thresholds sit well above grass/tree greens so terrain never counts.
     private func isProjectilePixel(red: Int, green: Int, blue: Int) -> Bool {
-        red > 210
-            && green < 120
-            && blue > 170
+        green > 220
+            && red < 150
+            && blue < 150
     }
 
     private func isEnemyPixel(red: Int, green: Int, blue: Int) -> Bool {

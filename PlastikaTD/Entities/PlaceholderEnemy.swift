@@ -23,13 +23,28 @@ final class PlaceholderEnemy: GameEntity {
     private(set) var lifeID = 0
     /// Current velocity in points per second, updated at each path segment. Zero before first move.
     private(set) var velocity: CGPoint = .zero
+    /// True while the enemy is traversing an underground tunnel segment — hidden from view,
+    /// untargetable, and immune to damage, but still advancing. Re-emerges at the tunnel's far
+    /// mouth when the next segment begins.
+    private(set) var isInTunnel = false
 
     var isAlive: Bool {
         hitPoints > 0 && node.parent != nil
     }
 
+    /// Whether towers may acquire and damage this enemy right now — alive *and* not currently
+    /// sheltering underground. The single check every targeting/damage path funnels through.
+    var isTargetable: Bool {
+        isAlive && !isInTunnel
+    }
+
     private let movementActionKey = "placeholderEnemy.pathMovement"
     private let beamBurnActionKey = "placeholderEnemy.beamBurn"
+    private let tunnelTransitionActionKey = "placeholderEnemy.tunnelTransition"
+    private let dustTrailActionKey = "placeholderEnemy.dustTrail"
+    private let spawnPopActionKey = "placeholderEnemy.spawnPop"
+    private let hitFlashActionKey = "placeholderEnemy.hitFlash"
+    private let dustColor = SKColor(red: 0.62, green: 0.54, blue: 0.40, alpha: 1.0)
     private let healthBarWidth: CGFloat = 36
     private let healthBarNode: SKNode
     private let healthBarForeground: SKShapeNode
@@ -43,6 +58,14 @@ final class PlaceholderEnemy: GameEntity {
     /// palette across every type, so only the "paint job" changes.
     private let hullNode: SKShapeNode
     private let turretNode: SKShapeNode
+    /// Holds the hull, turret, barrel, and highlight (everything that sits *on* the tracks)
+    /// so a single idle "engine rumble" loop can bob the whole upper chassis while the
+    /// tracks stay planted on the ground.
+    private let hullGroupNode: SKNode
+    /// White overlay flashed briefly over the hull on each discrete hit — the classic
+    /// "got hurt" read. Continuous beam damage deliberately does not flash (it already has
+    /// the plasma-burn mark, and a per-frame flash would strobe).
+    private let hitFlashNode: SKShapeNode
     /// Small flickering "plasma burn" cluster shown at the point where a laser beam makes
     /// contact (mirrors the tower's muzzle-flash language: tinted glow + white-hot core).
     /// Lives at root level — NOT a child of `bodyNode` — so it sits at a fixed spot on the
@@ -85,12 +108,17 @@ final class PlaceholderEnemy: GameEntity {
         trackR.position = CGPoint(x: 16, y: 0)
         bodyNode.addChild(trackR)
 
+        // Upper chassis group — hull/turret/barrel/highlight bob together on the tracks
+        // via the idle engine-rumble loop started below.
+        let hullGroup = SKNode()
+        bodyNode.addChild(hullGroup)
+
         // Hull
         let hull = SKShapeNode(rectOf: CGSize(width: 24, height: 22), cornerRadius: 5)
         hull.fillColor = SKColor(red: 0.68, green: 0.20, blue: 0.16, alpha: 1.0)
         hull.strokeColor = SKColor(red: 0.88, green: 0.52, blue: 0.28, alpha: 1.0)
         hull.lineWidth = 2
-        bodyNode.addChild(hull)
+        hullGroup.addChild(hull)
 
         // Turret
         let turret = SKShapeNode(circleOfRadius: 7)
@@ -99,7 +127,7 @@ final class PlaceholderEnemy: GameEntity {
         turret.lineWidth = 1.5
         turret.position = CGPoint(x: 0, y: 1)
         turret.zPosition = 1
-        bodyNode.addChild(turret)
+        hullGroup.addChild(turret)
 
         // Barrel — points forward (+y), shows facing direction
         let barrel = SKShapeNode(rectOf: CGSize(width: 4, height: 11), cornerRadius: 2)
@@ -107,7 +135,7 @@ final class PlaceholderEnemy: GameEntity {
         barrel.strokeColor = .clear
         barrel.position = CGPoint(x: 0, y: 12)
         barrel.zPosition = 2
-        bodyNode.addChild(barrel)
+        hullGroup.addChild(barrel)
 
         // Turret specular highlight
         let turretHighlight = SKShapeNode(circleOfRadius: 3)
@@ -115,7 +143,15 @@ final class PlaceholderEnemy: GameEntity {
         turretHighlight.strokeColor = .clear
         turretHighlight.position = CGPoint(x: -3, y: 3)
         turretHighlight.zPosition = 3
-        bodyNode.addChild(turretHighlight)
+        hullGroup.addChild(turretHighlight)
+
+        // Hit flash — white overlay over the hull, invisible until a discrete hit lands.
+        let hitFlash = SKShapeNode(rectOf: CGSize(width: 28, height: 26), cornerRadius: 6)
+        hitFlash.fillColor = SKColor(white: 1.0, alpha: 1.0)
+        hitFlash.strokeColor = .clear
+        hitFlash.alpha = 0
+        hitFlash.zPosition = 3.4
+        hullGroup.addChild(hitFlash)
 
         // Health bar — at root level so it stays horizontal regardless of body rotation
         let barContainer = SKNode()
@@ -139,8 +175,26 @@ final class PlaceholderEnemy: GameEntity {
         self.bodyNode = bodyNode
         self.hullNode = hull
         self.turretNode = turret
+        self.hullGroupNode = hullGroup
+        self.hitFlashNode = hitFlash
         self.healthBarNode = barContainer
         self.healthBarForeground = foreground
+
+        startHullRumble()
+    }
+
+    /// Idle "engine rumble" — a seamless forever loop that bobs the upper chassis on its
+    /// tracks (tiny y oscillation plus an even tinier roll), so the tank reads as a running
+    /// machine rather than a shape gliding along the path. Started once at init; the offsets
+    /// are symmetric around zero, so pooling/reset never needs to touch it.
+    private func startHullRumble() {
+        let period: TimeInterval = 0.55
+        let rumble = SKAction.customAction(withDuration: period) { node, elapsed in
+            let phase = (elapsed / CGFloat(period)) * (2 * .pi)
+            node.position = CGPoint(x: 0, y: sin(phase) * 0.7)
+            node.zRotation = sin(phase * 2 + 0.9) * 0.018
+        }
+        hullGroupNode.run(.repeatForever(rumble))
     }
 
     /// Reapplies every per-type stat and chassis "livery" detail — HP, kill reward,
@@ -166,7 +220,16 @@ final class PlaceholderEnemy: GameEntity {
         hitPoints = maxHitPoints
         fractionalHealth = Double(maxHitPoints)
         velocity = .zero
+        isInTunnel = false
+        node.isHidden = false
+        node.alpha = 1.0
+        node.setScale(1.0)
         node.removeAction(forKey: movementActionKey)
+        node.removeAction(forKey: tunnelTransitionActionKey)
+        node.removeAction(forKey: dustTrailActionKey)
+        node.removeAction(forKey: spawnPopActionKey)
+        hitFlashNode.removeAction(forKey: hitFlashActionKey)
+        hitFlashNode.alpha = 0
         hideBeamBurn()
         healthBarNode.isHidden = true
         healthBarForeground.xScale = 1.0
@@ -180,8 +243,18 @@ final class PlaceholderEnemy: GameEntity {
             return false
         }
 
+        flashHit()
         applyHealthLoss(Double(damage))
         return hitPoints == 0
+    }
+
+    /// Briefly flashes the hull white — instantly to near-full, then a fast fade — so each
+    /// landed shot visibly registers on the target. Restarting the fade on every hit keeps
+    /// rapid fire (e.g. the Autocannon) reading as a flicker rather than a stuck overlay.
+    private func flashHit() {
+        hitFlashNode.removeAction(forKey: hitFlashActionKey)
+        hitFlashNode.alpha = 0.75
+        hitFlashNode.run(.fadeOut(withDuration: 0.12), withKey: hitFlashActionKey)
     }
 
     /// Continuous, fractional damage applied every frame a laser beam stays locked on this
@@ -376,6 +449,103 @@ final class PlaceholderEnemy: GameEntity {
         }
     }
 
+    /// Toggles the underground state at a segment boundary. Gameplay flips instantly —
+    /// `isInTunnel` removes the enemy from every tower's targeting/damage consideration via
+    /// `isTargetable` the moment it reaches the mouth — but visually the enemy *dives*:
+    /// it shrinks and fades into the portal over a fraction of a second (kicking up dust),
+    /// and pops back out at the far mouth with a small overshoot. No-op when the state
+    /// doesn't actually change (every segment boundary calls this).
+    private func setInTunnel(_ inTunnel: Bool) {
+        guard inTunnel != isInTunnel else { return }
+        isInTunnel = inTunnel
+        node.removeAction(forKey: tunnelTransitionActionKey)
+        spawnTunnelDust()
+
+        if inTunnel {
+            let sink = SKAction.group([
+                .scale(to: 0.35, duration: 0.16),
+                .fadeOut(withDuration: 0.16)
+            ])
+            node.run(.sequence([
+                sink,
+                .run { [weak self] in
+                    guard let self else { return }
+                    // Invisible via isHidden; restore scale/alpha now so nothing is stale
+                    // if the action is removed before the emerge animation runs.
+                    self.node.isHidden = true
+                    self.node.setScale(1.0)
+                    self.node.alpha = 1.0
+                }
+            ]), withKey: tunnelTransitionActionKey)
+        } else {
+            node.isHidden = false
+            node.setScale(0.35)
+            node.alpha = 0
+            node.run(.group([
+                .fadeIn(withDuration: 0.16),
+                .sequence([
+                    .scale(to: 1.1, duration: 0.14),
+                    .scale(to: 1.0, duration: 0.08)
+                ])
+            ]), withKey: tunnelTransitionActionKey)
+        }
+    }
+
+    /// A handful of short-lived dust puffs at the enemy's current position — kicked up as it
+    /// dives into or climbs out of a tunnel mouth. Added to the scene (not `node`) so the
+    /// puffs linger at the portal while the enemy moves on or vanishes underground.
+    private func spawnTunnelDust() {
+        guard let scene = node.scene else { return }
+
+        for _ in 0..<4 {
+            let puff = SKShapeNode(circleOfRadius: CGFloat.random(in: 3...5))
+            puff.position = CGPoint(
+                x: node.position.x + .random(in: -8...8),
+                y: node.position.y + .random(in: -8...8)
+            )
+            puff.fillColor = dustColor.withAlphaComponent(0.5)
+            puff.strokeColor = .clear
+            puff.zPosition = 19
+            scene.addChild(puff)
+
+            let duration = TimeInterval(CGFloat.random(in: 0.3...0.45))
+            puff.run(.sequence([
+                .group([
+                    .scale(to: 1.8, duration: duration),
+                    .fadeOut(withDuration: duration),
+                    .moveBy(x: .random(in: -6...6), y: .random(in: 2...8), duration: duration)
+                ]),
+                .removeFromParent()
+            ]))
+        }
+    }
+
+    /// One faint dust puff just behind the chassis, opposite the direction of travel —
+    /// dropped periodically while driving so moving enemies leave a subtle wake. Skipped
+    /// while underground or before the first movement segment sets a velocity.
+    private func spawnTrailDust() {
+        guard !isInTunnel, let scene = node.scene else { return }
+
+        let speed = sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
+        guard speed > 1 else { return }
+
+        let behind = CGPoint(
+            x: node.position.x - (velocity.x / speed) * 16,
+            y: node.position.y - (velocity.y / speed) * 16
+        )
+        let puff = SKShapeNode(circleOfRadius: 2.5)
+        puff.position = CGPoint(x: behind.x + .random(in: -3...3), y: behind.y + .random(in: -3...3))
+        puff.fillColor = dustColor.withAlphaComponent(0.30)
+        puff.strokeColor = .clear
+        puff.zPosition = 8  // above the road (5) and scenery (6), well below units (20)
+        scene.addChild(puff)
+
+        puff.run(.sequence([
+            .group([.scale(to: 1.6, duration: 0.45), .fadeOut(withDuration: 0.45)]),
+            .removeFromParent()
+        ]))
+    }
+
     func startMoving(along path: GamePath, completion: @escaping @MainActor () -> Void) {
         reset()
         lifeID += 1
@@ -388,6 +558,27 @@ final class PlaceholderEnemy: GameEntity {
         node.position = firstPoint
         node.isHidden = false
 
+        // Spawn pop — the toy is "placed on the table": scales up from small with a slight
+        // overshoot while fading in, instead of materializing fully formed.
+        node.setScale(0.3)
+        node.alpha = 0
+        node.run(.group([
+            .fadeIn(withDuration: 0.18),
+            .sequence([
+                .scale(to: 1.08, duration: 0.16),
+                .scale(to: 1.0, duration: 0.10)
+            ])
+        ]), withKey: spawnPopActionKey)
+
+        // Dust trail — faster types kick up dust more often, matching their pace.
+        let dustInterval = TimeInterval(0.34 / type.speedMultiplier)
+        node.run(.repeatForever(.sequence([
+            .wait(forDuration: dustInterval),
+            .run { [weak self] in
+                self?.spawnTrailDust()
+            }
+        ])), withKey: dustTrailActionKey)
+
         // `GamePath.movementSpeed` stays a fixed, path-level constant; layering
         // `type.speedMultiplier` on top of it is what gives the Scout/Soldier/Tank
         // roster meaningfully different travel speeds (Soldier's 1.0× exactly
@@ -396,15 +587,20 @@ final class PlaceholderEnemy: GameEntity {
         let speed = path.movementSpeed * type.speedMultiplier
 
         var movementActions: [SKAction] = []
-        for (start, end) in zip(path.waypoints, path.waypoints.dropFirst()) {
+        for (index, (start, end)) in zip(path.waypoints, path.waypoints.dropFirst()).enumerated() {
             let dist = max(1, start.distance(to: end))
             let duration = TimeInterval(dist / speed)
             let vx = ((end.x - start.x) / dist) * speed
             let vy = ((end.y - start.y) / dist) * speed
+            // Segment `index` spans waypoints[index] → waypoints[index+1]; flag it underground
+            // if it's a tunnel segment. The transition fires at the segment boundary, so the
+            // enemy dives in at the entrance and re-emerges as the next segment begins.
+            let isTunnelSegment = path.tunnelSegmentIndices.contains(index)
             movementActions.append(SKAction.run { [weak self] in
                 self?.velocity = CGPoint(x: vx, y: vy)
                 // Rotate body to face the direction of travel (+y = forward in local space)
                 self?.bodyNode.zRotation = atan2(vy, vx) - (.pi / 2)
+                self?.setInTunnel(isTunnelSegment)
             })
             movementActions.append(SKAction.move(to: end, duration: duration))
         }

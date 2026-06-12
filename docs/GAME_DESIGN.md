@@ -18,7 +18,7 @@ Selecting a menu option places one prototype tower on that build spot. Occupied 
 
 Two of the four prototype tower types (Red, Blue) sit on an identical round toy-turret base — a glossy circular plate with a specular highlight, like plastic toys from the same product line. The other two break from that mould, each with its own chassis silhouette: the Laser Lance sits on a flat-topped hexagonal "energy platform" ringed with three small glowing power vents that idle-pulse out of sync with one another — a permanent, always-on "tell" that reads as a fundamentally different kind of machine even at rest, before it ever fires a shot — while the Missile Pod sits on a stout rectangular "armored launch deck" (rounded hull plate, specular highlight, corner rivets) topped by a single solid launcher-hull gun assembly with twin recessed launch holes, reading as a compact rocket truck rather than a turret with thin barrels stuck on top.
 
-Placed prototype towers acquire the nearest enemy within an internal placeholder range, lock onto that enemy while it remains alive, in range, and tracked. Most towers periodically fire simple magenta placeholder projectiles using their tower type behavior — the placeholder turret/barrel rotates toward the locked target so the tower visibly aims before and while shooting. At the instant each shot is fired, the barrel kicks back along its firing axis and a brief muzzle flash flares at the barrel tip, color-matched to that tower's projectile — heavier guns (Mortar > Missile Pod > Autocannon) recoil and flash more dramatically, giving each tower type a distinct shooting "feel". A small radial ring also appears around the tower's base at that moment, sweeping from empty to full over its reload duration and fading out the instant it's ready to fire again — a quick, glanceable readout of when each tower will shoot next.
+Placed prototype towers acquire the nearest enemy within an internal placeholder range, lock onto that enemy while it remains alive, in range, and tracked. Most towers periodically fire simple magenta placeholder projectiles using their tower type behavior — the placeholder turret/barrel rotates toward the locked target so the tower visibly aims before and while shooting. That rotation traverses at a per-type maximum speed rather than snapping instantly, giving each gun a distinct weight: the Autocannon whips around almost at once, the Missile Pod swings at a medium pace, the Laser Lance sweeps quickly onto its mark, and the Mortar's heavy tube labors for nearly two seconds to come about 180°. The traverse is purely cosmetic — firing schedules never wait for alignment, so combat output is unchanged. At the instant each shot is fired, the barrel kicks back along its firing axis and a brief muzzle flash flares at the barrel tip, color-matched to that tower's projectile — heavier guns (Mortar > Missile Pod > Autocannon) recoil and flash more dramatically, giving each tower type a distinct shooting "feel". A small radial ring also appears around the tower's base at that moment, sweeping from empty to full over its reload duration and fading out the instant it's ready to fire again — a quick, glanceable readout of when each tower will shoot next.
 
 One tower type — the Laser Lance — fights differently: instead of discrete shots, it projects a persistent glowing beam at its locked target for as long as the lock holds, dealing continuous damage every frame rather than firing in bursts. It never recoils, flashes, or shows a reload ring, since it has no discrete "shot" to animate around — its tell is the beam itself, always-on while a target is in range.
 
@@ -40,11 +40,12 @@ Current prototype tower types:
 
 3. Blue Tower — "Mortar" (50 coins)
    - A high-angle artillery piece, visually distinct from the rest of the roster: a chunky upward-flaring tube with a 3D angled steel mouth (bore + specular glint), sitting on a baseplate + bipod, rather than a flat rotating barrel
-   - Slow attack speed (1.40s cooldown) — heavy, deliberate shots
-   - 4 damage per shell, dealt as **splash**: lobs an arcing shell onto the road and explodes on impact, damaging *every* enemy within a 55pt blast radius rather than a single target
-   - Targets the *lead* enemy (the one closest to the base) and aims at its predicted road position, so the blast comes down on the advancing front
+   - Slow attack speed (1.85s cooldown) — heavy, deliberate volleys, with the reload ring sweeping at a correspondingly unhurried pace
+   - Everything about it moves sluggishly by design: the tube traverses at the roster's slowest speed (≈2s to come about 180°), so it visibly labors to bring new bearings under fire
+   - 5 damage per shell, dealt as **splash**: lobs an arcing shell onto the road and explodes on impact, damaging *every* enemy within a 55pt blast radius rather than a single target
+   - Acquires the *lead* enemy (the one closest to the base) and **commits** to it — shelling its predicted road position until it dies, breaches, dives into the tunnel, or leaves range — rather than re-evaluating the front every frame, which kept the tube whipping around
    - The roster's area/crowd-control specialist — the other three are all single-target (direct, homing, beam)
-   - ≈ 2.9 DPS single-target, but far higher *effective* DPS against bunched groups
+   - ≈ 2.7 DPS single-target (close to its pre-rework ≈2.9 — the slower reload is offset by a heavier shell), but far higher *effective* DPS against bunched groups
 
 4. Pink Tower — "Laser Lance" (75 coins)
    - Stands apart from the rest of the roster at a glance: instead of the round toy-turret base every other tower shares, it sits on an angular hexagonal "energy platform" ringed with three small power vents that idly pulse a living neon-red glow — always breathing, even before it ever locks a target — while its slim emitter housing and glowing lens keep the pink/magenta chassis identity, and its signature beam glows a vivid neon red rather than matching its housing, reading as a hot, electric "laser red"
@@ -74,6 +75,22 @@ Future themed tower concepts:
 
 Design guidance for growing this roster: keep it tight, and make sure every entry earns its place. The current four already model four genuinely different ways to deal damage — direct-fire, homing, lobbed area-of-effect (mortar), and continuous-beam — rather than DPS-variant reskins of one mechanic; new types (Rifle/Cannon/Glue and beyond) should clear the same bar by owning a clear "best at X" niche (burst vs. sustained, single-target vs. crowd, damage vs. utility/control). A wider roster only adds strategic depth if each tower remains worth building in some real situation — padding the list with towers that are strictly outclassed by others does the opposite.
 
+### Battlefield & Path
+
+The battlefield is a 5-lane serpentine: enemies spawn at the bottom-left camp, switch back and
+forth across the table, and breach the base at the top-right. Eight build spots sit in two
+columns in the gaps between lanes.
+
+The middle lane runs **underground** — a tunnel. While traversing it, enemies are hidden,
+untargetable, and immune to damage, re-emerging at the far mouth. Like a real tunnel seen from
+above, it is indicated only at its two ends: the road simply stops (grass continues over the
+buried stretch, with no band or outline of any kind along its length) and a grassy hillside
+portal — mound, stone facade, dark arched opening aligned with the connecting road — marks each
+mouth. Enemies visibly *dive* into the entrance (shrinking and fading into the opening, kicking
+up dust) and *pop out* of the exit with a small overshoot, so going underground reads as a
+mechanic rather than a glitch. The build spots flanking the exit are the natural "kill zone"
+where surfacing enemies can be punished.
+
 ### Enemies
 
 Enemies move along the fixed path and share one toy-tank chassis silhouette —
@@ -85,6 +102,12 @@ rescale of that shared chassis read as a different machine at a glance, while
 HP, speed, and value are what actually make each one play differently —
 mirroring how the tower roster differentiates mostly through livery on shared
 silhouettes.
+
+Enemies also *feel* alive in motion: they pop onto the table with a small scale-up when
+spawned (a toy being placed), their upper chassis idles with a subtle engine-rumble bob on the
+tracks, and they kick up a faint dust trail behind them as they drive (faster types more
+often). Every discrete hit that lands flashes the hull white for a fraction of a second, so
+incoming damage visibly registers between health-bar ticks.
 
 When an enemy is killed by damage (as opposed to reaching the base), it doesn't
 just vanish — it bursts apart "blown-apart toy" style: a white-hot flash, an
@@ -165,6 +188,13 @@ enemy "camp" (tent + maroon flag, the enemy livery color) at the spawn point, an
 "base" bunker (cyan flag) at the path end the player defends. All of it is cosmetic, hand-placed
 at fixed positions (so the map reads as designed, not random), and rendered below gameplay units
 so towers, enemies, and projectiles always draw clearly on top.
+
+The presentation also sells the "toys on a table" framing and quietly breathes: the grass mat
+sits on a wooden tabletop frame (with faint plank-grain lines showing in the margins), a soft
+vignette darkens the mat's edges so the field reads as lit from above, a barely-there cloud
+shadow drifts across the table on a long loop, trees, bushes, and grass tufts sway gently out
+of phase with one another, and the camp/base pennants flutter on their poles. Impact moments
+get physical feedback too: mortar detonations and base breaches briefly shake the whole screen.
 
 ## Tone
 
