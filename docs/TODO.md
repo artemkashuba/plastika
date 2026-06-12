@@ -62,7 +62,7 @@
 - [x] Redesign Blue tower into a "Mortar" — lobs an arcing shell (dark finned bomb + ground shadow) onto the lead enemy's predicted road position and detonates in a fiery orange explosion with splash damage (55pt radius), giving the roster its area/crowd-control niche; new chunky high-angle tube visual with a 3D angled mouth (replaces the flat predictive-aim cannon)
 - [x] Add an enemy death effect — on a damage kill (not a base breach), the enemy bursts into a white-hot flash, an expanding shockwave ring, and a scatter of its own livery-colored debris (hull chunks, turret, track bits), sized by chassis scale, instead of vanishing
 - [x] Redesign Green "Missile Pod" visuals — unique rectangular "armored launch deck" chassis + solid launcher-hull gun assembly (replacing its old round chassis + thin twin tubes), and a new `ProjectileVisualStyle.rocket` projectile look (tapered body, nose cone, tail exhaust glow, drifting smoke trail, rotates to face its direction of travel) replacing the plain glow-ball every type otherwise shares
-- [ ] Add haptics
+- [x] Add haptics — `HapticsManager` (mirrors the sound model: persisted pause-menu toggle, device-only) firing on tower place/upgrade/sell, mortar detonation (heavy), enemy kills (light, throttled), base breach (warning), victory (success), defeat (error), and HUD button taps (selection); per-shot firing deliberately excluded to avoid buzzing
 - [ ] Add main menu
 - [ ] Add level select
 - [x] Add enemy variety — Scout/Soldier/Tank with meaningfully different stats (not palette swaps) and "soft" counters: every type should stay killable, if inefficiently, by more than one tower (avoid lock-and-key design, and avoid flying/path-ignoring enemy types entirely)
@@ -78,6 +78,9 @@
 - [x] Visual feel pass — enemy hull "engine rumble" bob, dust trails behind driving enemies, spawn pop, white hit-flash on discrete hits, screen shake on mortar detonations and base breaches (`SKCameraNode` + `shakeScreen`)
 - [x] Environment depth pass — wooden tabletop frame with grain lines, soft vignette over the grass mat, drifting ambient cloud shadow, gentle sway on trees/bushes/grass tufts, fluttering marker flags
 - [x] Add per-type turret traverse speed (rate-limited rotation, cosmetic only) — Mortar slowest (≈2s for 180°) for a heavy, sluggish feel; Mortar also commits to its locked target instead of re-picking the lead each frame, and its tempo deepened (1.85s reload / 5-damage shell, DPS ≈ unchanged)
+- [x] Rework Green "Missile Pod" into long-range artillery support — range +75% (306pt, first per-type range; selection circle now re-sizes per tower), rockets −30% speed (168), +30% DPS (3-damage warhead / 0.75s = 4.0), and a clearly visible smoke trail (brighter, bigger, denser puffs)
+- [x] Make orphaned Green missiles land instead of vanishing — when a homing missile's target dies/breaches mid-flight it commits to the target's last-known road spot and detonates there (cosmetic, color-matched flash + shockwave ring, no damage), instead of blinking out of the air
+- [x] Redesign Red "Autocannon" gun into a proper twin-autocannon turret — a chunky rounded housing (hatch + glossy highlight) fixed to the pivot, with two barrels protruding from a front mantlet that recoil/cycle *into* the housing (instead of two bare barrels on a small disc)
 - [ ] Replace placeholder art
 - [ ] Improve animations
 - [ ] Add skins

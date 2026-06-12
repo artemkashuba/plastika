@@ -25,18 +25,24 @@ One tower type — the Laser Lance — fights differently: instead of discrete s
 Current prototype tower types:
 
 1. Red Tower — "Autocannon" (50 coins)
-   - Red visual identity
-   - Fast attack speed (0.36s cooldown)
+   - Red visual identity, on the shared round toy-turret base. Its gun is a proper
+     twin-autocannon **turret**: a chunky rounded housing (bright red livery, glossy
+     highlight, commander's hatch) with two dark barrels protruding from a front mantlet.
+     The housing is fixed to the rotation pivot; on each shot only the barrels recoil,
+     sliding back *into* the housing and springing out — reading as a rapid-fire autocannon
+     cycling rather than a whole turret kicking
+   - Fast attack speed (0.28s cooldown)
    - 1 damage per shot
    - Direct projectile behavior
    - ≈ 3.6 DPS
 
 2. Green Tower — "Missile Pod" (50 coins)
-   - Stands apart from the rest of the roster visually: a rectangular "armored launch deck" chassis and solid launcher-hull gun assembly (rather than the round toy-turret base + thin barrels), firing a tapered rocket — nose cone, tail exhaust glow, drifting smoke trail — that visibly rotates to face its direction of travel in flight, instead of a plain re-tinted glow-ball
-   - Homing projectile behavior — its rockets chase their target until impact regardless of the tower's attack range
-   - Slightly slower attack speed (0.58s cooldown)
-   - 1 damage per shot
-   - ≈ 3.1 DPS
+   - Stands apart from the rest of the roster visually: a rectangular "armored launch deck" chassis and solid launcher-hull gun assembly (rather than the round toy-turret base + thin barrels), firing a tapered rocket — nose cone, tail exhaust glow, and a thick, clearly visible drifting smoke trail — that visibly rotates to face its direction of travel in flight, instead of a plain re-tinted glow-ball
+   - The roster's **long-range artillery support**: 306pt acquisition range, 75% beyond the 175pt everyone else shares — it starts working on enemies most of a screen away
+   - Homing projectile behavior — its rockets chase their target until impact regardless of the tower's attack range; and if that target dies or breaches while a rocket is still in the air, the rocket doesn't vanish — it flies on to where the target last was and detonates harmlessly on the road (a small color-matched blast, no damage), so a launched missile always resolves on the battlefield
+   - Slow-cruising rockets (168pt/s, the slowest projectile in the roster) — they're guaranteed to hit anyway, and the long lazy flight draws a smoke arc across the battlefield
+   - Slower attack speed (0.75s cooldown), heavier 3-damage warhead
+   - = 4.0 DPS — strong sustained single-target output befitting its reach
 
 3. Blue Tower — "Mortar" (50 coins)
    - A high-angle artillery piece, visually distinct from the rest of the roster: a chunky upward-flaring tube with a 3D angled steel mouth (bore + specular glint), sitting on a baseplate + bipod, rather than a flat rotating barrel
@@ -195,6 +201,16 @@ vignette darkens the mat's edges so the field reads as lit from above, a barely-
 shadow drifts across the table on a long loop, trees, bushes, and grass tufts sway gently out
 of phase with one another, and the camp/base pennants flutter on their poles. Impact moments
 get physical feedback too: mortar detonations and base breaches briefly shake the whole screen.
+
+### Haptics
+
+On device, the game's key moments also play tactile feedback (toggleable in the pause menu,
+beside the sound switch, and on by default): a solid tap when placing a tower, a crisper one
+when upgrading, a light one when selling; a heavy thud on a mortar detonation; a light, throttled
+tap on each enemy kill; a "warning" buzz when an enemy breaches the base; and success/error
+notifications on victory/defeat. Per-shot firing is intentionally silent to the touch — the
+fastest tower would otherwise buzz continuously — so the Mortar's detonation carries the
+roster's "heavy weapon" feel. Haptics are device-only and do nothing on the simulator.
 
 ## Tone
 

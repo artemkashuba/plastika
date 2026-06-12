@@ -25,11 +25,16 @@ final class GameStateManager: ObservableObject {
     @Published private(set) var pauseStats: PauseStats?
     /// Persisted across sessions. Defaults to true on first launch.
     @Published private(set) var isSoundEnabled: Bool
+    /// Persisted across sessions. Defaults to true on first launch. Mirrors `isSoundEnabled`.
+    @Published private(set) var isHapticsEnabled: Bool
 
     /// Called by GameScene when the SwiftUI resume action fires.
     var onResume: (() -> Void)?
     /// Called immediately when the sound setting changes so GameScene can mute/unmute the engine.
     var onSoundEnabledChange: ((Bool) -> Void)?
+    /// Called immediately when the haptics setting changes so GameScene can push it onto the
+    /// HapticsManager (mirrors `onSoundEnabledChange`).
+    var onHapticsEnabledChange: ((Bool) -> Void)?
 
     init() {
         // Default sound ON; only use stored value after first explicit set
@@ -37,6 +42,13 @@ final class GameStateManager: ObservableObject {
             isSoundEnabled = true
         } else {
             isSoundEnabled = UserDefaults.standard.bool(forKey: "soundEnabled")
+        }
+
+        // Default haptics ON; only use stored value after first explicit set
+        if UserDefaults.standard.object(forKey: "hapticsEnabled") == nil {
+            isHapticsEnabled = true
+        } else {
+            isHapticsEnabled = UserDefaults.standard.bool(forKey: "hapticsEnabled")
         }
     }
 
@@ -77,5 +89,13 @@ final class GameStateManager: ObservableObject {
         isSoundEnabled = value
         UserDefaults.standard.set(value, forKey: "soundEnabled")
         onSoundEnabledChange?(value)
+    }
+
+    // MARK: - Haptics
+
+    func setHapticsEnabled(_ value: Bool) {
+        isHapticsEnabled = value
+        UserDefaults.standard.set(value, forKey: "hapticsEnabled")
+        onHapticsEnabledChange?(value)
     }
 }

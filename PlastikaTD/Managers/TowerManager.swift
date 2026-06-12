@@ -2,8 +2,6 @@ import SpriteKit
 
 @MainActor
 final class TowerManager {
-    private let placeholderAttackRange: CGFloat = 175
-
     private struct TargetLock {
         weak var enemy: PlaceholderEnemy?
         let lifeID: Int
@@ -26,6 +24,9 @@ final class TowerManager {
     private var lastCombatUpdateTime: TimeInterval?
     private var selectedBuildSpotID: Int?
     var isSoundEnabled: Bool = true
+    /// Wired once at scene setup so the mortar detonation can fire its heavy haptic the
+    /// instant the shell lands (paired with the explosion + screen shake).
+    weak var hapticsManager: HapticsManager?
     private var rangeIndicator: SKShapeNode?
     private var sellBadgeNode: SKNode?
     private let sellBadgeYOffset: CGFloat = -50
@@ -354,6 +355,11 @@ final class TowerManager {
         ) { [weak self, weak enemyManager, weak economyManager, weak uiManager, weak scene] in
             guard let enemyManager else { return }
 
+            // Fire the heavy detonation haptic first: it's forced through the throttle and
+            // resets the window, so the splash kills below collapse into this one boom
+            // rather than each adding its own light tap.
+            self?.hapticsManager?.mortarDetonated()
+
             let kills = enemyManager.applyAreaDamage(splashDamage, at: landingPoint, radius: splashRadius)
             for kill in kills {
                 economyManager?.credit(kill.reward)
@@ -447,14 +453,14 @@ final class TowerManager {
                currentTarget,
                lifeID: currentTargetLock.lifeID,
                from: tower.node.position,
-               within: placeholderAttackRange
+               within: tower.type.range
            ) {
             return currentTargetLock
         }
 
         targetLocksByBuildSpotID[buildSpotID] = nil
 
-        guard let target = enemyManager.nearestEnemy(to: tower.node.position, within: placeholderAttackRange) else {
+        guard let target = enemyManager.nearestEnemy(to: tower.node.position, within: tower.type.range) else {
             return nil
         }
 
@@ -465,7 +471,7 @@ final class TowerManager {
 
     private func selectTower(withBuildSpotID buildSpotID: Int, tower: PlaceholderTower, in scene: SKScene) {
         if selectedBuildSpotID == buildSpotID {
-            moveRangeIndicator(to: tower.node.position, in: scene)
+            moveRangeIndicator(to: tower.node.position, radius: tower.type.range, in: scene)
             return
         }
 
@@ -477,7 +483,7 @@ final class TowerManager {
         hideUpgradeBadge()
         selectedBuildSpotID = buildSpotID
         tower.setSelected(true, animated: true)
-        moveRangeIndicator(to: tower.node.position, in: scene)
+        moveRangeIndicator(to: tower.node.position, radius: tower.type.range, in: scene)
         showSellBadge(for: tower, in: scene)
         showUpgradeBadge(for: tower, in: scene)
     }
@@ -649,9 +655,15 @@ final class TowerManager {
         return path
     }
 
-    private func moveRangeIndicator(to position: CGPoint, in scene: SKScene) {
+    private func moveRangeIndicator(to position: CGPoint, radius: CGFloat, in scene: SKScene) {
         let indicator = makeRangeIndicator()
         indicator.position = position
+        // Ranges differ per type now (the Missile Pod reaches much further), so the shared
+        // indicator's circle is re-sized to the selected tower's actual reach on every move.
+        indicator.path = CGPath(
+            ellipseIn: CGRect(x: -radius, y: -radius, width: radius * 2, height: radius * 2),
+            transform: nil
+        )
 
         if indicator.parent == nil {
             scene.addChild(indicator)
@@ -663,7 +675,7 @@ final class TowerManager {
             return rangeIndicator
         }
 
-        let indicator = SKShapeNode(circleOfRadius: placeholderAttackRange)
+        let indicator = SKShapeNode()
         indicator.name = "TowerRangeIndicator"
         indicator.fillColor = .clear
         indicator.strokeColor = SKColor(white: 1.0, alpha: 0.34)

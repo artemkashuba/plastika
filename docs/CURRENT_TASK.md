@@ -2,6 +2,10 @@
 
 ## Current Status
 
+Red "Autocannon" twin-turret redesign (housing + barrels cycling into it) — complete.
+Orphaned missiles land & detonate (homing missile commits to road on target loss) — complete.
+Haptics (`HapticsManager` — tactile feedback on key moments, persisted pause-menu toggle) — complete.
+Missile Pod rework (long-range support: +75% range, slow rockets, +30% DPS, visible trail) — complete.
 Sluggish Mortar + per-type turret traverse (rate-limited aiming, target commitment) — complete.
 Serpentine map + underground tunnel (gameplay + real-life portal visuals) — complete.
 Visual feel pass (hit flash, screen shake, dust, rumble, spawn pop) — complete.
@@ -64,11 +68,93 @@ The repository now has:
 
 ## Next Task
 
-Add haptics (next unchecked Phase 2 item in `TODO.md`).
+Add main menu, or add level select (next unchecked Phase 2 items in `TODO.md`). The remaining
+"total time control" / "total information" UX items are also open.
 
-## Immediate Goal
+## Previous Milestone — Red "Autocannon" Twin-Turret Redesign
 
-Identify the moments that most deserve tactile feedback (tower placement, firing, enemy kills, base damage, wave start/clear, button taps?) and decide which haptic style (`UIImpactFeedbackGenerator` weight, `UINotificationFeedbackGenerator` for win/loss, etc.) fits each — keeping the same "small vertical slice" approach as every other feel-pass feature so far (recoil, muzzle flash, reload ring).
+The Red gun read as "two floating barrels on a disc" — it had only a small pivot circle and
+two thin barrels, no gun body. Redesigned into a proper twin-autocannon turret (user-chosen
+shape + recoil; see `DECISIONS.md` 2026-06-12):
+
+- New geometry in `TowerGunFactory`'s `.red` case: a chunky rounded **housing** (rect 22×19,
+  bright `turretColor`, glossy specular highlight, a domed commander's hatch with a glint) plus
+  a darker front **mantlet** the barrels emerge through. All of this sits on `aimNode` — it
+  rotates to aim but does NOT recoil
+- The two barrels (now longer, 25pt, with dark muzzle bores) live on `barrelNode` and are
+  layered *below* the housing/mantlet, so when only `barrelNode` recoils they visibly slide
+  back **into** the turret and spring out — reading as a rapid-fire autocannon cycling rather
+  than the whole turret kicking. `tipOffset` moved to (0, 29) for the longer barrels
+- No gameplay change — purely the gun's look. Verified in the simulator (idle + rotated) via a
+  throwaway debug placement, then removed; full UI suite green (Red pixel detection unaffected)
+- Corrected a stale `GAME_DESIGN.md` figure while there: Red's cooldown is 0.28s (the doc said
+  0.36s; the ≈3.6 DPS already matched 0.28)
+
+## Previous Milestone — Orphaned Missiles Land & Detonate
+
+A homing Green missile whose target died or breached mid-flight used to simply vanish in the
+air (`completion(false)`, no impact) — an immersion break the user flagged. Now it commits to
+the ground:
+
+- `PlaceholderProjectile.startHomingTravel` tracks `lastKnownTargetPosition` (updated every
+  frame the target is still live) and an `isCommittingToGround` flag. When
+  `targetPositionProvider()` first returns nil, instead of aborting it flips the flag and keeps
+  flying straight to that last-known road spot — still rotating and trailing smoke — then
+  detonates on arrival
+- The road detonation is **cosmetic**: `completion(false)` keeps it off the normal hit path
+  (no damage, no `enemy_hit` sound, no standard impact flash), and a new
+  `spawnLandingExplosion(at:)` draws a color-matched flash + expanding shockwave ring (the
+  missile's own lime, deliberately small and *not* the Mortar's big fiery orange, so Green
+  gains no AoE and the Mortar keeps its niche). Built from the same transient self-removing
+  sibling-node pattern as `spawnSmokePuff`
+- The 2.6s flight-timeout fallback also detonates if it was mid-commit, so the "a fired missile
+  always resolves on the road" guarantee holds even for a rare long chase. The projectile's
+  configured `color`/`radius` are now cached in `configure` for the color-matched blast
+- Generalized in `startHomingTravel` (not Green-specific code), so any future homing projectile
+  inherits the behavior. No balance change — purely the resolution of an already-spent shot
+
+## Previous Milestone — Haptics
+
+Tactile feedback is now wired across the game's key moments via a new `HapticsManager`,
+mirroring the sound model end-to-end (see `DECISIONS.md` 2026-06-12):
+
+- `HapticsManager` (new `Managers/` file, registered in the classic pbxproj) owns the UIKit
+  feedback generators, keeps them warm with `prepare()`, and gates every fire path on a single
+  `isEnabled` flag. Device-only — generators no-op on the simulator
+- Persisted toggle lives on `GameStateManager` as `@Published isHapticsEnabled` +
+  `setHapticsEnabled` (UserDefaults key `hapticsEnabled`, defaults ON), exactly paralleling
+  `isSoundEnabled`; a new **Haptics** row in `PauseMenuView` mirrors the Sound row. GameScene
+  syncs the flag and re-`prepareAll()`s via `onHapticsEnabledChange`
+- Event mapping: tower **place** = medium, **upgrade** = rigid (crisper than place), **sell** =
+  light; **mortar detonation** = heavy (paired with the explosion + screen shake); **enemy
+  kill** = light but throttled; **base breach** = warning notification; **victory** = success,
+  **defeat** = error; **HUD buttons** (pause/restart) = selection
+- Per-shot firing is deliberately **not** hapticized — the Autocannon fires every 0.28s, which
+  would buzz continuously; the Mortar's heavy detonation carries the "heavy weapon" beat instead
+- Kill/detonation taps share a throttle (0.11s) in `HapticsManager`: the mortar's forced heavy
+  boom resets the window so a splash that kills a cluster collapses to one boom, not a buzz.
+  Wired into the two combat hubs via weak refs (`EnemyManager.killAndRecycle` for all damage
+  kills, `TowerManager`'s mortar onImpact for the detonation), set once in `setupCallbacks`
+- Also widened the fires-test clear-field poll (40 → 70 iterations): it was racing the narrow
+  gap between wave 1 dying and the larger wave 2 spawning under full-suite load (unrelated to
+  haptics, which no-op in tests). Full suite green
+
+## Previous Milestone — Missile Pod Rework (Long-Range Support)
+
+Green's stats and presentation were reworked to the user's numbers (see `DECISIONS.md`
+2026-06-12):
+
+- `TowerType.range` is per-type for the first time: Green 306 (+75%), everyone else 175.
+  `TowerManager`'s redundant `placeholderAttackRange` constant was removed in favor of
+  `tower.type.range`, and the shared selection range indicator re-sizes its circle path per
+  selection (`moveRangeIndicator(to:radius:in:)`) instead of being built once at 175
+- Rockets cruise at 168 (−30%) — homing guarantees the hit, and the slower flight shows off
+  the trail across the long range
+- Damage +30% as a heavier 3-damage warhead on a 0.75s cooldown → DPS exactly 4.0 (integer
+  damage can't express 2.6, so the cooldown absorbs the remainder)
+- Smoke trail is now clearly visible: brighter puffs (white 0.82 @ 0.85 alpha vs the old
+  near-transparent 0.60 @ 0.50×0.55), bigger (3.0pt), denser (every 0.045s), longer-lived
+  (0.7s fade)
 
 ## Previous Milestone — Sluggish Mortar + Per-Type Turret Traverse
 

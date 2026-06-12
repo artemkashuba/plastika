@@ -10,6 +10,7 @@ struct GameSystems {
     let economyManager: EconomyManager
     let baseHealthManager: BaseHealthManager
     let uiManager: UIManager
+    let hapticsManager: HapticsManager
 
     init(gameStateManager: GameStateManager) {
         self.gameStateManager = gameStateManager
@@ -22,5 +23,6 @@ struct GameSystems {
         self.economyManager = EconomyManager()
         self.baseHealthManager = BaseHealthManager()
         self.uiManager = UIManager()
+        self.hapticsManager = HapticsManager()
     }
 }

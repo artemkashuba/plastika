@@ -144,14 +144,15 @@ final class TowerPlacementUITests: XCTestCase {
         placeTower(app, at: CGVector(dx: 0.628, dy: 0.725), option: .green)  // spot id 1
         placeTower(app, at: CGVector(dx: 0.628, dy: 0.573), option: .blue)   // spot id 3
 
-        // The serpentine path takes ~19s to traverse, so enemies (and the low-health bars
-        // this predicate actually detects) can legitimately be on screen for a long while.
-        // Poll for a clean battlefield frame instead of sleeping a fixed interval. The scan
-        // window covers the table but excludes the top HUD bar, whose red hearts also match
-        // this deep-red predicate.
+        // The serpentine path takes ~19s to traverse, and the field only fully clears in the
+        // brief gap between wave 1 dying and the larger wave 2 spawning — so poll for a clean
+        // frame over a generous window rather than sleeping a fixed interval. Under full-suite
+        // load each screenshot is slower (fewer game-seconds elapse per iteration), so the
+        // window is sized with margin to reliably catch that inter-wave gap. The scan covers
+        // the table but excludes the top HUD bar, whose red hearts match this deep-red predicate.
         var sawClearField = false
 
-        for _ in 0..<40 {
+        for _ in 0..<70 {
             Thread.sleep(forTimeInterval: 0.5)
 
             let remainingEnemyPixels = countPixels(

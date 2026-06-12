@@ -28,39 +28,85 @@ enum TowerGunFactory {
 
         switch type {
 
-        // ── RED: dual autocannon ─────────────────────────────────────────────
+        // ── RED: twin autocannon turret ──────────────────────────────────────
+        // A chunky rounded gun housing (fixed on the aimNode — rotates but does NOT recoil)
+        // that the two barrels protrude from and cycle back into on every shot, so the gun
+        // reads as a proper twin-autocannon *turret* rather than two bare barrels on a disc.
+        // The housing/mantlet are layered above the barrels so the barrels visibly slide
+        // back "into" the turret when they recoil (only `barrelNode` kicks).
         case .red:
-            let turret = SKShapeNode(circleOfRadius: 9)
-            turret.fillColor = type.turretColor
-            turret.strokeColor = SKColor(white: 1.0, alpha: 0.40)
-            turret.lineWidth = 2
-            turret.zPosition = 1
-            aimNode.addChild(turret)
+            // Turret housing — the gun body, in the bright turret livery.
+            let housing = SKShapeNode(rectOf: CGSize(width: 22, height: 19), cornerRadius: 5)
+            housing.fillColor = type.turretColor
+            housing.strokeColor = SKColor(white: 1.0, alpha: 0.40)
+            housing.lineWidth = 2
+            housing.position = CGPoint(x: 0, y: 3)
+            housing.zPosition = 3
+            aimNode.addChild(housing)
 
-            let bridge = SKShapeNode(rectOf: CGSize(width: 14, height: 5), cornerRadius: 2)
-            bridge.fillColor = type.barrelColor
-            bridge.strokeColor = .clear
-            bridge.position = CGPoint(x: 0, y: 7)
-            bridge.zPosition = 2
-            barrelNode.addChild(bridge)
+            // Gun mantlet — a darker front lip the barrels pass out through; sits above the
+            // barrels so their rear ends vanish into the housing as they cycle back.
+            let mantlet = SKShapeNode(rectOf: CGSize(width: 18, height: 6), cornerRadius: 2)
+            mantlet.fillColor = type.barrelColor
+            mantlet.strokeColor = SKColor(white: 1.0, alpha: 0.18)
+            mantlet.lineWidth = 1
+            mantlet.position = CGPoint(x: 0, y: 11)
+            mantlet.zPosition = 3.4
+            aimNode.addChild(mantlet)
 
-            let barrelL = SKShapeNode(rectOf: CGSize(width: 4, height: 20), cornerRadius: 2)
+            // Commander's hatch on the rear deck — a small domed detail (mid-red, not a dark
+            // hole) with a glint, so the turret top reads as hardware rather than a slot.
+            let hatch = SKShapeNode(circleOfRadius: 3.2)
+            hatch.fillColor = type.baseColor
+            hatch.strokeColor = SKColor(white: 0.0, alpha: 0.30)
+            hatch.lineWidth = 1
+            hatch.position = CGPoint(x: 0, y: -3)
+            hatch.zPosition = 3.6
+            aimNode.addChild(hatch)
+
+            let hatchGlint = SKShapeNode(circleOfRadius: 1.1)
+            hatchGlint.fillColor = SKColor(white: 1.0, alpha: 0.45)
+            hatchGlint.strokeColor = .clear
+            hatchGlint.position = CGPoint(x: -1, y: -2)
+            hatchGlint.zPosition = 3.7
+            aimNode.addChild(hatchGlint)
+
+            // Specular highlight — glossy toy-plastic sheen on the housing's upper-left.
+            let highlight = SKShapeNode(ellipseOf: CGSize(width: 8, height: 4.5))
+            highlight.fillColor = SKColor(white: 1.0, alpha: 0.40)
+            highlight.strokeColor = .clear
+            highlight.position = CGPoint(x: -6, y: 9)
+            highlight.zPosition = 3.8
+            aimNode.addChild(highlight)
+
+            // ── Twin barrels (recoil) — protrude from the mantlet, slide back into it. ──
+            let barrelL = SKShapeNode(rectOf: CGSize(width: 4.5, height: 25), cornerRadius: 2)
             barrelL.fillColor = type.barrelColor
             barrelL.strokeColor = SKColor(white: 1.0, alpha: 0.22)
             barrelL.lineWidth = 1
-            barrelL.position = CGPoint(x: -5, y: 15)
+            barrelL.position = CGPoint(x: -5, y: 16.5)
             barrelL.zPosition = 2
             barrelNode.addChild(barrelL)
 
-            let barrelR = SKShapeNode(rectOf: CGSize(width: 4, height: 20), cornerRadius: 2)
+            let barrelR = SKShapeNode(rectOf: CGSize(width: 4.5, height: 25), cornerRadius: 2)
             barrelR.fillColor = type.barrelColor
             barrelR.strokeColor = SKColor(white: 1.0, alpha: 0.22)
             barrelR.lineWidth = 1
-            barrelR.position = CGPoint(x: 5, y: 15)
+            barrelR.position = CGPoint(x: 5, y: 16.5)
             barrelR.zPosition = 2
             barrelNode.addChild(barrelR)
 
-            tipOffset = CGPoint(x: 0, y: 25)
+            // Dark muzzle bores at the tips.
+            for muzzleX in [CGFloat(-5), CGFloat(5)] {
+                let muzzle = SKShapeNode(rectOf: CGSize(width: 5, height: 3), cornerRadius: 1)
+                muzzle.fillColor = SKColor(white: 0.06, alpha: 1.0)
+                muzzle.strokeColor = .clear
+                muzzle.position = CGPoint(x: muzzleX, y: 28)
+                muzzle.zPosition = 2.1
+                barrelNode.addChild(muzzle)
+            }
+
+            tipOffset = CGPoint(x: 0, y: 29)
 
         // ── GREEN: missile pod launcher ──────────────────────────────────────
         case .green:

@@ -34,6 +34,10 @@ struct PauseMenuView: View {
 
             soundRow
 
+            divider
+
+            hapticsRow
+
             if let stats = gameStateManager.pauseStats {
                 divider
                 enemySection(stats)
@@ -91,6 +95,34 @@ struct PauseMenuView: View {
             Toggle("", isOn: Binding(
                 get: { gameStateManager.isSoundEnabled },
                 set: { gameStateManager.setSoundEnabled($0) }
+            ))
+            .labelsHidden()
+            .tint(accent)
+        }
+        .padding(.horizontal, 22)
+        .padding(.vertical, 14)
+    }
+
+    // MARK: - Haptics
+
+    private var hapticsRow: some View {
+        HStack(spacing: 12) {
+            Image(systemName: gameStateManager.isHapticsEnabled
+                  ? "iphone.radiowaves.left.and.right"
+                  : "iphone.slash")
+                .font(.system(size: 16))
+                .foregroundColor(accent)
+                .frame(width: 22)
+
+            Text("Haptics")
+                .font(.custom("AvenirNext-DemiBold", size: 15))
+                .foregroundColor(title)
+
+            Spacer()
+
+            Toggle("", isOn: Binding(
+                get: { gameStateManager.isHapticsEnabled },
+                set: { gameStateManager.setHapticsEnabled($0) }
             ))
             .labelsHidden()
             .tint(accent)

@@ -18,6 +18,7 @@
 		1A0000092C12400100000001 /* TowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000092C12400000000001 /* TowerManager.swift */; };
 		1A00000A2C12400100000001 /* ProjectileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000A2C12400000000001 /* ProjectileManager.swift */; };
 		1A00000B2C12400100000001 /* EconomyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000B2C12400000000001 /* EconomyManager.swift */; };
+		1A0000F02C12400100000001 /* HapticsManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A0000F02C12400000000001 /* HapticsManager.swift */; };
 		1A00000C2C12400100000001 /* UIManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000C2C12400000000001 /* UIManager.swift */; };
 		1A00000D2C12400100000001 /* GameEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000D2C12400000000001 /* GameEntity.swift */; };
 		1A00000E2C12400100000001 /* GameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000E2C12400000000001 /* GameView.swift */; };
@@ -68,6 +69,7 @@
 		1A0000092C12400000000001 /* TowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TowerManager.swift; sourceTree = "<group>"; };
 		1A00000A2C12400000000001 /* ProjectileManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectileManager.swift; sourceTree = "<group>"; };
 		1A00000B2C12400000000001 /* EconomyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EconomyManager.swift; sourceTree = "<group>"; };
+		1A0000F02C12400000000001 /* HapticsManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HapticsManager.swift; sourceTree = "<group>"; };
 		1A00000C2C12400000000001 /* UIManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIManager.swift; sourceTree = "<group>"; };
 		1A00000D2C12400000000001 /* GameEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameEntity.swift; sourceTree = "<group>"; };
 		1A00000E2C12400000000001 /* GameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameView.swift; sourceTree = "<group>"; };
@@ -170,6 +172,7 @@
 				1A0000092C12400000000001 /* TowerManager.swift */,
 				1A00000A2C12400000000001 /* ProjectileManager.swift */,
 				1A00000B2C12400000000001 /* EconomyManager.swift */,
+				1A0000F02C12400000000001 /* HapticsManager.swift */,
 				1A0000382C12400000000001 /* BaseHealthManager.swift */,
 				1A00000C2C12400000000001 /* UIManager.swift */,
 			);
@@ -362,6 +365,7 @@
 				1A0000092C12400100000001 /* TowerManager.swift in Sources */,
 				1A00000A2C12400100000001 /* ProjectileManager.swift in Sources */,
 				1A00000B2C12400100000001 /* EconomyManager.swift in Sources */,
+				1A0000F02C12400100000001 /* HapticsManager.swift in Sources */,
 				1A0000382C12400100000001 /* BaseHealthManager.swift in Sources */,
 				1A00000C2C12400100000001 /* UIManager.swift in Sources */,
 				1A00000D2C12400100000001 /* GameEntity.swift in Sources */,

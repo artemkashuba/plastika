@@ -202,12 +202,26 @@ final class GameScene: SKScene {
             self?.systems.towerManager.isSoundEnabled = enabled
         }
 
+        systems.gameStateManager.onHapticsEnabledChange = { [weak self] enabled in
+            self?.systems.hapticsManager.isEnabled = enabled
+            if enabled {
+                self?.systems.hapticsManager.prepareAll()
+            }
+        }
+
         systems.waveManager.onWaveProgressChanged = { [weak self] waveNumber, countdown in
             self?.systems.uiManager.setWave(number: waveNumber, countdown: countdown)
         }
 
         // Apply persisted sound setting immediately
         systems.towerManager.isSoundEnabled = systems.gameStateManager.isSoundEnabled
+
+        // Apply persisted haptics setting and wire the managers that fire combat haptics
+        // straight from their own update loops (kills, mortar detonations).
+        systems.hapticsManager.isEnabled = systems.gameStateManager.isHapticsEnabled
+        systems.hapticsManager.prepareAll()
+        systems.enemyManager.hapticsManager = systems.hapticsManager
+        systems.towerManager.hapticsManager = systems.hapticsManager
     }
 
     private func handleEnemyReachedEnd() {
@@ -217,6 +231,7 @@ final class GameScene: SKScene {
 
         playSound("enemy_breach.wav")
         shakeScreen(intensity: 5, duration: 0.3)
+        systems.hapticsManager.baseBreached()
         let isDestroyed = systems.baseHealthManager.takeDamage()
 
         // Force a HUD update immediately so the heart loss animation triggers now.
@@ -235,6 +250,7 @@ final class GameScene: SKScene {
     private func triggerGameOver() {
         // Stop gameplay immediately so no further input or combat runs.
         systems.gameStateManager.markGameOver()
+        systems.hapticsManager.defeat()
         // Delay the overlay so the last heart animation (0.31s) plays before it appears.
         run(SKAction.sequence([
             SKAction.wait(forDuration: 0.36),
@@ -247,6 +263,7 @@ final class GameScene: SKScene {
 
     private func triggerVictory() {
         systems.gameStateManager.markVictory()
+        systems.hapticsManager.victory()
         systems.uiManager.showVictoryOverlay(in: self)
     }
 
@@ -305,6 +322,7 @@ final class GameScene: SKScene {
 
         if phase == .gameOver || phase == .victory {
             if nodes(at: location).contains(where: { $0.name == "RestartButton" }) {
+                systems.hapticsManager.buttonTapped()
                 restartGame()
             }
             return
@@ -312,6 +330,7 @@ final class GameScene: SKScene {
 
         if nodes(at: location).contains(where: { $0.name == "PauseButton" }),
            phase == .sceneLoaded {
+            systems.hapticsManager.buttonTapped()
             isPaused = true
             let stats = PauseStats(
                 activeEnemies: systems.enemyManager.activeEnemyCount,
@@ -336,6 +355,7 @@ final class GameScene: SKScene {
                     health: systems.baseHealthManager.health
                 )
                 playSound("tower_sell.wav")
+                systems.hapticsManager.towerSold()
             }
             return
         }
@@ -351,6 +371,8 @@ final class GameScene: SKScene {
                 // tap isn't worth the asset work yet (mirrors how Pink reuses Blue's
                 // shoot sound for its unused `shootSound` slot).
                 playSound("tower_place.wav")
+                // Distinct from placement: a crisper "rigid" tap for the tier bump.
+                systems.hapticsManager.towerUpgraded()
             }
             return
         }
@@ -370,6 +392,7 @@ final class GameScene: SKScene {
                 systems.buildSpotManager.markOccupied(menuSelection.buildSpot)
                 systems.buildSpotManager.hideBuildMenu()
                 playSound("tower_place.wav")
+                systems.hapticsManager.towerPlaced()
             }
 
             return

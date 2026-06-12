@@ -1514,3 +1514,130 @@ the lead enemy every frame), and its tempo got heavier: 1.40s → **1.85s** cool
   projectile check also switched from a racy single-baseline comparison to sampling lime-pixel
   variance over ~4s, since missiles/flashes make the count fluctuate while a silent field
   holds it constant.
+
+## 2026-06-12 (Missile Pod Rework — Long-Range Support)
+
+**Decision**: Reworked Green per the user's direct numbers: acquisition range +75% (175 → 306,
+making `TowerType.range` per-type for the first time — everyone else stays at 175), rocket
+speed −30% (240 → 168), damage +30% — delivered as a heavier 3-damage warhead on a 0.75s
+cooldown (old: 2 dmg / 0.65s), landing DPS at exactly 4.0 (= 3.08 × 1.3), since per-shot
+damage is integer and 2.6 isn't representable. The rocket's smoke trail was also made clearly
+visible (brighter `smokeColor` 0.82/0.85 vs 0.60/0.50, bigger puffs at 3.0pt, denser 0.045s
+cadence, longer 0.7s fade) — it was nearly transparent before.
+
+**Reason**:
+
+- **User feedback with explicit numbers** ("increase firing range +75%, missile trace more
+  visible — now it's transparent mostly, decrease missile speed by 30%, damage +30%").
+- **The combination defines a real niche**: huge reach + slow guaranteed-hit rockets + heavier
+  warheads = long-range artillery support, clearly distinct from Red's short-range DPS hose,
+  Blue's area mortar, and Pink's premium beam. The slow rocket is a fair trade for homing
+  (it can never miss) and visually showcases the new trail across the long flight.
+- **The shared range indicator now re-sizes per selection** (`moveRangeIndicator` takes a
+  radius and rewrites the circle path) instead of being built once at a fixed 175 — required
+  since ranges differ per type; `TowerManager`'s redundant `placeholderAttackRange` constant
+  was removed in favor of `tower.type.range` everywhere.
+- Corrected stale `GAME_DESIGN.md` Green stats while in there (it claimed 1 dmg / 0.58s; the
+  code had been 2 dmg / 0.65s since an earlier balance pass).
+
+## 2026-06-12 (Haptics)
+
+**Decision**: Added tactile feedback via a new `HapticsManager`, mirroring the existing sound
+architecture end-to-end. Event → haptic mapping: tower place = medium impact, upgrade = rigid,
+sell = light; mortar detonation = heavy; enemy kill = light (throttled); base breach = warning
+notification; victory = success; defeat = error; HUD button taps = selection. Per-shot firing
+gets **no** haptic. Persisted ON-by-default toggle in the pause menu (`hapticsEnabled`
+UserDefaults key), beside the sound toggle.
+
+**Reason**:
+
+- **Documented next Phase 2 task**, and the immediate-goal note asked to pick *which* moments
+  deserve feedback and *which* style fits each — this is that decision, recorded.
+- **Mirror the sound model rather than invent a parallel one**: `isHapticsEnabled` is a
+  `@Published` on `GameStateManager` (so the SwiftUI toggle binds to it) with a
+  `setHapticsEnabled` + `onHapticsEnabledChange` callback, exactly like sound. `HapticsManager`
+  holds the UIKit generators and a plain `isEnabled` bool that GameScene keeps in sync — the
+  same shape as `TowerManager.isSoundEnabled`. Cheapest possible fit, no new patterns.
+- **No per-shot firing haptic — deliberate**: the Autocannon fires every 0.28s; a tap per shot
+  with multiple towers would buzz almost continuously and hammer the Taptic Engine. The Mortar's
+  detonation (already the heaviest visual + the screen-shake moment) carries the "heavy weapon"
+  tactile beat for the whole roster instead. This was the key judgment call the task asked for.
+- **Throttled kill taps**: kills funnel through `EnemyManager.killAndRecycle` (the single
+  damage-kill chokepoint — covers projectile, beam, and splash alike). A mortar splashing four
+  enemies would otherwise fire four light taps in one frame. A shared 0.11s throttle in
+  `HapticsManager` collapses bursts to one tap; the mortar's heavy boom is "forced" (always
+  fires) and resets the throttle window, so the splash kills in the same instant fold into the
+  boom rather than stacking taps on top of it.
+- **Generators warmed with `prepare()`** on load and after each fire (Apple's recommended
+  low-latency pattern). Haptics are device-only; on the simulator the generators simply no-op,
+  so nothing here affects the UI test suite.
+- **Wiring via weak refs set in `setupCallbacks`** (`EnemyManager.hapticsManager`,
+  `TowerManager.hapticsManager`) rather than threading a `HapticsManager` parameter through
+  every combat-method signature — matches how `onEnemyReachedEnd` and other per-scene hooks are
+  already wired, and `setupCallbacks` re-runs on restart so the refs stay valid.
+
+**Decision** (incidental): widened the `testPlacedTowerFiresProjectilesAndDestroysEnemies`
+clear-field poll from 40 to 70 iterations.
+
+**Reason**: it was intermittently failing under full-suite load (passed in isolation) — the
+battlefield only fully clears in the brief gap between wave 1 dying and the larger wave 2
+spawning, and slower screenshots under load meant fewer game-seconds elapsed inside the fixed
+window, so it could miss that gap. Unrelated to haptics (which no-op in tests); just needed
+more polling headroom.
+
+## 2026-06-12 (Orphaned Missiles Land & Detonate)
+
+**Decision**: When a homing Green missile's target dies or breaches mid-flight, the missile no
+longer vanishes — it commits to the target's last-known position, flies the rest of the way,
+and detonates on the road there. The detonation is purely cosmetic: a color-matched (lime)
+flash + expanding shockwave ring, **no damage and no sound**.
+
+**Reason**:
+
+- **User-flagged immersion break**: "when the enemy is down but we have missiles released, it
+  should not disappear — the missile should land on the road and explode." A guided munition
+  blinking out of the air reads as a bug; committing to the ground and going off reads as
+  physics. The fix is squarely in the project's "feel" tradition.
+- **Cosmetic, not splash — deliberate** (the one real design fork): giving the road detonation
+  area damage would hand Green incidental AoE and blur the Mortar's whole reason to exist (the
+  roster's documented area/crowd-control specialist). Keeping it a no-damage "wasted warhead"
+  preserves Green's single-target long-range-support identity and every tower's distinct niche.
+  The blast is tinted in the missile's own lime and kept small/un-fiery so it never reads as an
+  area attack. (If we later want orphaned missiles to feel less wasted, a *small* splash is a
+  one-knob opt-in — noted, not taken.)
+- **Implemented generically in `startHomingTravel`** (last-known-position + `isCommittingToGround`
+  flag) rather than as Green-specific code, so any future homing projectile inherits it. The
+  cosmetic blast routes through `completion(false)` + a local `spawnLandingExplosion` (sibling
+  self-removing nodes, same pattern as the smoke trail) specifically to avoid the normal
+  `onImpact` path — which would otherwise attempt damage on the dead target (a guaranteed no-op
+  thanks to the lifeID check) and play `enemy_hit` on empty road.
+- **No sound for now**: Green has no dedicated explosion sample, and playing its shoot sound or
+  the enemy-hit sound on an empty-road blast would be wrong. Silent-but-visual is the clean
+  choice; a dedicated "missile detonation" cue could be added later.
+
+## 2026-06-12 (Red "Autocannon" Twin-Turret Redesign)
+
+**Decision**: Replaced the Red gun's bare "pivot disc + two thin barrels" with a proper
+twin-autocannon turret: a chunky rounded gun housing (bright turret livery, glossy highlight,
+domed hatch) fixed to the rotation pivot, with the two barrels protruding from a front mantlet.
+Only the barrels recoil — they slide back *into* the fixed housing on each shot. Purely visual;
+no stats changed.
+
+**Reason**:
+
+- **User feedback**: the Red tower "looks like it has only two guns" — it lacked a turret body,
+  unlike Green (solid launcher hull) and Blue (chunky tube + collar). The user asked to "attach
+  a turret to these guns."
+- **Discussed the two real forks and the user chose**: (1) turret silhouette = rounded box
+  mantlet (over a tapered mantlet or a hexagon — the hexagon was rejected as it'd echo Pink's
+  hex energy platform); (2) recoil = barrels cycle into a fixed housing (over the whole turret
+  kicking). The barrels-into-housing read is the most characterful for a fast-firing autocannon
+  and is what distinguishes Red's recoil from the rest of the roster.
+- **Implementation rides the existing aim/recoil split for free**: the housing/mantlet/hatch/
+  highlight go on `aimNode` (rotates, fixed), the barrels + muzzle bores on `barrelNode` (the
+  node `PlaceholderTower` already kicks back along +y on each shot). Layering the housing above
+  the barrels (`zPosition` 3–3.8 vs 2) makes the barrel rears disappear "into" the turret as
+  they recoil — no new animation code, just geometry + z-order. `tipOffset` bumped to (0, 29)
+  for the longer barrels so the muzzle flash/spawn point stays at the tips.
+- Also reads better than the thin barrels in the small build-menu preview (same assembly,
+  scaled 0.44×). Verified in-sim (idle + rotated) with a throwaway debug placement, then removed.

@@ -55,8 +55,16 @@ enum TowerType: CaseIterable {
         }
     }
 
-    /// Attack range in scene points. All types share 175 for now.
-    var range: CGFloat { 175 }
+    /// Attack range in scene points. 175 is the roster baseline; the Missile Pod reaches
+    /// 75% further (306) — its homing rockets already chase targets anywhere, so a long
+    /// acquisition reach is its natural identity as the roster's long-range artillery
+    /// support, balanced by slow rockets and a slower reload.
+    var range: CGFloat {
+        switch self {
+        case .green: 306
+        default:     175
+        }
+    }
 
     /// How this tower fights — discrete projectile volleys, or a persistent locked-on beam.
     /// Drives which branch of `TowerManager.updateCombat` (and which visual treatment) applies.
@@ -236,10 +244,13 @@ enum TowerType: CaseIterable {
 
     /// Per-shot damage for projectile towers. Beam towers deal continuous, fractional damage
     /// via `laserDamagePerSecond` instead, so `.pink` reports 0 (never read in combat).
+    /// Green's 3 damage pairs with its 0.75s cooldown to land DPS at exactly 4.0 — a +30%
+    /// output bump over its old 2 dmg / 0.65s (≈3.08 DPS), delivered as a heavier warhead
+    /// (per-shot damage can't be fractional, so the cooldown absorbs the remainder).
     var damage: Int {
         switch self {
         case .red:   1
-        case .green: 2
+        case .green: 3
         case .blue:  5
         case .pink:  0
         }
@@ -253,7 +264,7 @@ enum TowerType: CaseIterable {
     var attackCooldown: TimeInterval {
         switch self {
         case .red:   0.28
-        case .green: 0.65
+        case .green: 0.75
         case .blue:  1.85
         case .pink:  0
         }
@@ -284,12 +295,15 @@ enum TowerType: CaseIterable {
     }
 
     /// Beam towers never spawn projectiles; `.pink` reports 0 (never read in combat).
+    /// Green's rockets cruise slowly (168, −30% from their old 240) — they're guaranteed
+    /// to hit anyway (homing), and the long, lazy flight shows off the smoke trail across
+    /// its oversized range.
     var projectileSpeed: CGFloat {
         switch self {
         case .red:
             320
         case .green:
-            240
+            168
         case .blue:
             170
         case .pink:

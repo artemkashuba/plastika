@@ -3,6 +3,10 @@ import SpriteKit
 @MainActor
 final class EnemyManager {
     var onEnemyReachedEnd: (@MainActor () -> Void)?
+    /// Wired once at scene setup (like `onEnemyReachedEnd`) so the single damage-kill
+    /// chokepoint can fire the (throttled) "enemy killed" haptic — covering projectile,
+    /// beam, and splash kills alike without threading a reference through every call site.
+    weak var hapticsManager: HapticsManager?
 
     private var activeEnemies: [PlaceholderEnemy] = []
     private var pooledEnemies: [PlaceholderEnemy] = []
@@ -136,6 +140,7 @@ final class EnemyManager {
     /// not explode.
     private func killAndRecycle(_ enemy: PlaceholderEnemy) {
         killCount += 1
+        hapticsManager?.enemyKilled()
         if let scene = enemy.node.scene {
             enemy.spawnDeathEffect(in: scene)
         }

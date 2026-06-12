@@ -29,7 +29,12 @@ final class PlaceholderProjectile: GameEntity {
     private let shellShadowNode: SKShapeNode
 
     private var style: ProjectileVisualStyle = .orb
-    private var smokeColor = SKColor(white: 0.60, alpha: 0.50)
+    private var smokeColor = SKColor(white: 0.82, alpha: 0.85)
+    /// The projectile's configured signature color + core radius, cached so a homing missile
+    /// that loses its target mid-flight can detonate on the road in its own color (see
+    /// `spawnLandingExplosion`). Set in `configure`.
+    private var detonationColor = SKColor(red: 0.28, green: 1.0, blue: 0.18, alpha: 1.0)
+    private var detonationRadius: CGFloat = 4
 
     private let travelActionKey = "placeholderProjectile.travel"
 
@@ -137,6 +142,8 @@ final class PlaceholderProjectile: GameEntity {
         node.zRotation = 0
 
         let r = max(1, radius)
+        detonationColor = color
+        detonationRadius = r
 
         switch style {
         case .orb:
@@ -201,7 +208,7 @@ final class PlaceholderProjectile: GameEntity {
                 transform: nil
             )
 
-            smokeColor = SKColor(white: 0.60, alpha: 0.50)
+            smokeColor = SKColor(white: 0.82, alpha: 0.85)
 
         case .shell:
             glowNode.isHidden = true
@@ -362,18 +369,33 @@ final class PlaceholderProjectile: GameEntity {
         // Rocket-style smoke trail bookkeeping — accumulates elapsed flight time and drops
         // a puff every `smokeInterval` seconds, independent of frame rate.
         var smokeAccumulator: CGFloat = 0
-        let smokeInterval: CGFloat = 0.06
+        let smokeInterval: CGFloat = 0.045
+
+        // Last position the (live) target was seen at, and whether the target has since been
+        // lost. When a homing missile's target dies or breaches mid-flight, the missile does
+        // NOT vanish — it commits to this ground point and detonates there (cosmetically; the
+        // dead target takes no damage), so a fired missile always resolves on the road instead
+        // of blinking out of the air.
+        var lastKnownTargetPosition = startPosition
+        var isCommittingToGround = false
 
         let home = SKAction.customAction(withDuration: 2.6) { node, elapsedTime in
             guard didComplete == false else {
                 return
             }
 
-            guard let targetPosition = targetPositionProvider() else {
-                didComplete = true
-                node.removeAction(forKey: self.travelActionKey)
-                completion(false)
-                return
+            let targetPosition: CGPoint
+            if isCommittingToGround {
+                // Target already gone — fly out the rest of the way to where it last was.
+                targetPosition = lastKnownTargetPosition
+            } else if let provided = targetPositionProvider() {
+                targetPosition = provided
+                lastKnownTargetPosition = provided
+            } else {
+                // Lost the target this frame: switch to "land on the road" mode toward its
+                // last seen spot rather than aborting in mid-air.
+                isCommittingToGround = true
+                targetPosition = lastKnownTargetPosition
             }
 
             let deltaTime = max(0, elapsedTime - previousElapsedTime)
@@ -389,7 +411,7 @@ final class PlaceholderProjectile: GameEntity {
             // formula (assumes the sprite's rest orientation faces +y) for visual
             // consistency with every turret's own aim rotation. Smoke puffs spawn at a
             // steady real-time cadence, leaving a drifting trail behind the rocket as it
-            // streaks toward its target.
+            // streaks toward its target. The trail keeps drawing while committing to ground.
             if self.style == .rocket {
                 node.zRotation = atan2(dy, dx) - (.pi / 2)
 
@@ -400,21 +422,20 @@ final class PlaceholderProjectile: GameEntity {
                 }
             }
 
-            guard distance > impactRadius else {
-                didComplete = true
-                node.position = targetPosition
-                node.removeAction(forKey: self.travelActionKey)
-                completion(true)
-                return
-            }
-
+            // Reached the impact point — either a live target (deal damage via `completion(true)`)
+            // or the road spot of a lost target (detonate cosmetically, no damage/sound, so
+            // `completion(false)` keeps it out of the normal hit path).
             let stepDistance = max(1, speed * deltaTime)
-
-            if stepDistance >= distance {
+            if distance <= impactRadius || stepDistance >= distance {
                 didComplete = true
                 node.position = targetPosition
                 node.removeAction(forKey: self.travelActionKey)
-                completion(true)
+                if isCommittingToGround {
+                    self.spawnLandingExplosion(at: targetPosition)
+                    completion(false)
+                } else {
+                    completion(true)
+                }
                 return
             }
 
@@ -430,6 +451,13 @@ final class PlaceholderProjectile: GameEntity {
                 SKAction.run {
                     if didComplete == false {
                         didComplete = true
+                        // Ran out of flight time. If it was already committing to a lost
+                        // target's ground spot, detonate where it is now rather than blinking
+                        // out — keeping the "a fired missile always lands" guarantee even in
+                        // the rare long-flight case.
+                        if isCommittingToGround {
+                            self.spawnLandingExplosion(at: self.node.position)
+                        }
                         completion(false)
                     }
                 }
@@ -449,20 +477,58 @@ final class PlaceholderProjectile: GameEntity {
             return
         }
 
-        let puff = SKShapeNode(circleOfRadius: 2.2)
+        let puff = SKShapeNode(circleOfRadius: 3.0)
         puff.fillColor = smokeColor
         puff.strokeColor = .clear
-        puff.alpha = 0.55
+        puff.alpha = 0.85
         puff.position = position
         puff.zPosition = 24
         parent.addChild(puff)
 
         puff.run(SKAction.sequence([
             SKAction.group([
-                SKAction.scale(to: 2.4, duration: 0.5),
-                SKAction.fadeOut(withDuration: 0.5)
+                SKAction.scale(to: 2.6, duration: 0.7),
+                SKAction.fadeOut(withDuration: 0.7)
             ]),
             SKAction.removeFromParent()
+        ]))
+    }
+
+    /// Detonates a lost-target missile on the road: a color-matched flash inside a thin
+    /// expanding shockwave ring — bigger and "explosion-ier" than the normal point impact
+    /// flash, but deliberately small and tinted in the missile's own color (not the Mortar's
+    /// big fiery orange) so it reads as a wasted warhead going off, not an area attack. Purely
+    /// cosmetic: deals no damage (its target is already gone) and plays no sound. Added as a
+    /// self-removing sibling via `node.parent`, like `spawnSmokePuff`, so it outlives the
+    /// projectile's recycle the same frame.
+    private func spawnLandingExplosion(at position: CGPoint) {
+        guard let parent = node.parent else {
+            return
+        }
+
+        let r = detonationRadius
+
+        let flash = SKShapeNode(circleOfRadius: r * 2.0)
+        flash.position = position
+        flash.fillColor = detonationColor.withAlphaComponent(0.9)
+        flash.strokeColor = .clear
+        flash.zPosition = 27
+        parent.addChild(flash)
+        flash.run(.sequence([
+            .group([.scale(to: 2.4, duration: 0.22), .fadeOut(withDuration: 0.22)]),
+            .removeFromParent()
+        ]))
+
+        let ring = SKShapeNode(circleOfRadius: r * 1.6)
+        ring.position = position
+        ring.fillColor = .clear
+        ring.strokeColor = detonationColor.withAlphaComponent(0.85)
+        ring.lineWidth = 2
+        ring.zPosition = 27
+        parent.addChild(ring)
+        ring.run(.sequence([
+            .group([.scale(to: 3.0, duration: 0.3), .fadeOut(withDuration: 0.3)]),
+            .removeFromParent()
         ]))
     }
 }
